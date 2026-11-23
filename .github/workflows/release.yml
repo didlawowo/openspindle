@@ -57,7 +57,8 @@ jobs:
   build-mac:
     needs: release-please
     if: needs.release-please.outputs.created == 'true'
-    runs-on: macos-15
+    # The label of the repository's self-hosted Apple Silicon runner.
+    runs-on: openspindle-macos
     timeout-minutes: 60
     # The signing and notarization secrets belong to this environment, which only main deploys to.
     environment: release

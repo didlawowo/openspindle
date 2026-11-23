@@ -53,8 +53,3 @@ tasks:
       - task: typecheck
       - task: test
       - task: build
-
-  clean:
-    desc: Remove the build output
-    cmds:
-      - 'rm -rf out/ release/'

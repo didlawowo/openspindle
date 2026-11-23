@@ -52,7 +52,7 @@ See docs/architecture.md. In short:
 Declared deviations from the dc-tech.work repository standard, for its architecture audit:
 
 - `racine-fichiers` : `.npmrc` — npm reads it from the repository root.
-- `racine-fichiers` : `.env.example` — the example for the untracked local environment file that the distribution scripts load when it exists.
+- `racine-fichiers` : `.env.example` — the distribution scripts load the untracked local environment file from the repository root, so its template sits beside it.
 - `racine-fichiers` : `components.json` — the shadcn CLI reads it from the repository root.
 - `racine-fichiers` : `electron-builder.yml` — electron-builder's configuration, read from the repository root.
 - `racine-fichiers` : `electron.vite.config.ts` — electron-vite requires its configuration file at the repository root.

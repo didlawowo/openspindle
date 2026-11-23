@@ -1,0 +1,25 @@
+import type { UiResources } from "../en"
+
+export const frMenu: UiResources["menu"] = {
+  file: "Fichier",
+  newProject: "Nouveau projet",
+  openProject: "Ouvrir un projet…",
+  importProgram: "Importer…",
+  importFromFusion: "Importer depuis Fusion 360",
+  saveProject: "Enregistrer le projet…",
+  edit: "Édition",
+  undo: "Annuler",
+  redo: "Rétablir",
+  speech: "Parole",
+  machine: "Machine",
+  stop: "Arrêter",
+  glossary: "Glossaire G-code",
+  exportTrace: "Exporter la trace du protocole…",
+  exportLog: "Exporter le journal…",
+  settings: "Réglages…",
+  models: "Modèles…",
+  toolLibrary: "Bibliothèque d’outils…",
+  checkUpdates: "Rechercher les mises à jour…",
+  installUpdate: "Redémarrer pour installer la mise à jour…",
+  licenses: "Licences open source",
+}

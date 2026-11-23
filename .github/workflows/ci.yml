@@ -20,7 +20,7 @@ concurrency:
 jobs:
   checks:
     name: Checks
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-openspindle
     timeout-minutes: 15
     env:
       # The checks bundle the app but never start Electron.

@@ -18,6 +18,7 @@ import { writeFileAtomic } from "./atomic-write"
 export class LanguageService {
   private current: AppLanguage
   private saved: LanguagePreference
+  private lastWrite: Promise<void> = Promise.resolve()
   private readonly listeners = new Set<(language: AppLanguage) => void>()
 
   constructor(
@@ -35,10 +36,14 @@ export class LanguageService {
   set(preference: LanguagePreference) {
     if (preference !== this.saved) {
       this.saved = preference
-      // The choice applies all the same; it just won't be the menus' at the next launch.
-      void writeFileAtomic(this.file, preference).catch((error: unknown) =>
-        log.warn("Remembering the interface language failed", error)
-      )
+      // Chain the writes so a fast double change lands in order, and the choice still
+      // applies if the write fails: it just won't be the menus' at the next launch.
+      this.lastWrite = this.lastWrite
+        .catch(() => {})
+        .then(() => writeFileAtomic(this.file, preference))
+        .catch((error: unknown) =>
+          log.warn("Remembering the interface language failed", error)
+        )
     }
     const language = resolveLanguage(preference, this.systemLocale)
     if (language === this.current) return

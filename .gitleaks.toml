@@ -1,0 +1,9 @@
+# gitleaks configuration, used by the pre-commit hook (.pre-commit-config.yaml).
+# The default rules apply; accepted false positives go in the allowlist below.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Accepted false positives"
+paths = []
+regexes = []

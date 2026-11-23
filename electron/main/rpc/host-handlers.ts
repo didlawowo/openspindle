@@ -87,8 +87,8 @@ export function createHostHandlers(
         services.pcb.generate(request, signal),
       "simulator.status": () => services.simulator.status(),
       "simulator.update": (patch) => services.simulator.update(patch),
-      "app.setLanguage": ({ language }) => {
-        services.language.set(language)
+      "app.setLanguage": ({ preference }) => {
+        services.language.set(preference)
       },
     },
     events: {

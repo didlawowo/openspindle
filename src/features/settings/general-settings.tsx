@@ -18,14 +18,13 @@ import { isLanguagePreference } from "@/i18n/languages"
 import { useSimulatorStatus, useUpdateSimulator } from "@/platform/simulator"
 
 const LANGUAGE_FIELDS: ReadonlyArray<{
-  id: string
   labelKey:
     "language.optionSystem" | "language.optionEnglish" | "language.optionFrench"
   value: "system" | "en" | "fr"
 }> = [
-  { id: "language-system", labelKey: "language.optionSystem", value: "system" },
-  { id: "language-en", labelKey: "language.optionEnglish", value: "en" },
-  { id: "language-fr", labelKey: "language.optionFrench", value: "fr" },
+  { labelKey: "language.optionSystem", value: "system" },
+  { labelKey: "language.optionEnglish", value: "en" },
+  { labelKey: "language.optionFrench", value: "fr" },
 ]
 
 const FONT_FIELDS: ReadonlyArray<{

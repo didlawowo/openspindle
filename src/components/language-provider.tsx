@@ -48,7 +48,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = language
     void i18n.changeLanguage(language)
     host.app
-      .setLanguage(language)
+      .setLanguage(preference)
       .catch((error: unknown) =>
         log.warn("Telling the main process the language failed", error)
       )

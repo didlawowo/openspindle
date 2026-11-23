@@ -1,38 +1,46 @@
-import { readFileSync, writeFileSync } from "node:fs"
+import { readFileSync } from "node:fs"
 import { resolveLanguage } from "../../../src/i18n/languages"
-import type { AppLanguage } from "../../../src/i18n/languages"
+import type {
+  AppLanguage,
+  LanguagePreference,
+} from "../../../src/i18n/languages"
 import { log } from "../diagnostics/log"
+import { writeFileAtomic } from "./atomic-write"
 
 /**
- * The language the main process draws its native menus in. It starts as the one the page
- * chose in the last run, remembered in a file of the data folder, since the page's own
- * choice lives in its storage the main process cannot read before the page is up; without
- * the file, a chosen language would show up in the menus only after the page tells it.
- * With nothing remembered, it starts as the computer's, and the page tells it the
- * language it shows once the page is up.
+ * The language the main process draws its native menus in. It keeps the user's choice
+ * (`system`, English or French) in a file of the data folder, and resolves `system` with
+ * the computer's own locale at each start, so a remembered choice never freezes a day's
+ * resolution. The choice lives here rather than only in the page's storage because the
+ * page cannot speak before the menus are first built; once the page is up it tells the
+ * choice it follows.
  */
 export class LanguageService {
   private current: AppLanguage
+  private saved: LanguagePreference
   private readonly listeners = new Set<(language: AppLanguage) => void>()
 
   constructor(
     private readonly file: string,
-    systemLocale: string
+    private readonly systemLocale: string
   ) {
-    this.current = this.read(file) ?? resolveLanguage("system", systemLocale)
+    this.saved = this.read() ?? "system"
+    this.current = resolveLanguage(this.saved, systemLocale)
   }
 
   get language(): AppLanguage {
     return this.current
   }
 
-  set(language: AppLanguage) {
-    try {
-      writeFileSync(this.file, language)
-    } catch (error: unknown) {
-      // The language applies all the same; it just won't be the menus' at the next launch.
-      log.warn("Remembering the interface language failed", error)
+  set(preference: LanguagePreference) {
+    if (preference !== this.saved) {
+      this.saved = preference
+      // The choice applies all the same; it just won't be the menus' at the next launch.
+      void writeFileAtomic(this.file, preference).catch((error: unknown) =>
+        log.warn("Remembering the interface language failed", error)
+      )
     }
+    const language = resolveLanguage(preference, this.systemLocale)
     if (language === this.current) return
     this.current = language
     for (const listener of this.listeners) listener(language)
@@ -45,13 +53,13 @@ export class LanguageService {
     }
   }
 
-  private read(file: string): AppLanguage | null {
+  private read(): LanguagePreference | null {
     let saved: string
     try {
-      saved = readFileSync(file, "utf8").trim()
+      saved = readFileSync(this.file, "utf8").trim()
     } catch {
       return null
     }
-    return saved === "en" || saved === "fr" ? saved : null
+    return saved === "system" || saved === "en" || saved === "fr" ? saved : null
   }
 }

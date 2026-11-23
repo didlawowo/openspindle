@@ -34,7 +34,7 @@ import type {
   SaveFileResult,
 } from "./contract/files"
 import type { CameraEvent } from "./contract/machine-rpc"
-import type { AppLanguage } from "@/i18n/languages"
+import type { LanguagePreference } from "@/i18n/languages"
 import type { SimulatorSettings, SimulatorStatus } from "./contract/simulator"
 import type { BackupResult, StorageKey } from "./contract/storage"
 import type { MenuCommand } from "./contract/menu"
@@ -196,8 +196,8 @@ export interface SimulatorHost {
 
 /** The app itself: what the page tells the main process about how it shows. */
 export interface AppHost {
-  /** The language the page shows; the main process rebuilds its native menus with it. */
-  setLanguage: (language: AppLanguage) => Promise<void>
+  /** The language choice the page follows; the main process keeps it and rebuilds its native menus. */
+  setLanguage: (preference: LanguagePreference) => Promise<void>
 }
 
 /**

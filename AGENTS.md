@@ -46,3 +46,15 @@ See docs/architecture.md. In short:
 - Problems the user must see are `Diagnostic`s with quick fixes, not exceptions. Machine disabled reasons come only from `snapshot.availability`.
 - Log through `log` (`src/app/errors/log.ts` in the renderer, `electron/main/diagnostics/log.ts` in main), not `console`. Unexpected errors reach the user in the error dialog with their Sentry ID, and leave the computer only as the user allows (docs/architecture.md, Errors and logs).
 - Validate untrusted data with Zod schemas; derive types with `z.infer`. Use TanStack Form for forms, TanStack Table/Virtual for long lists, TanStack Query mutations for async workspace work.
+
+## Écarts assumés
+
+Declared deviations from the dc-tech.work repository standard, for its architecture audit:
+
+- `racine-fichiers` : `.npmrc` — npm reads it from the repository root.
+- `racine-fichiers` : `.env.example` — the distribution scripts load the untracked local environment file from the repository root, so its template sits beside it.
+- `racine-fichiers` : `components.json` — the shadcn CLI reads it from the repository root.
+- `racine-fichiers` : `electron-builder.yml` — electron-builder's configuration, read from the repository root.
+- `racine-fichiers` : `electron.vite.config.ts` — electron-vite requires its configuration file at the repository root.
+- `racine-fichiers` : `release-please-config.json` — release-please reads its configuration from the repository root (docs/releasing.md).
+- `racine-fichiers` : `.release-please-manifest.json` — release-please reads the released-version manifest from the repository root (docs/releasing.md).

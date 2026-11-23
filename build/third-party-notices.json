@@ -4,25 +4,6 @@
     "electron": [
       "electron@44.11.5"
     ],
-    "frame": [
-      "@base-ui/react@1.8.0",
-      "@base-ui/utils@0.4.0",
-      "@floating-ui/core@1.8.0",
-      "@floating-ui/dom@1.8.0",
-      "@floating-ui/react-dom@2.1.9",
-      "@floating-ui/utils@0.2.12",
-      "@tanstack/query-core@5.103.2",
-      "@tanstack/react-query@5.103.2",
-      "class-variance-authority@0.7.1",
-      "clsx@2.1.1",
-      "cn@0.2.6",
-      "lucide-react@1.48.0",
-      "react@19.3.0",
-      "react-dom@19.3.0",
-      "scheduler@0.28.0",
-      "use-sync-external-store@1.7.0",
-      "zod@4.6.5"
-    ],
     "main": [
       "@opentelemetry/api@1.9.1",
       "@opentelemetry/api-logs@0.220.0",
@@ -58,10 +39,6 @@
       "universalify@2.0.1",
       "zod@4.6.7"
     ],
-    "plugin-pcb-companion": [
-      "zod@4.6.5"
-    ],
-    "plugin-pcb-view": [],
     "preload": [
       "@sentry/electron@7.20.0"
     ],
@@ -752,14 +729,6 @@
         "Copyright (c) Meta Platforms, Inc. and affiliates."
       ],
       "text": "69793ded754c3949"
-    },
-    "zod@4.6.5": {
-      "license": "MIT",
-      "source": "https://github.com/colinhacks/zod",
-      "attribution": [
-        "Copyright (c) 2025 Colin McDonnell"
-      ],
-      "text": "03929576e354afce"
     },
     "zod@4.6.7": {
       "license": "MIT",

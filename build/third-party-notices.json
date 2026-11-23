@@ -2,26 +2,7 @@
   "version": 1,
   "bundles": {
     "electron": [
-      "electron@44.4.5"
-    ],
-    "frame": [
-      "@base-ui/react@1.8.0",
-      "@base-ui/utils@0.4.0",
-      "@floating-ui/core@1.8.0",
-      "@floating-ui/dom@1.8.0",
-      "@floating-ui/react-dom@2.1.9",
-      "@floating-ui/utils@0.2.12",
-      "@tanstack/query-core@5.103.2",
-      "@tanstack/react-query@5.103.2",
-      "class-variance-authority@0.7.1",
-      "clsx@2.1.1",
-      "cn@0.2.6",
-      "lucide-react@1.48.0",
-      "react@19.3.0",
-      "react-dom@19.3.0",
-      "scheduler@0.28.0",
-      "use-sync-external-store@1.7.0",
-      "zod@4.6.5"
+      "electron@44.11.5"
     ],
     "main": [
       "@opentelemetry/api@1.9.1",
@@ -56,12 +37,8 @@
       "semver@7.7.4",
       "supports-color@7.2.0",
       "universalify@2.0.1",
-      "zod@4.6.5"
+      "zod@4.6.7"
     ],
-    "plugin-pcb-companion": [
-      "zod@4.6.5"
-    ],
-    "plugin-pcb-view": [],
     "preload": [
       "@sentry/electron@7.20.0"
     ],
@@ -115,7 +92,7 @@
       "sonner@2.0.8",
       "three@0.186.1",
       "use-sync-external-store@1.7.0",
-      "zod@4.6.5"
+      "zod@4.6.7"
     ],
     "styles": [
       "shadcn@4.21.4",
@@ -524,7 +501,7 @@
       ],
       "text": "13250117ec91ac9d"
     },
-    "electron@44.4.5": {
+    "electron@44.11.5": {
       "license": "MIT",
       "source": "https://github.com/electron/electron",
       "attribution": [
@@ -753,7 +730,7 @@
       ],
       "text": "69793ded754c3949"
     },
-    "zod@4.6.5": {
+    "zod@4.6.7": {
       "license": "MIT",
       "source": "https://github.com/colinhacks/zod",
       "attribution": [

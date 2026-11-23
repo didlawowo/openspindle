@@ -159,7 +159,10 @@ function start(diagnostics: Diagnostics, openedFiles: OpenedFileBus) {
     },
   })
   const simulator = new SimulatorService(app.getPath("userData"))
-  const language = new LanguageService()
+  const language = new LanguageService(
+    path.join(app.getPath("userData"), "language"),
+    app.getLocale()
+  )
   // The page's translations, for the native menus: the page tells this process the language
   // it shows (LanguageService), and the menus are rebuilt with it.
   const i18n = createI18n(language.language)

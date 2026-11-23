@@ -56,4 +56,5 @@ Declared deviations from the dc-tech.work repository standard, for its architect
 - `racine-fichiers` : `components.json` — the shadcn CLI reads it from the repository root.
 - `racine-fichiers` : `electron-builder.yml` — electron-builder's configuration, read from the repository root.
 - `racine-fichiers` : `electron.vite.config.ts` — electron-vite requires its configuration file at the repository root.
-- `racine-fichiers` : `release-please-config.json` and `.release-please-manifest.json` — release-please reads both from the repository root (docs/releasing.md).
+- `racine-fichiers` : `release-please-config.json` — release-please reads its configuration from the repository root (docs/releasing.md).
+- `racine-fichiers` : `.release-please-manifest.json` — release-please reads the released-version manifest from the repository root (docs/releasing.md).

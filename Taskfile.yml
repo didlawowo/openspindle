@@ -1,0 +1,55 @@
+# Standard task names (dc-tech.work base): every task delegates to an npm script.
+# Run `task ci` before handing over a change; it mirrors the CI Checks job plus tests.
+# Needs Node.js 22.18 or later (test and build scripts run TypeScript directly).
+version: '3'
+
+tasks:
+  default:
+    desc: List the available tasks
+    cmds: ['task --list']
+    silent: true
+
+  install:
+    desc: Install the dependencies
+    cmds: ['npm ci']
+
+  dev:
+    desc: Run the app with the renderer dev server
+    cmds: ['npm run dev']
+
+  fmt:
+    desc: Format the code (Prettier)
+    cmds: ['npm run format']
+
+  fmt:check:
+    desc: Check the formatting (CI)
+    cmds: ['npm run check']
+
+  lint:
+    desc: Lint the code
+    cmds: ['npm run lint']
+
+  typecheck:
+    desc: Check the types
+    cmds: ['npm run typecheck']
+
+  test:
+    desc: Run the tests
+    cmds: ['npm test']
+
+  build:
+    desc: Build the app bundle
+    cmds: ['npm run build']
+
+  package:mac:
+    desc: Package the app for macOS, unsigned and not notarized
+    cmds: ['npm run package:mac']
+
+  ci:
+    desc: The CI pipeline (fmt:check, lint, typecheck, test, build)
+    cmds:
+      - task: fmt:check
+      - task: lint
+      - task: typecheck
+      - task: test
+      - task: build

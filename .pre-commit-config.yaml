@@ -13,6 +13,10 @@ repos:
     hooks:
       - id: detect-secrets
         args: ['--baseline', '.secrets.baseline']
+        # The baseline itself, and the two data files that only hold upstream
+        # release hashes (regenerated when dependencies or tools change):
+        # scanning them produces false positives, not findings.
+        exclude: '(\.secrets\.baseline|build/third-party-notices\.json|public/tool-libraries/provenance\.json)$'
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.1
     hooks:

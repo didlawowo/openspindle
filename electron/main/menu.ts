@@ -1,5 +1,6 @@
 import { BrowserWindow, Menu, app, webContents } from "electron"
 import type { MenuItemConstructorOptions } from "electron"
+import type { TFunction } from "i18next"
 import type { MenuBus } from "./services/menu-bus"
 
 export const MACHINE_STOP_ITEM = "machine.stop"
@@ -35,7 +36,11 @@ function historyItem(
 }
 
 /** The Edit menu the editMenu role makes, with the app's own Undo and Redo. */
-function editMenu(bus: MenuBus, isMac: boolean): MenuItemConstructorOptions {
+function editMenu(
+  bus: MenuBus,
+  isMac: boolean,
+  t: TFunction<"menu">
+): MenuItemConstructorOptions {
   const extras: MenuItemConstructorOptions[] = isMac
     ? [
         { role: "pasteAndMatchStyle" },
@@ -43,20 +48,20 @@ function editMenu(bus: MenuBus, isMac: boolean): MenuItemConstructorOptions {
         { role: "selectAll" },
         { type: "separator" },
         {
-          label: "Speech",
+          label: t("speech"),
           submenu: [{ role: "startSpeaking" }, { role: "stopSpeaking" }],
         },
       ]
     : [{ role: "delete" }, { type: "separator" }, { role: "selectAll" }]
   return {
-    label: "Edit",
+    label: t("edit"),
     submenu: [
       historyItem(bus, "edit.undo", {
-        label: "Undo",
+        label: t("undo"),
         accelerator: "CmdOrCtrl+Z",
       }),
       historyItem(bus, "edit.redo", {
-        label: "Redo",
+        label: t("redo"),
         accelerator: "Shift+CmdOrCtrl+Z",
       }),
       { type: "separator" },
@@ -81,20 +86,21 @@ export function buildApplicationMenu(
   machine: { stop: () => void; exportTrace: () => void },
   updates: { enabled: boolean; check: () => void; install: () => void },
   diagnostics: { exportLog: () => void },
-  about: { openCredits: () => void }
+  about: { openCredits: () => void },
+  t: TFunction<"menu">
 ): Menu {
   const isMac = process.platform === "darwin"
   const updateItems: MenuItemConstructorOptions[] = [
     {
       id: UPDATE_CHECK_ITEM,
-      label: "Check for Updates…",
+      label: t("checkUpdates"),
       click: () => updates.check(),
     },
     ...(updates.enabled
       ? [
           {
             id: UPDATE_INSTALL_ITEM,
-            label: "Restart to Install Update…",
+            label: t("installUpdate"),
             visible: false,
             click: () => updates.install(),
           },
@@ -102,16 +108,16 @@ export function buildApplicationMenu(
       : []),
   ]
   const settings: MenuItemConstructorOptions = {
-    label: "Settings…",
+    label: t("settings"),
     accelerator: "CmdOrCtrl+,",
     click: () => bus.emit("settings.open"),
   }
   const models: MenuItemConstructorOptions = {
-    label: "Models…",
+    label: t("models"),
     click: () => bus.emit("models.manage"),
   }
   const tools: MenuItemConstructorOptions = {
-    label: "Tool Library…",
+    label: t("toolLibrary"),
     click: () => bus.emit("tools.manage"),
   }
   const appMenu: MenuItemConstructorOptions[] = isMac
@@ -150,43 +156,43 @@ export function buildApplicationMenu(
   return Menu.buildFromTemplate([
     ...appMenu,
     {
-      label: "File",
+      label: t("file"),
       submenu: [
         {
-          label: "New Project",
+          label: t("newProject"),
           accelerator: "CmdOrCtrl+N",
           click: () => bus.emit("project.new"),
         },
         {
-          label: "Open Project…",
+          label: t("openProject"),
           accelerator: "CmdOrCtrl+O",
           click: () => bus.emit("project.open"),
         },
         {
-          label: "Import…",
+          label: t("importProgram"),
           accelerator: "Shift+CmdOrCtrl+O",
           click: () => bus.emit("program.import"),
         },
         {
-          label: "Import from Fusion 360",
+          label: t("importFromFusion"),
           click: () => bus.emit("fusion.import"),
         },
         { type: "separator" },
         {
-          label: "Save Project…",
+          label: t("saveProject"),
           accelerator: "CmdOrCtrl+S",
           click: () => bus.emit("project.save"),
         },
         ...fileExtras,
       ],
     },
-    editMenu(bus, isMac),
+    editMenu(bus, isMac, t),
     {
-      label: "Machine",
+      label: t("machine"),
       submenu: [
         {
           id: MACHINE_STOP_ITEM,
-          label: "Stop",
+          label: t("stop"),
           accelerator: "CmdOrCtrl+.",
           enabled: false,
           click: () => machine.stop(),
@@ -199,16 +205,16 @@ export function buildApplicationMenu(
       role: "help",
       submenu: [
         {
-          label: "G-code Glossary",
+          label: t("glossary"),
           click: () => bus.emit("glossary.open"),
         },
         { type: "separator" },
         {
-          label: "Export Protocol Trace…",
+          label: t("exportTrace"),
           click: () => machine.exportTrace(),
         },
         {
-          label: "Export Log…",
+          label: t("exportLog"),
           click: () => diagnostics.exportLog(),
         },
         ...(isMac
@@ -218,7 +224,7 @@ export function buildApplicationMenu(
               ...updateItems,
               { type: "separator" } as const,
               {
-                label: "Open-Source Licenses",
+                label: t("licenses"),
                 click: () => about.openCredits(),
               },
               { role: "about" } as const,

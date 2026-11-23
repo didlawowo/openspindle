@@ -28,6 +28,7 @@ OpenSpindle is a desktop app for preparing, checking and running jobs on a Maker
 - A tool library with Fusion 360 import and Makera, Genmitsu, SpeTool, Dreanique and FoxAlien catalogs
 - STEP-NC project files, and NC export with the plate's setup
 - Built-in PCB preparation from KiCad Gerber and Excellon files, using your local pcb2gcode installation
+- An interface in English or French, following your computer's language until you choose one (**Settings › General › Language**)
 - Error reports and logs under your control; no account or cloud service
 - An app for Windows, and a signed and notarized app for Apple silicon and Intel Macs, that update themselves
 

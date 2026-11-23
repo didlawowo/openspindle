@@ -10,6 +10,7 @@ import { DiagnosticsSettingsStore } from "./diagnostics/settings"
 import { MachineHost } from "./machine/machine-host"
 import { SimulatorService } from "./simulator/simulator-service"
 import { MACHINE_STOP_ITEM, buildApplicationMenu } from "./menu"
+import { createI18n } from "../../src/i18n/core"
 import { PcbService } from "./pcb/service"
 import { handleAppProtocol, registerAppScheme } from "./protocol"
 import { createHostHandlers } from "./rpc/host-handlers"
@@ -18,6 +19,7 @@ import { FileService } from "./services/file-service"
 import { storedFusionCredentials } from "./services/fusion-credentials"
 import { FusionService } from "./services/fusion-service"
 import { KeptWorkspace } from "./services/kept-workspace"
+import { LanguageService } from "./services/language-service"
 import { MenuBus } from "./services/menu-bus"
 import { OpenedFileBus } from "./services/opened-files"
 import { UnsavedChanges } from "./services/unsaved-changes"
@@ -139,13 +141,15 @@ function start(diagnostics: Diagnostics, openedFiles: OpenedFileBus) {
     )
   )
   fusion.start()
+  let stopAllowed = false
   const machine: MachineHost = new MachineHost({
     userData: app.getPath("userData"),
     reports: diagnostics.reports,
     onChange: (snapshot) => {
+      stopAllowed = snapshot.availability.stop.allowed
       const stop =
         Menu.getApplicationMenu()?.getMenuItemById(MACHINE_STOP_ITEM) ?? null
-      if (stop) stop.enabled = snapshot.availability.stop.allowed
+      if (stop) stop.enabled = stopAllowed
     },
     // The page reaches the machine process directly: it gets a port to the new one.
     onRestart: () => {
@@ -155,6 +159,13 @@ function start(diagnostics: Diagnostics, openedFiles: OpenedFileBus) {
     },
   })
   const simulator = new SimulatorService(app.getPath("userData"))
+  const language = new LanguageService(
+    path.join(app.getPath("userData"), "language"),
+    app.getLocale()
+  )
+  // The page's translations, for the native menus: the page tells this process the language
+  // it shows (LanguageService), and the menus are rebuilt with it.
+  const i18n = createI18n(language.language)
   // The only thing a launch restores is the connection to the last used device, which the
   // machine process tries as it starts: once the app's simulator, which it may be, listens.
   // That takes milliseconds; the window asks for its port to the machine process much later.
@@ -174,31 +185,43 @@ function start(diagnostics: Diagnostics, openedFiles: OpenedFileBus) {
       keptWorkspace,
       diagnostics,
       simulator,
+      language,
     }),
     isTrusted: trustedSender(currentWindow, entry.origin),
     machine: () => machine.connectApp(),
   })
   const updates = new AppUpdates(currentWindow)
-  Menu.setApplicationMenu(
-    buildApplicationMenu(
-      menu,
-      {
-        stop: () => {
-          machine.stop().catch((error: unknown) => {
-            log.error("Machine Stop failed", error)
-          })
+  const refreshMenu = () => {
+    Menu.setApplicationMenu(
+      buildApplicationMenu(
+        menu,
+        {
+          stop: () => {
+            machine.stop().catch((error: unknown) => {
+              log.error("Machine Stop failed", error)
+            })
+          },
+          exportTrace: () => void machine.exportTrace(files),
         },
-        exportTrace: () => void machine.exportTrace(files),
-      },
-      {
-        enabled: updates.enabled,
-        check: () => void updates.check(),
-        install: () => updates.install(),
-      },
-      { exportLog: () => void diagnostics.exportLogFromMenu(files) },
-      { openCredits: () => void openCredits() }
+        {
+          enabled: updates.enabled,
+          check: () => void updates.check(),
+          install: () => updates.install(),
+        },
+        { exportLog: () => void diagnostics.exportLogFromMenu(files) },
+        { openCredits: () => void openCredits() },
+        i18n.getFixedT(language.language, "menu")
+      )
     )
-  )
+    // A rebuilt menu forgets what the app had learned since: which machine Stop allows,
+    // and what the updater had to show.
+    const stop =
+      Menu.getApplicationMenu()?.getMenuItemById(MACHINE_STOP_ITEM) ?? null
+    if (stop) stop.enabled = stopAllowed
+    updates.refreshMenu()
+  }
+  refreshMenu()
+  language.subscribe(() => refreshMenu())
   updates.start()
 
   // The renderer flushes its last saves as the window closes; let them land first, and the

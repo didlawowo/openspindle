@@ -143,5 +143,8 @@ export async function connectElectronHost(
       status: () => peer.call("simulator.status", undefined),
       update: (patch) => peer.call("simulator.update", patch),
     },
+    app: {
+      setLanguage: (preference) => peer.call("app.setLanguage", { preference }),
+    },
   }
 }

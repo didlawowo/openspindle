@@ -1,4 +1,6 @@
+import { useTranslation } from "react-i18next"
 import { useAppearance } from "@/components/appearance-provider"
+import { useLanguage } from "@/components/language-provider"
 import {
   Field,
   FieldError,
@@ -9,98 +11,133 @@ import { Switch } from "@/components/ui/switch"
 import { OptionSelect } from "@/components/option-select"
 import { Hint } from "@/components/workspace/hint"
 import { isAppearance } from "@/lib/appearance"
+import type { Appearance } from "@/lib/appearance"
 import { FONTS, FONT_CHOICES, isFontFor } from "@/lib/fonts"
 import type { FontRole } from "@/lib/fonts"
+import { isLanguagePreference } from "@/i18n/languages"
 import { useSimulatorStatus, useUpdateSimulator } from "@/platform/simulator"
 
-const APPEARANCE_OPTIONS = [
-  { value: "system", label: "System" },
-  { value: "light", label: "Light" },
-  { value: "dark", label: "Dark" },
+const LANGUAGE_FIELDS: ReadonlyArray<{
+  labelKey:
+    "language.optionSystem" | "language.optionEnglish" | "language.optionFrench"
+  value: "system" | "en" | "fr"
+}> = [
+  { labelKey: "language.optionSystem", value: "system" },
+  { labelKey: "language.optionEnglish", value: "en" },
+  { labelKey: "language.optionFrench", value: "fr" },
 ]
-
-const APPEARANCE_HINT = "System follows your Mac’s light or dark appearance."
 
 const FONT_FIELDS: ReadonlyArray<{
   role: FontRole
   id: string
-  label: string
-  hint: string
+  labelKey: "displayFont.label" | "monoFont.label"
+  hintKey: "displayFont.hint" | "monoFont.hint"
 }> = [
   {
     role: "sans",
     id: "display-font",
-    label: "Display font",
-    hint: "The font for text.",
+    labelKey: "displayFont.label",
+    hintKey: "displayFont.hint",
   },
   {
     role: "mono",
     id: "mono-font",
-    label: "Mono font",
-    hint: "The font for G-code, and for the digits of numbers shown as values.",
+    labelKey: "monoFont.label",
+    hintKey: "monoFont.hint",
   },
 ]
 
 const fontOptions = (role: FontRole) =>
   FONT_CHOICES[role].map((id) => ({ value: id, label: FONTS[id].label }))
 
-const simulatorHint = (host: string, port: number) =>
-  `A simulated Makera Z1 that OpenSpindle runs at ${host}:${port}, to try jobs without a machine. Connect to it as to a machine.`
-
-/** Settings › General: how the app looks, and its simulated Z1. Changes apply at once. */
+/** Settings › General: the language, how the app looks, and its simulated Z1. Changes apply at once. */
 export function GeneralSettings() {
+  const { t } = useTranslation("settings")
   const { appearance, setAppearance, fonts, setFont, saveError } =
     useAppearance()
+  const { preference, setPreference } = useLanguage()
   const simulator = useSimulatorStatus().data
   const updateSimulator = useUpdateSimulator()
+  const simulatorHint = t("simulator.hint", {
+    host: simulator?.host ?? "127.0.0.1",
+    port: simulator?.port ?? 2222,
+  })
   const simulatorError = updateSimulator.error
-    ? `This setting could not be saved: ${updateSimulator.error.message}`
-    : simulator?.error && `The simulator is not running. ${simulator.error}`
+    ? t("couldNotSave", { message: updateSimulator.error.message })
+    : simulator?.error && t("simulator.notRunning", { error: simulator.error })
+  const appearanceOptions: ReadonlyArray<{
+    value: Appearance
+    label: string
+  }> = [
+    { value: "system", label: t("appearance.optionSystem") },
+    { value: "light", label: t("appearance.optionLight") },
+    { value: "dark", label: t("appearance.optionDark") },
+  ]
+  const appearanceHint = t("appearance.hint")
   return (
     <FieldGroup>
       <Field orientation="horizontal">
+        <FieldLabel htmlFor="language">
+          <Hint text={t("language.hint")}>{t("language.label")}</Hint>
+        </FieldLabel>
+        <OptionSelect
+          id="language"
+          aria-description={t("language.hint")}
+          className="w-48"
+          options={LANGUAGE_FIELDS.map(({ labelKey, value }) => ({
+            value,
+            label: t(labelKey),
+          }))}
+          value={preference}
+          onValueChange={(value) => {
+            if (isLanguagePreference(value)) setPreference(value)
+          }}
+        />
+      </Field>
+      <Field orientation="horizontal">
         <FieldLabel htmlFor="appearance">
-          <Hint text={APPEARANCE_HINT}>Color mode</Hint>
+          <Hint text={appearanceHint}>{t("appearance.label")}</Hint>
         </FieldLabel>
         <OptionSelect
           id="appearance"
-          aria-description={APPEARANCE_HINT}
+          aria-description={appearanceHint}
           className="w-48"
-          options={APPEARANCE_OPTIONS}
+          options={appearanceOptions}
           value={appearance}
           onValueChange={(value) => {
             if (isAppearance(value)) setAppearance(value)
           }}
         />
       </Field>
-      {FONT_FIELDS.map(({ role, id, label, hint }) => (
-        <Field key={role} orientation="horizontal">
-          <FieldLabel htmlFor={id}>
-            <Hint text={hint}>{label}</Hint>
-          </FieldLabel>
-          <OptionSelect
-            id={id}
-            aria-description={hint}
-            className="w-48"
-            options={fontOptions(role)}
-            value={fonts[role]}
-            onValueChange={(value) => {
-              if (isFontFor(role, value)) setFont(role, value)
-            }}
-          />
-        </Field>
-      ))}
+      {FONT_FIELDS.map(({ role, id, labelKey, hintKey }) => {
+        const hint = t(hintKey)
+        return (
+          <Field key={role} orientation="horizontal">
+            <FieldLabel htmlFor={id}>
+              <Hint text={hint}>{t(labelKey)}</Hint>
+            </FieldLabel>
+            <OptionSelect
+              id={id}
+              aria-description={hint}
+              className="w-48"
+              options={fontOptions(role)}
+              value={fonts[role]}
+              onValueChange={(value) => {
+                if (isFontFor(role, value)) setFont(role, value)
+              }}
+            />
+          </Field>
+        )
+      })}
       {saveError && <FieldError>{saveError}</FieldError>}
       {simulator && (
         <Field orientation="horizontal">
           <FieldLabel htmlFor="z1-simulator">
-            <Hint text={simulatorHint(simulator.host, simulator.port)}>
-              Z1 Simulator device
-            </Hint>
+            <Hint text={simulatorHint}>{t("simulator.label")}</Hint>
           </FieldLabel>
           <Switch
             id="z1-simulator"
-            aria-description={simulatorHint(simulator.host, simulator.port)}
+            aria-description={simulatorHint}
             checked={simulator.settings.enabled}
             onCheckedChange={(enabled) => updateSimulator.mutate({ enabled })}
           />

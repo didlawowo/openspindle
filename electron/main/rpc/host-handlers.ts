@@ -11,6 +11,7 @@ import type { UnsavedChanges } from "../services/unsaved-changes"
 import type { PcbService } from "../pcb/service"
 import type { Diagnostics } from "../diagnostics/diagnostics"
 import type { SimulatorService } from "../simulator/simulator-service"
+import type { LanguageService } from "../services/language-service"
 
 export type HostServices = {
   readonly files: FileService
@@ -24,6 +25,7 @@ export type HostServices = {
   readonly keptWorkspace: KeptWorkspace
   readonly diagnostics: Diagnostics
   readonly simulator: SimulatorService
+  readonly language: LanguageService
 }
 
 /** Maps every host-contract method and event onto a main-process service. */
@@ -85,6 +87,9 @@ export function createHostHandlers(
         services.pcb.generate(request, signal),
       "simulator.status": () => services.simulator.status(),
       "simulator.update": (patch) => services.simulator.update(patch),
+      "app.setLanguage": ({ preference }) => {
+        services.language.set(preference)
+      },
     },
     events: {
       "fusion.changed": (_params, emit) => fusion.subscribe(emit),

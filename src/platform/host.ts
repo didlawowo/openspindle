@@ -34,6 +34,7 @@ import type {
   SaveFileResult,
 } from "./contract/files"
 import type { CameraEvent } from "./contract/machine-rpc"
+import type { AppLanguage } from "@/i18n/languages"
 import type { SimulatorSettings, SimulatorStatus } from "./contract/simulator"
 import type { BackupResult, StorageKey } from "./contract/storage"
 import type { MenuCommand } from "./contract/menu"
@@ -193,6 +194,12 @@ export interface SimulatorHost {
   update: (patch: Partial<SimulatorSettings>) => Promise<SimulatorStatus>
 }
 
+/** The app itself: what the page tells the main process about how it shows. */
+export interface AppHost {
+  /** The language the page shows; the main process rebuilds its native menus with it. */
+  setLanguage: (language: AppLanguage) => Promise<void>
+}
+
 /**
  * The main process and the machine process, as the renderer reaches them: every service is a
  * typed RPC call.
@@ -208,4 +215,5 @@ export interface Host {
   readonly pcb: PcbHost
   readonly diagnostics: DiagnosticsHost
   readonly simulator: SimulatorHost
+  readonly app: AppHost
 }

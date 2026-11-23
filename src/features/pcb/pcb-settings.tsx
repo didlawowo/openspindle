@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import {
   Field,
@@ -11,6 +12,7 @@ import { usePcb } from "./use-pcb"
 
 /** The converter installed on this computer, shared by every PCB operation. */
 export function PcbSettings() {
+  const { t } = useTranslation("settings")
   const pcb = usePcb()
   const status = pcb.status.data
   const busy =
@@ -23,14 +25,15 @@ export function PcbSettings() {
   return (
     <FieldGroup>
       <Field>
-        <FieldLabel htmlFor="pcb-executable">pcb2gcode executable</FieldLabel>
+        <FieldLabel htmlFor="pcb-executable">{t("pcb.executable")}</FieldLabel>
         <Input
           id="pcb-executable"
           readOnly
-          value={status?.executable ?? "Automatic detection"}
+          value={status?.executable ?? t("pcb.automaticDetection")}
         />
+        {/* The converter's own status message comes from the main process and is not translated yet. */}
         <FieldDescription>
-          {pcb.status.isPending ? "Checking pcb2gcode…" : status?.message}
+          {pcb.status.isPending ? t("pcb.checking") : status?.message}
         </FieldDescription>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -38,14 +41,14 @@ export function PcbSettings() {
             disabled={busy}
             onClick={() => pcb.choose.mutate()}
           >
-            Choose executable
+            {t("pcb.choose")}
           </Button>
           <Button
             variant="outline"
             disabled={busy}
             onClick={() => pcb.check.mutate()}
           >
-            {pcb.check.isPending ? "Checking…" : "Check again"}
+            {pcb.check.isPending ? t("pcb.checkingShort") : t("pcb.checkAgain")}
           </Button>
           {status?.executable && (
             <Button
@@ -53,7 +56,7 @@ export function PcbSettings() {
               disabled={busy}
               onClick={() => pcb.automatic.mutate()}
             >
-              Use automatic detection
+              {t("pcb.useAutomatic")}
             </Button>
           )}
         </div>

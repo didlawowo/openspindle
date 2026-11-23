@@ -11,6 +11,7 @@ import {
   SaveFileResultSchema,
 } from "./files"
 import { diagnosticsEvents, diagnosticsMethods } from "./diagnostics"
+import { appMethods } from "./language"
 import { pcbMethods } from "./pcb"
 import { MenuCommandSchema } from "./menu"
 import { modelMethods } from "./models"
@@ -47,6 +48,7 @@ export const hostContract = defineContract({
     ...diagnosticsMethods,
     ...fusionMethods,
     ...simulatorMethods,
+    ...appMethods,
   },
   events: {
     ...diagnosticsEvents,

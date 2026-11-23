@@ -6,6 +6,7 @@ import {
 import type { QueryClient } from "@tanstack/react-query"
 import { useJobTrackingSync } from "@/app/job/tracking-sync"
 import { AppearanceProvider } from "@/components/appearance-provider"
+import { LanguageProvider } from "@/components/language-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { WorkLightControlProvider } from "@/components/work-light-control"
 import { WorkLightPreferencesProvider } from "@/components/work-light-preferences"
@@ -41,17 +42,19 @@ function RootLayout() {
   return (
     <>
       <HeadContent />
-      <AppearanceProvider>
-        <WorkLightPreferencesProvider>
-          <WorkLightControlProvider>
-            <Outlet />
-            <DialogHost />
-            <LoadIssuesDialog />
-            <ErrorReportHost />
-            <Toaster />
-          </WorkLightControlProvider>
-        </WorkLightPreferencesProvider>
-      </AppearanceProvider>
+      <LanguageProvider>
+        <AppearanceProvider>
+          <WorkLightPreferencesProvider>
+            <WorkLightControlProvider>
+              <Outlet />
+              <DialogHost />
+              <LoadIssuesDialog />
+              <ErrorReportHost />
+              <Toaster />
+            </WorkLightControlProvider>
+          </WorkLightPreferencesProvider>
+        </AppearanceProvider>
+      </LanguageProvider>
     </>
   )
 }

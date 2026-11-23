@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
 import {
   Field,
   FieldError,
@@ -18,11 +19,18 @@ import type {
 import { diagnosticsKeys, diagnosticsStatusQuery } from "@/platform/diagnostics"
 import { useHost } from "@/platform/host-context"
 
-const LOG_LEVEL_OPTIONS: ReadonlyArray<{ value: LogLevel; label: string }> = [
-  { value: "error", label: "Error" },
-  { value: "warn", label: "Warning" },
-  { value: "info", label: "Info" },
-  { value: "debug", label: "Debug" },
+const LOG_LEVEL_KEYS: ReadonlyArray<{
+  value: LogLevel
+  labelKey:
+    | "privacy.levelError"
+    | "privacy.levelWarning"
+    | "privacy.levelInfo"
+    | "privacy.levelDebug"
+}> = [
+  { value: "error", labelKey: "privacy.levelError" },
+  { value: "warn", labelKey: "privacy.levelWarning" },
+  { value: "info", labelKey: "privacy.levelInfo" },
+  { value: "debug", labelKey: "privacy.levelDebug" },
 ]
 
 /** Changes apply at once; a change the main process could not store is undone. */
@@ -58,29 +66,30 @@ function useUpdateDiagnosticsSettings() {
   })
 }
 
-const LOG_LEVEL_HINT =
-  "How much the log records (Help › Export Log). Debug records the most, to track down a problem."
-const REPORT_HINT =
-  "Errors go to the OpenSpindle developers as they happen, with the app version, your system and what led up to them, never your projects. Otherwise you choose in the error dialog."
-
 /** Settings › Privacy: what the log records, and whether errors are reported without asking. */
 export function PrivacySettings() {
+  const { t } = useTranslation("settings")
   const host = useHost()
   const status = useQuery(diagnosticsStatusQuery(host.diagnostics))
   const update = useUpdateDiagnosticsSettings()
   if (!status.data) return null
   const { settings, reporting } = status.data
+  const logLevelHint = t("privacy.debugLevelHint")
+  const reportHint = t("privacy.autoReportsHint")
   return (
     <FieldGroup>
       <Field orientation="horizontal">
         <FieldLabel htmlFor="log-level">
-          <Hint text={LOG_LEVEL_HINT}>Debug level</Hint>
+          <Hint text={logLevelHint}>{t("privacy.debugLevel")}</Hint>
         </FieldLabel>
         <OptionSelect
           id="log-level"
-          aria-description={LOG_LEVEL_HINT}
+          aria-description={logLevelHint}
           className="w-48"
-          options={LOG_LEVEL_OPTIONS}
+          options={LOG_LEVEL_KEYS.map(({ value, labelKey }) => ({
+            value,
+            label: t(labelKey),
+          }))}
           value={settings.logLevel}
           onValueChange={(value) => {
             const level = LogLevelSchema.safeParse(value)
@@ -91,11 +100,11 @@ export function PrivacySettings() {
       {reporting && (
         <Field orientation="horizontal">
           <FieldLabel htmlFor="report-automatically">
-            <Hint text={REPORT_HINT}>Send error reports automatically</Hint>
+            <Hint text={reportHint}>{t("privacy.autoReports")}</Hint>
           </FieldLabel>
           <Switch
             id="report-automatically"
-            aria-description={REPORT_HINT}
+            aria-description={reportHint}
             checked={settings.reportAutomatically}
             onCheckedChange={(checked) =>
               update.mutate({ reportAutomatically: checked })
@@ -105,7 +114,7 @@ export function PrivacySettings() {
       )}
       {update.error && (
         <FieldError>
-          This setting could not be saved: {update.error.message}
+          {t("couldNotSave", { message: update.error.message })}
         </FieldError>
       )}
     </FieldGroup>

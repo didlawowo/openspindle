@@ -1,5 +1,6 @@
 import { useRef, useState } from "react"
 import type { CSSProperties } from "react"
+import { useTranslation } from "react-i18next"
 import { CircuitBoard, Lock, SlidersHorizontal } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
@@ -22,12 +23,12 @@ export type SettingsSection = "general" | "pcb" | "privacy"
 
 const SECTIONS: ReadonlyArray<{
   id: SettingsSection
-  label: string
+  labelKey: "sections.general" | "sections.pcb" | "sections.privacy"
   icon: LucideIcon
 }> = [
-  { id: "general", label: "General", icon: SlidersHorizontal },
-  { id: "pcb", label: "PCB", icon: CircuitBoard },
-  { id: "privacy", label: "Privacy", icon: Lock },
+  { id: "general", labelKey: "sections.general", icon: SlidersHorizontal },
+  { id: "pcb", labelKey: "sections.pcb", icon: CircuitBoard },
+  { id: "privacy", labelKey: "sections.privacy", icon: Lock },
 ]
 
 function SectionContent({ section }: { section: SettingsSection }) {
@@ -49,6 +50,7 @@ export function SettingsDialog({
   section?: SettingsSection
   onClose: () => void
 }) {
+  const { t } = useTranslation("settings")
   const [section, setSection] = useState(initialSection)
   const current = SECTIONS.find((item) => item.id === section) ?? SECTIONS[0]
   const page = useRef<HTMLElement>(null)
@@ -70,20 +72,20 @@ export function SettingsDialog({
         >
           <Sidebar collapsible="none" className="border-r">
             <SidebarHeader>
-              <DialogTitle className="px-2 pt-1">Settings</DialogTitle>
+              <DialogTitle className="px-2 pt-1">{t("title")}</DialogTitle>
             </SidebarHeader>
             <SidebarContent>
               <SidebarGroup>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    {SECTIONS.map(({ id, label, icon: Icon }) => (
+                    {SECTIONS.map(({ id, labelKey, icon: Icon }) => (
                       <SidebarMenuItem key={id}>
                         <SidebarMenuButton
                           isActive={id === section}
                           onClick={() => setSection(id)}
                         >
                           <Icon />
-                          <span>{label}</span>
+                          <span>{t(labelKey)}</span>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     ))}
@@ -99,7 +101,7 @@ export function SettingsDialog({
           >
             <header className="shrink-0 p-4 pr-10">
               <h2 className="font-heading text-sm font-medium">
-                {current.label}
+                {t(current.labelKey)}
               </h2>
             </header>
             <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">

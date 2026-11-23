@@ -177,7 +177,8 @@ export class AppUpdates {
     return response
   }
 
-  private refreshMenu() {
+  /** Re-applies the updater's menu state after the app rebuilds the menu (a language change). */
+  refreshMenu() {
     const menu = Menu.getApplicationMenu()
     const check = menu?.getMenuItemById(UPDATE_CHECK_ITEM)
     if (check) {

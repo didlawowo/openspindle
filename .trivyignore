@@ -1,3 +1,6 @@
 # Trivy exclusions, kept for the standard security scans. This repository ships a
-# desktop app, not a container image, so nothing is excluded so far. Add one line
-# per accepted finding with its advisory id and the reason.
+# desktop app, not a container image, so nothing is excluded so far. One accepted
+# finding takes two lines: the advisory id alone on its line, its reason in a
+# comment above it, for example:
+#   # accepted: the app never parses X
+#   CVE-2026-00001

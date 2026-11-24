@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { ChevronDown, Plus, RotateCcw, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -15,13 +16,6 @@ import type { FixtureModel } from "@/domain/fixtures/definitions"
 import { MOUNT_POINT_LIMIT } from "@/domain/fixtures/mount-points"
 import type { MountPoint } from "@/domain/fixtures/mount-points"
 
-function sourceNote(model: FixtureModel) {
-  if (model.mountPoints) return "Defined for this fixture."
-  if (model.source.kind === "bundled")
-    return "Measured from the bundled model: its holes and corners."
-  return "The corners and centres of the model's box, until you define its own."
-}
-
 /**
  * The points a fixture mounts and lines up by, in its frame: moves in the 3D view snap to
  * them, and to the points of everything else on the bed.
@@ -33,6 +27,12 @@ export function MountPointsField({
   model: FixtureModel
   onChange: (model: FixtureModel) => void
 }) {
+  const { t } = useTranslation("device")
+  const sourceNote = () => {
+    if (model.mountPoints) return t("mountPoints.sourceDefined")
+    if (model.source.kind === "bundled") return t("mountPoints.sourceBundled")
+    return t("mountPoints.sourceBox")
+  }
   const points = fixtureModelMountPoints(model)
   const save = (next: MountPoint[]) => onChange({ ...model, mountPoints: next })
   const change = (id: string, patch: Partial<MountPoint>) =>
@@ -46,7 +46,9 @@ export function MountPointsField({
           <Button variant="ghost" className="w-full justify-start px-0" />
         }
       >
-        <span className="min-w-0 flex-1 truncate text-left">Mount points</span>
+        <span className="min-w-0 flex-1 truncate text-left">
+          {t("mountPoints.title")}
+        </span>
         <Badge variant="secondary" className="font-numeric">
           {points.length}
         </Badge>
@@ -55,20 +57,22 @@ export function MountPointsField({
       <CollapsibleContent className="pt-3">
         <FieldGroup className="gap-4">
           <FieldDescription>
-            Millimetres from the fixture's position, before it is rotated.{" "}
-            {sourceNote(model)}
+            {t("mountPoints.hint")} {sourceNote()}
           </FieldDescription>
           {points.map((point) => (
-            <FieldSet key={point.id} aria-label={`Mount point ${point.name}`}>
+            <FieldSet
+              key={point.id}
+              aria-label={t("mountPoints.pointAria", { name: point.name })}
+            >
               <div className="flex items-center gap-2">
                 <div className="min-w-0 flex-1">
                   <NameField
                     name={point.name}
-                    label="Mount point name"
+                    label={t("mountPoints.pointName")}
                     hideLabel
                     onRename={(typed) => {
                       const next = normalizeText(typed)
-                      if (!next) return fail("Enter a name.")
+                      if (!next) return fail(t("mountPoints.nameRequired"))
                       change(point.id, { name: next })
                       return ok(next)
                     }}
@@ -77,7 +81,9 @@ export function MountPointsField({
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  aria-label={`Remove mount point ${point.name}`}
+                  aria-label={t("mountPoints.removePoint", {
+                    name: point.name,
+                  })}
                   onClick={() =>
                     save(points.filter(({ id }) => id !== point.id))
                   }
@@ -102,14 +108,16 @@ export function MountPointsField({
                   ...points,
                   {
                     id: newId(),
-                    name: `Point ${points.length + 1}`,
+                    name: t("mountPoints.newPoint", {
+                      number: points.length + 1,
+                    }),
                     position: [0, 0, 0],
                   },
                 ])
               }
             >
               <Plus data-icon="inline-start" />
-              Add point
+              {t("mountPoints.addPoint")}
             </Button>
             {model.mountPoints && (
               <Button
@@ -121,7 +129,7 @@ export function MountPointsField({
                 }}
               >
                 <RotateCcw data-icon="inline-start" />
-                Use the model's points
+                {t("mountPoints.useModelPoints")}
               </Button>
             )}
           </div>

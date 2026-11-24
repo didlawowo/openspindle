@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useForm, useSelector } from "@tanstack/react-form"
 import { z } from "zod"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -22,18 +23,19 @@ import {
   useWriteConfiguration,
 } from "@/platform/machine"
 
-const VACUUM_POWER_HINT = "Default vacuum power when open (50 - 100)"
+const VACUUM_POWER_HINT_KEY = "vacuum.hint"
 
-const VacuumPowerFieldsSchema = z.object({
-  percent: z
-    .string()
-    .refine(
-      (value) =>
-        value.trim() !== "" &&
-        VacuumDefaultPowerSchema.safeParse(Number(value)).success,
-      "Enter a whole percentage from 50 to 100."
-    ),
-})
+const vacuumPowerSchema = (errorMessage: string) =>
+  z.object({
+    percent: z
+      .string()
+      .refine(
+        (value) =>
+          value.trim() !== "" &&
+          VacuumDefaultPowerSchema.safeParse(Number(value)).success,
+        errorMessage
+      ),
+  })
 
 /** Drafts and saved configuration revisions belong to their original connection. */
 export function DeviceVacuumPowerField({ pending }: { pending: boolean }) {
@@ -55,6 +57,7 @@ function VacuumPowerForm({
   connectionId: string | null
   commandPending: boolean
 }) {
+  const { t } = useTranslation("device")
   const id = useId()
   const { availability } = useMachineSnapshot()
   const read = useReadConfiguration()
@@ -69,16 +72,16 @@ function VacuumPowerForm({
   const pending = commandPending || read.isPending || write.isPending
   const readReason = availability.readConfiguration.allowed
     ? null
-    : (availability.readConfiguration.reason ?? "Unavailable.")
+    : (availability.readConfiguration.reason ?? t("common.unavailable"))
   const writeReason = availability.writeConfiguration.allowed
     ? null
-    : (availability.writeConfiguration.reason ?? "Unavailable.")
+    : (availability.writeConfiguration.reason ?? t("common.unavailable"))
   const saved = configuration?.vacuumDefaultPower
   const baseline = saved == null ? "" : String(saved)
 
   const form = useForm({
     defaultValues: { percent: baseline },
-    validators: { onChange: VacuumPowerFieldsSchema },
+    validators: { onChange: vacuumPowerSchema(t("vacuum.percentError")) },
     onSubmit: async ({ value }) => {
       if (
         !configuration ||
@@ -104,7 +107,7 @@ function VacuumPowerForm({
           return
         setConfiguration(result.configuration)
         form.reset({ percent: String(result.configuration.vacuumDefaultPower) })
-        setNotice("Saved.")
+        setNotice(t("config.saved"))
       } catch {
         // Preserve the draft, but obtain a fresh revision before another save.
         if (mounted.current) setNeedsReload(true)
@@ -225,12 +228,14 @@ function VacuumPowerForm({
             >
               <FieldContent className="min-w-0 self-center">
                 <FieldLabel htmlFor={id}>
-                  <Hint text={VACUUM_POWER_HINT}>Vacuum power</Hint>
+                  <Hint text={t(VACUUM_POWER_HINT_KEY)}>
+                    {t("vacuum.title")}
+                  </Hint>
                 </FieldLabel>
                 <FieldError errors={field.state.meta.errors} />
                 {(read.isPending || notice) && (
                   <FieldDescription role="status">
-                    {read.isPending ? "Reading configuration…" : notice}
+                    {read.isPending ? t("config.reading") : notice}
                   </FieldDescription>
                 )}
               </FieldContent>
@@ -238,8 +243,8 @@ function VacuumPowerForm({
                 <div className="w-28">
                   <MeasurementInput
                     id={id}
-                    aria-label="Vacuum power"
-                    aria-description={VACUUM_POWER_HINT}
+                    aria-label={t("vacuum.title")}
+                    aria-description={t(VACUUM_POWER_HINT_KEY)}
                     type="number"
                     unit="%"
                     min={50}
@@ -258,7 +263,7 @@ function VacuumPowerForm({
                 <form.Subscribe selector={(state) => state.canSubmit}>
                   {(canSubmit) => (
                     <ReasonButton
-                      label="Save vacuum power"
+                      label={t("vacuum.saveAria")}
                       type="submit"
                       variant="outline"
                       reason={writeReason}
@@ -271,20 +276,20 @@ function VacuumPowerForm({
                         field.state.value === baseline
                       }
                     >
-                      {write.isPending ? "Saving…" : "Save"}
+                      {write.isPending ? t("config.saving") : t("config.save")}
                     </ReasonButton>
                   )}
                 </form.Subscribe>
                 {needsReload && (
                   <ReasonButton
-                    label="Reload vacuum power"
+                    label={t("vacuum.reloadAria")}
                     type="button"
                     variant="outline"
                     reason={readReason}
                     disabled={pending}
                     onClick={retrieve}
                   >
-                    Reload
+                    {t("config.reload")}
                   </ReasonButton>
                 )}
               </div>

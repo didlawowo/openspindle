@@ -1,4 +1,5 @@
 import { Box, Plus, Trash2 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -38,7 +39,7 @@ import {
   modelSize,
 } from "@/features/prepare/fixtures/fixture-picture"
 import { openDialog } from "@/features/shell/dialogs"
-import { FIXTURE_KINDS } from "./fixture-definition-dialog"
+import { fixtureKindLabel } from "./fixture-definition-dialog"
 
 /** A fixture definition with its picture, its kind and size: choosing it edits it. */
 function FixtureItem({
@@ -50,7 +51,8 @@ function FixtureItem({
   onEdit: () => void
   onRemove: () => void
 }) {
-  const kind = FIXTURE_KINDS.find(([item]) => item === definition.kind)?.[1]
+  const { t } = useTranslation("device")
+  const kind = fixtureKindLabel(t, definition.kind)
   return (
     <Item
       variant="muted"
@@ -82,8 +84,8 @@ function FixtureItem({
         <Button
           variant="ghost"
           size="icon-sm"
-          aria-label={`Remove ${definition.name}`}
-          title="Remove"
+          aria-label={t("common.remove")}
+          title={t("common.remove")}
           onClick={onRemove}
         >
           <Trash2 />
@@ -106,6 +108,7 @@ export function DeviceFixtures({
   /** The bed setup whose fixture defaults are edited. */
   bedSetupId: string
 }) {
+  const { t } = useTranslation("device")
   const fixtures = useFixtureLibraryStore()
   const definitions = useFixtureLibrary((library) => library.definitions)
   const profiles = useFixtureLibrary((library) => library.profiles)
@@ -117,17 +120,17 @@ export function DeviceFixtures({
       definitionId,
     })
   return (
-    <Card size="sm" role="region" aria-label="Fixture library">
+    <Card size="sm" role="region" aria-label={t("fixtures.region")}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Box className="size-4" />
-          Fixtures
+          {t("fixtures.title")}
         </CardTitle>
         <CardAction>
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="Add fixture definition"
+            aria-label={t("fixtures.add")}
             disabled={definitions.length >= FIXTURE_CATALOG_LIMIT}
             onClick={() => {
               const id = crypto.randomUUID()
@@ -153,7 +156,7 @@ export function DeviceFixtures({
               )
               fixtures.addDefinition({
                 id,
-                name: "New fixture",
+                name: t("fixtures.newName"),
                 kind: "clamp",
                 model: null,
                 color: "#a2aab3",

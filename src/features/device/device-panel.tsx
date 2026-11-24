@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import {
   Check,
   Link2,
@@ -45,6 +46,7 @@ export function DevicePanel({
   openPicker: () => void
   fixturePanel?: ReactNode
 }) {
+  const { t } = useTranslation("device")
   const snapshot = useMachineSnapshot()
   const command = useMachineCommand()
   const stop = useStopMachine()
@@ -70,9 +72,9 @@ export function DevicePanel({
   /** Availability decides; the schema catches out-of-range input before it is sent. */
   const reason = (key: AvailabilityKey, action?: MachineCommand) => {
     const entry = availability[key]
-    if (!entry.allowed) return entry.reason ?? "Unavailable."
+    if (!entry.allowed) return entry.reason ?? t("common.unavailable")
     if (action && !MachineCommandSchema.safeParse(action).success)
-      return "Enter a value within the allowed range."
+      return t("panel.rangeError")
     return action && limits ? outsideLimits(action, limits) : null
   }
   const allowed = (action: MachineCommand) =>
@@ -80,7 +82,9 @@ export function DevicePanel({
   const execute = (action: MachineCommand) => {
     if (!allowed(action)) return
     setNotice("")
-    command.mutate(action, { onSuccess: () => setNotice("Command confirmed") })
+    command.mutate(action, {
+      onSuccess: () => setNotice(t("panel.commandConfirmed")),
+    })
   }
   /**
    * The machine's tool change to `tool`. It changes nothing for the tool it holds, so to measure
@@ -94,7 +98,7 @@ export function DevicePanel({
       if (telemetry?.tool === tool)
         await command.mutateAsync({ type: "setTool", tool: -1 })
       await command.mutateAsync(change)
-      setNotice("Command confirmed")
+      setNotice(t("panel.commandConfirmed"))
     }
     run().catch(() => {})
   }
@@ -102,6 +106,12 @@ export function DevicePanel({
   let state = "Disconnected"
   if (snapshot.connection.restarting) state = "Restarting"
   if (device) state = telemetry ? telemetry.state : "Waiting for status"
+  const stateText = (shown: string) => {
+    if (shown === "Disconnected") return t("panel.stateDisconnected")
+    if (shown === "Restarting") return t("panel.stateRestarting")
+    if (shown === "Waiting for status") return t("panel.stateWaiting")
+    return t(`states.${shown}`, { defaultValue: shown })
+  }
   let actionStatus = notice
   if (activity) actionStatus = `${activity.label}…`
   const failure = stop.error ?? reset.error ?? command.error
@@ -111,11 +121,11 @@ export function DevicePanel({
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex min-w-0 flex-col gap-1">
-            <h2>{device?.name ?? "No device connected"}</h2>
+            <h2>{device?.name ?? t("panel.notConnected")}</h2>
             {device && <FieldDescription>{device.host}</FieldDescription>}
           </div>
           <Badge variant={state === "Alarm" ? "destructive" : "secondary"}>
-            {state}
+            {stateText(state)}
           </Badge>
         </div>
         <div className="flex items-center gap-2">
@@ -125,10 +135,10 @@ export function DevicePanel({
             onClick={openPicker}
           >
             <Link2 />
-            {device ? "Connection" : "Connect device"}
+            {device ? t("panel.connection") : t("panel.connectDevice")}
           </Button>
           <ReasonButton
-            label="Unlock"
+            label={t("panel.unlock")}
             variant="outline"
             reason={reason("unlock")}
             disabled={pending}
@@ -137,35 +147,34 @@ export function DevicePanel({
                 { type: "unlock" },
                 {
                   onSuccess: () =>
-                    toast.success("Unlocked", {
-                      description:
-                        "Home the machine before running a program: its position may have changed.",
+                    toast.success(t("panel.unlocked"), {
+                      description: t("panel.unlockedHint"),
                     }),
                 }
               )
             }
           >
             <LockOpen />
-            Unlock
+            {t("panel.unlock")}
           </ReasonButton>
           <ReasonButton
-            label="Reset"
+            label={t("panel.reset")}
             variant="outline"
             reason={reason("reset")}
             disabled={pending}
             onClick={() => setConfirmReset(true)}
           >
             <RotateCcw />
-            Reset
+            {t("panel.reset")}
           </ReasonButton>
           <ReasonButton
-            label="Stop"
+            label={t("panel.stop")}
             variant="destructive"
             reason={reason("stop")}
             onClick={() => stop.mutate()}
           >
             <Square fill="currentColor" />
-            Stop
+            {t("panel.stop")}
           </ReasonButton>
         </div>
       </header>
@@ -177,19 +186,17 @@ export function DevicePanel({
       {snapshot.connection.restartNeeded && (
         <Alert variant="warning">
           <RotateCcw />
-          <AlertDescription>
-            Saved settings take effect once the machine restarts.
-          </AlertDescription>
+          <AlertDescription>{t("panel.restartNeeded")}</AlertDescription>
           <AlertAction>
             <ReasonButton
-              label="Reset now"
+              label={t("panel.resetNow")}
               variant="secondary"
               size="sm"
               reason={reason("reset")}
               disabled={pending}
               onClick={() => setConfirmReset(true)}
             >
-              Reset now
+              {t("panel.resetNow")}
             </ReasonButton>
           </AlertAction>
         </Alert>
@@ -197,10 +204,7 @@ export function DevicePanel({
       {snapshot.connection.restarting && (
         <Alert role="status">
           <LoaderCircle className="animate-spin" />
-          <AlertDescription>
-            The machine is restarting. OpenSpindle connects to it again once it
-            is back.
-          </AlertDescription>
+          <AlertDescription>{t("panel.restarting")}</AlertDescription>
         </Alert>
       )}
       {failure && (
@@ -210,7 +214,7 @@ export function DevicePanel({
             <Button
               variant="secondary"
               size="icon-sm"
-              aria-label="Dismiss command error"
+              aria-label={t("panel.dismissError")}
               onClick={() => {
                 command.reset()
                 stop.reset()

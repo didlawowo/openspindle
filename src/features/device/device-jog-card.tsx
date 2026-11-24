@@ -1,4 +1,5 @@
 import { useId, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { House, Move } from "lucide-react"
 import { cn } from "cn"
 import { Button } from "@/components/ui/button"
@@ -25,16 +26,16 @@ const JOG_SPEEDS = [5, 10, 25]
  * moves its bed in Y, and Y+ brings it towards whoever stands in front of the machine.
  */
 const JOG_BUTTONS = [
-  ["Y", 1, "Y+", "col-start-2 row-start-3", "Jog Y positive"],
-  ["X", -1, "X−", "col-start-1 row-start-2", "Jog X negative"],
-  ["X", 1, "X+", "col-start-3 row-start-2", "Jog X positive"],
-  ["Y", -1, "Y−", "col-start-2 row-start-1", "Jog Y negative"],
+  ["Y", 1, "Y+", "col-start-2 row-start-3", "jog.yPositive"],
+  ["X", -1, "X−", "col-start-1 row-start-2", "jog.xNegative"],
+  ["X", 1, "X+", "col-start-3 row-start-2", "jog.xPositive"],
+  ["Y", -1, "Y−", "col-start-2 row-start-1", "jog.yNegative"],
 ] as const
 
 /** [direction, button text, grid row, accessible label]. */
 const Z_BUTTONS = [
-  [1, "Z+", "row-start-1", "Jog Z positive"],
-  [-1, "Z−", "row-start-3", "Jog Z negative"],
+  [1, "Z+", "row-start-1", "jog.zPositive"],
+  [-1, "Z−", "row-start-3", "jog.zNegative"],
 ] as const
 
 /** The jog pads' buttons: larger than icon buttons elsewhere, to hit them easily. */
@@ -54,13 +55,14 @@ function GoToButton({
   allowed: (action: MachineCommand) => boolean
   execute: (action: MachineCommand) => void
 }) {
+  const { t } = useTranslation("device")
   const command: MachineCommand = { type: "goTo", target }
   return (
     <Button
       variant="outline"
       size="sm"
       className="flex-1"
-      title={reason("goTo", command) ?? `Up to the clearance, then to ${text}`}
+      title={reason("goTo", command) ?? t("jog.goToHint", { text })}
       disabled={!allowed(command)}
       onClick={() => execute(command)}
     >
@@ -81,6 +83,7 @@ export function DeviceJogCard({
   allowed: (action: MachineCommand) => boolean
   execute: (action: MachineCommand) => void
 }) {
+  const { t } = useTranslation("device")
   const fieldId = useId()
   const [step, setStep] = useState(1)
   const [speed, setSpeed] = useState(10)
@@ -104,7 +107,7 @@ export function DeviceJogCard({
   })
   const goTo = { reason, allowed, execute }
   return (
-    <ControlCard title="Jog" icon={<Move size={16} />}>
+    <ControlCard title={t("jog.title")} icon={<Move size={16} />}>
       <div className="flex flex-wrap items-center gap-4">
         <div className="grid grid-cols-3 grid-rows-3 gap-1">
           {JOG_BUTTONS.map(([axis, direction, text, position, label]) => (
@@ -113,8 +116,8 @@ export function DeviceJogCard({
               variant="outline"
               size="icon-lg"
               className={cn(PAD_BUTTON, position, AXIS_COLORS[axis])}
-              aria-label={label}
-              title={reason("jog", jog(axis, direction)) ?? label}
+              aria-label={t(label)}
+              title={reason("jog", jog(axis, direction)) ?? t(label)}
               disabled={!allowed(jog(axis, direction))}
               onClick={() => execute(jog(axis, direction))}
             >
@@ -124,11 +127,11 @@ export function DeviceJogCard({
           {/* Its own cell: a disabled ReasonButton wraps the button, which would leave its place. */}
           <div className="col-start-3 row-start-1">
             <ReasonButton
-              label="Home all"
+              label={t("jog.homeAll")}
               variant="outline"
               size="icon-lg"
               className={PAD_BUTTON}
-              aria-label="Home all"
+              aria-label={t("jog.homeAll")}
               reason={reason("home")}
               disabled={!allowed({ type: "home" })}
               onClick={() => execute({ type: "home" })}
@@ -145,8 +148,8 @@ export function DeviceJogCard({
               variant="outline"
               size="icon-lg"
               className={cn(PAD_BUTTON, position, AXIS_COLORS.Z)}
-              aria-label={label}
-              title={reason("jog", jog("Z", direction)) ?? label}
+              aria-label={t(label)}
+              title={reason("jog", jog("Z", direction)) ?? t(label)}
               disabled={!allowed(jog("Z", direction))}
               onClick={() => execute(jog("Z", direction))}
             >
@@ -157,7 +160,7 @@ export function DeviceJogCard({
         <FieldGroup className="min-w-56 flex-1 gap-3">
           <Field orientation="horizontal">
             <FieldLabel id={`${fieldId}-step`} className="w-14 shrink-0">
-              Step
+              {t("jog.step")}
             </FieldLabel>
             <ToggleGroup
               variant="outline"
@@ -181,7 +184,7 @@ export function DeviceJogCard({
           </Field>
           <Field orientation="horizontal">
             <FieldLabel htmlFor={fieldId} className="w-14 shrink-0">
-              Speed
+              {t("jog.speed")}
             </FieldLabel>
             <OptionSelect
               id={fieldId}
@@ -193,18 +196,22 @@ export function DeviceJogCard({
               onValueChange={setSpeed}
               numeric
               className="w-full"
-              aria-label="Jog speed"
+              aria-label={t("jog.speedAria")}
             />
           </Field>
           <Field orientation="horizontal">
             <FieldLabel id={`${fieldId}-go-to`} className="w-14 shrink-0">
-              Go to
+              {t("jog.goTo")}
             </FieldLabel>
             <div className="flex w-full gap-1">
-              <GoToButton target="clearance" text="Clearance" {...goTo} />
-              <GoToButton target="origin" text="Origin" {...goTo} />
-              <GoToButton target="anchor1" text="Anchor 1" {...goTo} />
-              <GoToButton target="anchor2" text="Anchor 2" {...goTo} />
+              <GoToButton
+                target="clearance"
+                text={t("jog.clearance")}
+                {...goTo}
+              />
+              <GoToButton target="origin" text={t("jog.origin")} {...goTo} />
+              <GoToButton target="anchor1" text={t("jog.anchor1")} {...goTo} />
+              <GoToButton target="anchor2" text={t("jog.anchor2")} {...goTo} />
             </div>
           </Field>
         </FieldGroup>

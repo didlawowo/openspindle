@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { RotateCcw, RotateCw } from "lucide-react"
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js"
 import { Button } from "@/components/ui/button"
@@ -36,6 +37,7 @@ export function FixtureOrientationField({
   modelId: ModelId
   onChange: (model: FixtureModel) => void
 }) {
+  const { t } = useTranslation("device")
   const container = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<FixtureModelScene | null>(null)
   const models = useHost().models
@@ -54,14 +56,14 @@ export function FixtureOrientationField({
     if (!container.current) return
     const scene = FixtureModelScene.create(container.current, {
       orient: (orientation) => orient.current(orientation),
-      unavailable: () => setError("3D view unavailable."),
+      unavailable: () => setError(t("fixture.view3dUnavailable")),
     })
     sceneRef.current = scene
     return () => {
       scene.dispose()
       sceneRef.current = null
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     const scene = sceneRef.current
@@ -86,10 +88,10 @@ export function FixtureOrientationField({
       scene.setMesh(glbInBedSpace(gltf.scene))
       setLoaded(true)
     })().catch(() => {
-      if (!cancelled()) setError("The model could not be shown.")
+      if (!cancelled()) setError(t("fixture.modelNotShown"))
     })
     return () => abort.abort()
-  }, [models, modelId])
+  }, [models, modelId, t])
 
   useEffect(() => {
     sceneRef.current?.show({
@@ -102,11 +104,11 @@ export function FixtureOrientationField({
 
   return (
     <Field>
-      <FieldTitle>Orientation</FieldTitle>
+      <FieldTitle>{t("fixture.orientation")}</FieldTitle>
       <div
         ref={container}
         className="relative h-56 overflow-hidden rounded-md border bg-muted/40 [&>canvas]:block"
-        aria-label={`${name} model, standing as it does on the bed`}
+        aria-label={t("fixture.previewAria", { name })}
       >
         {error && (
           <p className="absolute inset-0 grid place-items-center p-4 text-center text-xs text-muted-foreground">
@@ -116,29 +118,29 @@ export function FixtureOrientationField({
       </div>
       <div className="flex items-center gap-1">
         <FieldDescription className="min-w-0 flex-1">
-          Click the face it stands on.
+          {t("fixture.clickFace")}
         </FieldDescription>
         <Button
           variant="ghost"
           size="sm"
-          title="Turn it 90° about Z"
-          aria-label={`Turn ${name} 90°`}
+          title={t("fixture.turnTitle")}
+          aria-label={t("fixture.turnAria", { name })}
           disabled={!loaded}
           onClick={() => sceneRef.current?.turn()}
         >
           <RotateCw data-icon="inline-start" />
-          Turn
+          {t("fixture.turn")}
         </Button>
         <Button
           variant="ghost"
           size="sm"
-          title="Stand it as its file has it"
-          aria-label={`Reset ${name} orientation`}
+          title={t("fixture.resetTitle")}
+          aria-label={t("fixture.resetAria", { name })}
           disabled={!loaded || !model.orientation}
           onClick={() => orient.current(AS_AUTHORED)}
         >
           <RotateCcw data-icon="inline-start" />
-          Reset
+          {t("fixture.reset")}
         </Button>
       </div>
     </Field>

@@ -1,4 +1,6 @@
 import { useEffect } from "react"
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -59,28 +61,38 @@ import { MountPointsField } from "./mount-points-field"
 /** A fixture without a material of its own is drawn as its model or its type is. */
 const AUTOMATIC = "automatic"
 
-const MATERIAL_HINT =
-  "What it is made of, as it is drawn. Automatic draws a kit fixture as its model is, others as their type is: beds and wasteboards matte, the rest metal."
+type DeviceT = TFunction<"device">
 
-const MATERIAL_OPTIONS = [
-  { value: AUTOMATIC, label: "Automatic" },
-  ...SURFACE_MATERIALS.map((material) => ({
-    value: material,
-    label: SURFACE_FINISHES[material].label,
-  })),
-] as const
+/** The material a fixture is drawn with, the automatic choice first. */
+function materialOptions(t: DeviceT): Array<{
+  value: (typeof SURFACE_MATERIALS)[number] | typeof AUTOMATIC
+  label: string
+}> {
+  return [
+    { value: AUTOMATIC, label: t("fixture.materialAutomatic") },
+    ...SURFACE_MATERIALS.map((material) => ({
+      value: material,
+      label: SURFACE_FINISHES[material].label,
+    })),
+  ]
+}
 
-/** Fixture kinds, as they are named. */
-export const FIXTURE_KINDS: Array<[FixtureKind, string]> = [
-  ["bed", "Bed"],
-  ["clamp", "Clamp"],
-  ["holder", "Holder"],
-  ["vise", "Vise"],
-  ["vacuum-bed", "Vacuum bed"],
-  ["wasteboard", "Wasteboard"],
-  ["rotary", "Rotary module"],
-  ["other", "Other"],
+/** Fixture kinds, named in the language the interface shows. */
+export const FIXTURE_KINDS: readonly FixtureKind[] = [
+  "bed",
+  "clamp",
+  "holder",
+  "vise",
+  "vacuum-bed",
+  "wasteboard",
+  "rotary",
+  "other",
 ]
+
+/** What a fixture kind is called. */
+export function fixtureKindLabel(t: DeviceT, kind: FixtureKind) {
+  return t(`fixtureKinds.${kind}`)
+}
 const NO_MODEL = ""
 const BOX_MODEL = "box"
 const BUNDLED_MODEL = "bundled"
@@ -110,6 +122,7 @@ function FixtureModelField({
   /** Opens the Models library. */
   onModels: () => void
 }) {
+  const { t } = useTranslation("device")
   const models = useModelLibrary().data ?? []
   const id = `fixture-model-${definition.id}`
   const source = definition.model?.source.kind
@@ -121,25 +134,25 @@ function FixtureModelField({
   else if (source === "box") value = BOX_MODEL
   else if (modelId) value = modelId
   const items = [
-    { value: NO_MODEL, label: "No model" },
-    { value: BOX_MODEL, label: "Box" },
-    ...(bundled ? [{ value: BUNDLED_MODEL, label: "Bundled model" }] : []),
+    { value: NO_MODEL, label: t("fixture.noModel") },
+    { value: BOX_MODEL, label: t("fixture.box") },
+    ...(bundled
+      ? [{ value: BUNDLED_MODEL, label: t("fixture.bundledModel") }]
+      : []),
     ...(modelId && !selected
-      ? [{ value: modelId, label: "Missing model" }]
+      ? [{ value: modelId, label: t("fixture.missingModel") }]
       : []),
     ...models.map((model) => ({ value: model.id, label: model.name })),
   ]
-  let description = "Nothing is drawn for this fixture."
-  if (bundled) description = "Bundled with OpenSpindle."
-  else if (source === "box") description = "A box in the fixture's colour."
+  let description = t("fixture.noModelDescription")
+  if (bundled) description = t("fixture.bundledDescription")
+  else if (source === "box") description = t("fixture.boxDescription")
   else if (selected)
     description = modelDetails(selected, definition.model?.bounds)
-  else if (modelId)
-    description =
-      "This model is not in your Models library, so the fixture shows as a box."
+  else if (modelId) description = t("fixture.missingModelDescription")
   return (
     <Field>
-      <FieldLabel htmlFor={id}>Model</FieldLabel>
+      <FieldLabel htmlFor={id}>{t("fixture.model")}</FieldLabel>
       <div className="flex gap-2">
         <OptionSelect
           options={items}
@@ -154,11 +167,11 @@ function FixtureModelField({
             onChange(model ? fixtureModelOf(model) : null)
           }}
           id={id}
-          aria-label={`Model for ${definition.name}`}
+          aria-label={t("fixture.modelAria", { name: definition.name })}
           className="min-w-0 flex-1"
         />
         <Button variant="outline" onClick={onModels}>
-          Models…
+          {t("fixture.models")}
         </Button>
       </div>
       <FieldDescription className="font-numeric">
@@ -178,11 +191,12 @@ function BoxSizeFields({
   model: FixtureModel
   onChange: (model: FixtureModel) => void
 }) {
+  const { t } = useTranslation("device")
   const { min, max } = model.bounds
   const size = max.map((value, axis) => value - min[axis])
   return (
     <FieldSet>
-      <FieldLegend>Size</FieldLegend>
+      <FieldLegend>{t("fixture.size")}</FieldLegend>
       <FieldGroup className="gap-3">
         {(["width", "depth", "height"] as const).map((key, axis) => (
           <Field key={key}>
@@ -190,13 +204,19 @@ function BoxSizeFields({
               className="sr-only"
               htmlFor={`fixture-${key}-${definition.id}`}
             >
-              {`${definition.name} ${key}`}
+              {t("fixture.dimensionLabel", {
+                name: definition.name,
+                dimension: t(`fixture.dimensions.${key}`),
+              })}
             </FieldLabel>
             <BoundedMeasurementInput
               id={`fixture-${key}-${definition.id}`}
               axis={DIMENSION_AXES[key]}
               unit="mm"
-              label={`${definition.name} ${key}`}
+              label={t("fixture.dimensionLabel", {
+                name: definition.name,
+                dimension: t(`fixture.dimensions.${key}`),
+              })}
               min={0.01}
               max={BOX_SIZE_LIMIT}
               value={size[axis]}
@@ -224,11 +244,12 @@ function DefaultPositionFields({
   definition: FixtureDefinition
   onChange: (change: Partial<FixtureDefinition>, origin?: Point3) => void
 }) {
+  const { t } = useTranslation("device")
   const { model } = definition
   return (
     <FieldSet>
       <FieldLegend className="flex w-full items-center justify-between gap-3">
-        <span>Default position</span>
+        <span>{t("fixture.defaultPosition")}</span>
         {model && (
           <FixtureOriginSelect
             name={definition.name}
@@ -241,7 +262,7 @@ function DefaultPositionFields({
         )}
       </FieldLegend>
       <PointFields
-        label="Default position"
+        label={t("fixture.defaultPosition")}
         unit="mm"
         value={definition.defaultPosition}
         onChange={(defaultPosition) => onChange({ defaultPosition })}
@@ -261,6 +282,7 @@ export function FixtureDefinitionDialog({
   dialog: Extract<WorkspaceDialog, { kind: "fixture-definition" }>
   onClose: () => void
 }) {
+  const { t } = useTranslation("device")
   const fixtures = useFixtureLibraryStore()
   const workspace = useWorkspaceStore()
   const profile = useFixtureLibrary((library) =>
@@ -346,52 +368,54 @@ export function FixtureDefinitionDialog({
             maxLength={FIXTURE_NAME_LIMIT}
             onRename={(typed) => {
               const next = normalizeText(typed)
-              if (!next) return fail("Enter a name.")
+              if (!next) return fail(t("common.enterName"))
               update({ name: next })
               return ok(next)
             }}
           />
           <Field>
             <FieldLabel htmlFor={`fixture-kind-${definition.id}`}>
-              Type
+              {t("fixture.type")}
             </FieldLabel>
             <OptionSelect
-              options={FIXTURE_KINDS.map(([kind, name]) => ({
+              options={FIXTURE_KINDS.map((kind) => ({
                 value: kind,
-                label: name,
+                label: fixtureKindLabel(t, kind),
               }))}
               value={definition.kind}
               onValueChange={(value) => update({ kind: value })}
               id={`fixture-kind-${definition.id}`}
-              aria-label="Fixture type"
+              aria-label={t("fixture.typeAria")}
               className="w-full"
             />
           </Field>
           <Field>
             <FieldLabel htmlFor={`fixture-material-${definition.id}`}>
-              <Hint text={MATERIAL_HINT}>Material</Hint>
+              <Hint text={t("fixture.materialHint")}>
+                {t("fixture.material")}
+              </Hint>
             </FieldLabel>
             <OptionSelect
-              options={MATERIAL_OPTIONS}
+              options={materialOptions(t)}
               value={definition.material ?? AUTOMATIC}
               onValueChange={(value) =>
                 update({ material: value === AUTOMATIC ? undefined : value })
               }
               id={`fixture-material-${definition.id}`}
-              aria-label="Fixture material"
-              aria-description={MATERIAL_HINT}
+              aria-label={t("fixture.materialAria")}
+              aria-description={t("fixture.materialHint")}
               className="w-full"
             />
           </Field>
           <ColorField
             id={`fixture-color-${definition.id}`}
-            label="Colour"
+            label={t("fixture.colour")}
             value={definition.color}
             onChange={(color) => update({ color })}
           />
         </FieldGroup>
         <FieldSet>
-          <FieldLegend>Compatible machines</FieldLegend>
+          <FieldLegend>{t("fixture.compatibleMachines")}</FieldLegend>
           <FieldGroup className="gap-3">
             <Field orientation="horizontal">
               <Checkbox
@@ -402,7 +426,7 @@ export function FixtureDefinitionDialog({
                 }}
               />
               <FieldLabel htmlFor={`fixture-compatible-all-${id}`}>
-                All
+                {t("fixture.allMachines")}
               </FieldLabel>
             </Field>
             {FIXTURE_MACHINE_TYPES.map((machine) => (
@@ -437,12 +461,12 @@ export function FixtureDefinitionDialog({
                 }
               />
               <FieldLabel htmlFor={`fixture-default-enabled-${definition.id}`}>
-                Enabled on new plates
+                {t("fixture.enabledOnNewPlates")}
               </FieldLabel>
             </Field>
             <DefaultPositionFields definition={definition} onChange={update} />
             <PointFieldSet
-              label="Default rotation"
+              label={t("fixture.defaultRotation")}
               unit="°"
               value={definition.defaultRotation}
               onChange={(defaultRotation) => update({ defaultRotation })}

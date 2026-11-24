@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,19 +20,18 @@ export function ResetMachineDialog({
   onOpenChange: (open: boolean) => void
   onReset: () => void
 }) {
+  const { t } = useTranslation("device")
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Reset the machine?</AlertDialogTitle>
+          <AlertDialogTitle>{t("resetDialog.title")}</AlertDialogTitle>
           <AlertDialogDescription>
-            Its controller restarts, which takes a few seconds and stops
-            anything it is doing. OpenSpindle connects to it again once it is
-            back.
+            {t("resetDialog.body")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
             onClick={() => {
@@ -39,7 +39,7 @@ export function ResetMachineDialog({
               onReset()
             }}
           >
-            Reset
+            {t("resetDialog.action")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

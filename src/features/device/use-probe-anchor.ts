@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useNavigate } from "@tanstack/react-router"
 import { toast } from "sonner"
 import { useFixtureLibraryStore } from "@/app/fixtures/fixture-context"
@@ -27,6 +28,7 @@ import type { WorkspaceCommand } from "@/domain/workspace/workspace"
  * 3D probe; null when it can.
  */
 export function useProbeAnchor(): { reason: string | null; run: () => void } {
+  const { t } = useTranslation("device")
   const workspace = useWorkspaceStore()
   const fixtures = useFixtureLibraryStore()
   const navigate = useNavigate()
@@ -42,11 +44,11 @@ export function useProbeAnchor(): { reason: string | null; run: () => void } {
           return profile !== null && runsWith(strategy, profile, machine)
         })
       : undefined
-  let reason: string | null = `The ${kit.name} has no probing.`
+  let reason: string | null = t("probeAnchor.noProbing", { kit: kit.name })
   if (machine && strategy)
     reason =
       strategyUnsupported(strategy, machine) ??
-      (probe ? null : "The tool library has no 3D probe.")
+      (probe ? null : t("probeAnchor.noProbe"))
   return {
     reason,
     run: () => {
@@ -59,7 +61,7 @@ export function useProbeAnchor(): { reason: string | null; run: () => void } {
             ...placement,
           })
         ),
-        name: "Probe anchor",
+        name: t("probeAnchor.plateName"),
       }
       const added = newProbingOperation(plate, probe, strategy, machine)
       const { source } = added.operation

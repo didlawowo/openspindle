@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   Field,
@@ -15,8 +16,7 @@ import {
   useWriteConfiguration,
 } from "@/platform/machine"
 
-const MACHINE_LIGHT_TIMER_HINT =
-  "The light timer in the machine’s configuration. While it is on, the machine switches a dimmed light off when a job, homing or jog starts. Turning it off takes effect after a restart; the Inactivity timer can turn the light off instead."
+const MACHINE_LIGHT_TIMER_HINT_KEY = "lightTimer.hint"
 
 /** Saved results and failures belong to their original connection. */
 export function MachineLightTimerField({ pending }: { pending: boolean }) {
@@ -41,6 +41,7 @@ function MachineLightTimer({
   connectionId: string | null
   commandPending: boolean
 }) {
+  const { t } = useTranslation("device")
   const { availability } = useMachineSnapshot()
   const configuration = useCachedConfiguration(connectionId)
   const read = useReadConfiguration()
@@ -62,10 +63,10 @@ function MachineLightTimer({
   const pending = commandPending || read.isPending || write.isPending
   const readReason = availability.readConfiguration.allowed
     ? null
-    : (availability.readConfiguration.reason ?? "Unavailable.")
+    : (availability.readConfiguration.reason ?? t("common.unavailable"))
   const writeReason = availability.writeConfiguration.allowed
     ? null
-    : (availability.writeConfiguration.reason ?? "Unavailable.")
+    : (availability.writeConfiguration.reason ?? t("common.unavailable"))
 
   const turnOff = async () => {
     if (!configuration || pending || writeReason || needsReload) return
@@ -102,39 +103,43 @@ function MachineLightTimer({
       <Field orientation="horizontal" data-disabled={pending}>
         <FieldContent className="min-w-0 self-center">
           <FieldTitle>
-            <Hint text={MACHINE_LIGHT_TIMER_HINT}>Machine light timer</Hint>
+            <Hint text={t(MACHINE_LIGHT_TIMER_HINT_KEY)}>
+              {t("lightTimer.title")}
+            </Hint>
           </FieldTitle>
           {minutes === 0 && (
-            <FieldDescription role="status">Saved.</FieldDescription>
+            <FieldDescription role="status">
+              {t("config.saved")}
+            </FieldDescription>
           )}
         </FieldContent>
         <div className="flex shrink-0 items-center gap-2">
           <span className="font-numeric">
-            {minutes > 0 ? `${minutes} min` : "Off"}
+            {minutes > 0 ? `${minutes} min` : t("lightTimer.off")}
           </span>
           {minutes > 0 && (
             <ReasonButton
-              label="Turn off machine light timer"
-              aria-description={MACHINE_LIGHT_TIMER_HINT}
+              label={t("lightTimer.turnOffAria")}
+              aria-description={t(MACHINE_LIGHT_TIMER_HINT_KEY)}
               type="button"
               variant="outline"
               reason={writeReason}
               disabled={pending || !configuration || needsReload}
               onClick={() => void turnOff()}
             >
-              {write.isPending ? "Saving…" : "Turn off"}
+              {write.isPending ? t("config.saving") : t("lightTimer.turnOff")}
             </ReasonButton>
           )}
           {needsReload && (
             <ReasonButton
-              label="Reload machine light timer"
+              label={t("lightTimer.reloadAria")}
               type="button"
               variant="outline"
               reason={readReason}
               disabled={pending}
               onClick={reload}
             >
-              Reload
+              {t("config.reload")}
             </ReasonButton>
           )}
         </div>

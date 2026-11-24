@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { ArrowLeftRight, Check, Play, Wrench } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Field, FieldLabel } from "@/components/ui/field"
@@ -21,8 +22,7 @@ import { ReasonButton } from "@/components/workspace/reason-button"
 import { toolText } from "./device-format"
 import { ControlCard } from "./device-control-card"
 
-const TOOL_HINT =
-  "Set records the tool as the one in the spindle without measuring it, so the tool offset stays: for a bit you installed and set work Z with by hand. Change runs the machine's tool change: it waits for the tool to be installed, then measures it on the tool setter."
+const TOOL_HINT_KEY = "tool.hint"
 
 /**
  * The tools to set or change to: none, the selected plate's table by number and name, and the
@@ -31,7 +31,8 @@ const TOOL_HINT =
 function toolOptions(
   plate: Plate | null,
   library: readonly Tool[],
-  held: number | null
+  held: number | null,
+  noneLabel: string
 ) {
   const entries = (plate?.tools ?? [])
     .flatMap(({ number, toolId }) =>
@@ -39,7 +40,7 @@ function toolOptions(
     )
     .sort((a, b) => a.number - b.number)
   const options = [
-    { value: -1, label: "None" },
+    { value: -1, label: noneLabel },
     ...entries.map(({ number, toolId }) => {
       const tool = library.find(({ id }) => id === toolId)
       return {
@@ -75,6 +76,7 @@ export function DeviceToolCard({
   /** Changes to a tool with the machine's tool change, also to the one it holds. */
   change: (tool: number) => void
 }) {
+  const { t } = useTranslation("device")
   const fieldId = useId()
   const [choice, setChoice] = useState<number | null>(null)
   useEffect(() => {
@@ -83,7 +85,7 @@ export function DeviceToolCard({
   const plate = useSelectedPlate()
   const library = useWorkspace((state) => state.tools)
   const held = telemetry?.tool ?? null
-  const options = toolOptions(plate, library, held)
+  const options = toolOptions(plate, library, held, t("common.none"))
   const label = (tool: number) =>
     options.find(({ value }) => value === tool)?.label ?? toolText(tool)
   const tool = choice ?? held ?? -1
@@ -94,7 +96,7 @@ export function DeviceToolCard({
   }
   return (
     <ControlCard
-      title="Tool"
+      title={t("status.tool")}
       icon={<Wrench size={16} />}
       action={
         <Badge variant="secondary" className="max-w-56 truncate">
@@ -111,11 +113,11 @@ export function DeviceToolCard({
       >
         <Field className="min-w-0 flex-1">
           <FieldLabel htmlFor={`${fieldId}-tool`}>
-            <Hint text={TOOL_HINT}>Tool</Hint>
+            <Hint text={t(TOOL_HINT_KEY)}>{t("status.tool")}</Hint>
           </FieldLabel>
           <OptionSelect
             id={`${fieldId}-tool`}
-            aria-label="Tool to set or change to"
+            aria-label={t("tool.choiceAria")}
             className="w-full"
             options={options}
             value={tool}
@@ -124,36 +126,36 @@ export function DeviceToolCard({
           />
         </Field>
         <ReasonButton
-          label="Set tool"
+          label={t("tool.setAria")}
           type="submit"
           variant="outline"
           reason={
             reason("setTool", setTool) ??
-            (tool === held ? `The machine holds ${label(tool)}.` : null)
+            (tool === held ? t("tool.holdsTool", { tool: label(tool) }) : null)
           }
           disabled={pending}
         >
           <Check />
-          Set
+          {t("tool.set")}
         </ReasonButton>
         <ReasonButton
-          label="Change tool"
+          label={t("tool.changeAria")}
           type="button"
           variant="outline"
           reason={
             reason("changeTool", changeTool) ??
-            (tool < 0 ? "Choose the tool to change to." : null)
+            (tool < 0 ? t("tool.chooseTool") : null)
           }
           disabled={pending}
           onClick={() => change(tool)}
         >
           <ArrowLeftRight />
-          Change
+          {t("tool.change")}
         </ReasonButton>
       </form>
       {telemetry?.state === "Tool" && !features?.atc && (
         <ReasonButton
-          label="Tool installed"
+          label={t("status.toolInstalled")}
           variant="default"
           size="sm"
           className="self-start"
@@ -163,8 +165,8 @@ export function DeviceToolCard({
         >
           <Play />
           {telemetry.requestedTool === null || telemetry.requestedTool < 0
-            ? "Tool installed"
-            : `${toolText(telemetry.requestedTool)} installed`}
+            ? t("status.toolInstalled")
+            : t("tool.installed", { tool: toolText(telemetry.requestedTool) })}
         </ReasonButton>
       )}
     </ControlCard>

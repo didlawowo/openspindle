@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useForm } from "@tanstack/react-form"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
@@ -33,22 +34,25 @@ import {
 } from "@/platform/machine"
 
 export function DeviceConfigurationCard() {
+  const { t } = useTranslation("device")
   const { availability } = useMachineSnapshot()
   const entry = availability.readConfiguration
-  const reason = entry.allowed ? null : (entry.reason ?? "Unavailable.")
+  const reason = entry.allowed
+    ? null
+    : (entry.reason ?? t("common.unavailable"))
   return (
-    <Card size="sm" role="region" aria-label="Firmware configuration">
+    <Card size="sm" role="region" aria-label={t("firmwareConfig.title")}>
       <CardHeader>
-        <CardTitle>Firmware configuration</CardTitle>
+        <CardTitle>{t("firmwareConfig.title")}</CardTitle>
         <CardAction>
           <ReasonButton
-            label="View and edit firmware configuration"
+            label={t("firmwareConfig.viewEditAria")}
             variant="outline"
             size="sm"
             reason={reason}
             onClick={() => openDialog({ kind: "device-configuration" })}
           >
-            View and edit
+            {t("firmwareConfig.viewEdit")}
           </ReasonButton>
         </CardAction>
       </CardHeader>
@@ -68,6 +72,7 @@ export function DeviceConfigurationDialog({
 }: {
   onClose: () => void
 }) {
+  const { t } = useTranslation("device")
   const id = useId()
   const machine = useMachineSnapshot()
   const read = useReadConfiguration()
@@ -82,18 +87,16 @@ export function DeviceConfigurationDialog({
   const writeAvailability = machine.availability.writeConfiguration
   const readReason = readAvailability.allowed
     ? null
-    : (readAvailability.reason ?? "Unavailable.")
+    : (readAvailability.reason ?? t("common.unavailable"))
   let writeReason = writeAvailability.allowed
     ? null
-    : (writeAvailability.reason ?? "Unavailable.")
+    : (writeAvailability.reason ?? t("common.unavailable"))
   const changedConnection =
     configuration !== null &&
     configuration.connectionId !== machine.connection.id
   if (!writeReason && changedConnection)
-    writeReason =
-      "The connection changed. Reload the configuration before saving."
-  if (!writeReason && !configuration)
-    writeReason = "Read the configuration first."
+    writeReason = t("firmwareConfig.connectionChanged")
+  if (!writeReason && !configuration) writeReason = t("config.readFirst")
 
   const form = useForm({
     // TanStack reapplies changed defaults while untouched; keep them in step with reset().
@@ -118,8 +121,8 @@ export function DeviceConfigurationDialog({
         form.reset({ content: result.configuration.content })
         setNotice(
           result.afterRestart
-            ? "Configuration saved. Restart the device to apply it."
-            : "Configuration saved."
+            ? t("firmwareConfig.savedRestart")
+            : t("firmwareConfig.saved")
         )
       } catch {
         // The mutation exposes its error below; keep the edited text for recovery.
@@ -164,28 +167,28 @@ export function DeviceConfigurationDialog({
   return (
     <>
       <AppDialog
-        title="Firmware configuration"
+        title={t("firmwareConfig.title")}
         description={machine.connection.device?.name}
         width="wide"
         onClose={() => request("close")}
         footer={
           <>
             <ReasonButton
-              label="Reload configuration"
+              label={t("firmwareConfig.reloadAria")}
               variant="outline"
               className="sm:mr-auto"
               reason={readReason}
               disabled={pending}
               onClick={() => request("reload")}
             >
-              {read.isPending ? "Reading…" : "Reload"}
+              {read.isPending ? t("config.reading") : t("config.reload")}
             </ReasonButton>
             <Button
               variant="outline"
               disabled={pending}
               onClick={() => request("close")}
             >
-              Close
+              {t("common.close")}
             </Button>
             <form.Subscribe
               selector={(state) =>
@@ -194,7 +197,7 @@ export function DeviceConfigurationDialog({
             >
               {([content, canSubmit]) => (
                 <ReasonButton
-                  label="Save configuration"
+                  label={t("firmwareConfig.saveAria")}
                   type="submit"
                   form={`${id}-form`}
                   reason={writeReason}
@@ -202,7 +205,7 @@ export function DeviceConfigurationDialog({
                     pending || !canSubmit || content === configuration?.content
                   }
                 >
-                  {write.isPending ? "Saving…" : "Save"}
+                  {write.isPending ? t("config.saving") : t("config.save")}
                 </ReasonButton>
               )}
             </form.Subscribe>
@@ -225,14 +228,13 @@ export function DeviceConfigurationDialog({
             {changedConnection && (
               <Alert>
                 <AlertDescription>
-                  The connection changed. Your edits are kept here. Reload the
-                  configuration before saving to the connected device.
+                  {t("firmwareConfig.connectionChangedNotice")}
                 </AlertDescription>
               </Alert>
             )}
             {!configuration && (
               <FieldDescription role="status">
-                {read.isPending ? "Reading configuration…" : readReason}
+                {read.isPending ? t("config.reading") : readReason}
               </FieldDescription>
             )}
             {configuration && (
@@ -269,7 +271,7 @@ export function DeviceConfigurationDialog({
                     <FieldError errors={field.state.meta.errors} />
                     <FieldDescription role="status">
                       {field.state.value !== configuration.content
-                        ? "Unsaved changes"
+                        ? t("firmwareConfig.unsaved")
                         : notice}
                     </FieldDescription>
                   </Field>
@@ -287,15 +289,19 @@ export function DeviceConfigurationDialog({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t("firmwareConfig.discardTitle")}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               {confirm === "reload"
-                ? "Reloading replaces your edits with the configuration from the connected device."
-                : "Your configuration edits have not been saved."}
+                ? t("firmwareConfig.discardReloadBody")
+                : t("firmwareConfig.discardCloseBody")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep editing</AlertDialogCancel>
+            <AlertDialogCancel>
+              {t("firmwareConfig.keepEditing")}
+            </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={() => {
@@ -305,7 +311,7 @@ export function DeviceConfigurationDialog({
                 else if (action === "reload") retrieve()
               }}
             >
-              Discard changes
+              {t("firmwareConfig.discard")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

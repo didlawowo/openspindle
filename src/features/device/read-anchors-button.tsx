@@ -1,4 +1,5 @@
 import { LoaderCircle, Waypoints } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { useMachineSnapshot } from "@/platform/machine"
 import { ReasonButton } from "@/components/workspace/reason-button"
 
@@ -10,15 +11,16 @@ export function ReadAnchorsButton({
   reading: boolean
   onRead: () => void
 }) {
+  const { t } = useTranslation("device")
   const { availability, anchors } = useMachineSnapshot()
   const entry = availability.readAnchors
   const busy = reading || anchors.reading
-  let label = "Read anchors"
-  if (entry.deferred) label = "Read anchors after the program"
-  if (busy) label = "Reading anchors…"
+  let label = t("readAnchors.label")
+  if (entry.deferred) label = t("readAnchors.deferred")
+  if (busy) label = t("readAnchors.reading")
   return (
     <ReasonButton
-      label="Read anchors"
+      label={t("readAnchors.label")}
       variant="outline"
       size="sm"
       aria-label={label}

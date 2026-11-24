@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { LocateFixed } from "lucide-react"
 import {
   AlertDialog,
@@ -81,6 +82,7 @@ export function AnchorPositionsForm({
   writing: AnchorWriting
   onClose: () => void
 }) {
+  const { t } = useTranslation("device")
   const [positions, setPositions] = useState<Record<string, AnchorXY>>(() =>
     Object.fromEntries(
       anchors.map((anchor) => [anchor.id, anchor.machinePosition])
@@ -109,10 +111,8 @@ export function AnchorPositionsForm({
         return (
           <FieldSet key={anchor.id}>
             <FieldLegend>
-              <Hint
-                text={`${anchor.name} in machine coordinates, as the device stores it.`}
-              >
-                {anchor.name} on machine
+              <Hint text={t("anchors.onMachineHint", { name: anchor.name })}>
+                {t("anchors.onMachine", { name: anchor.name })}
               </Hint>
             </FieldLegend>
             <FieldGroup className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-3">
@@ -121,7 +121,10 @@ export function AnchorPositionsForm({
                   key={axis}
                   axis={axis}
                   unit="mm"
-                  label={`${anchor.name} machine ${axis}`}
+                  label={t("anchors.coordinateLabel", {
+                    name: anchor.name,
+                    axis,
+                  })}
                   value={position[index]}
                   disabled={writing.writing}
                   onCommit={(value) => {
@@ -132,11 +135,11 @@ export function AnchorPositionsForm({
                 />
               ))}
               <ReasonButton
-                label={`Use the current position for ${anchor.name}`}
+                label={t("anchors.useCurrent", { name: anchor.name })}
                 variant="outline"
                 size="icon"
-                aria-label={`Use the current position for ${anchor.name}`}
-                title={`Use the current position for ${anchor.name}`}
+                aria-label={t("anchors.useCurrent", { name: anchor.name })}
+                title={t("anchors.useCurrent", { name: anchor.name })}
                 reason={writing.reason}
                 disabled={writing.writing || !writing.current}
                 onClick={() => {
@@ -160,34 +163,33 @@ export function AnchorPositionsForm({
           disabled={writing.writing}
           onClick={onClose}
         >
-          Cancel
+          {t("common.cancel")}
         </Button>
         <ReasonButton
-          label="Write to device"
+          label={t("anchors.writeToDevice")}
           size="sm"
           reason={writing.reason}
           disabled={writing.writing || !changes.length}
           onClick={() => setConfirming(true)}
         >
-          {writing.writing ? "Writing…" : "Write to device"}
+          {writing.writing ? t("anchors.writing") : t("anchors.writeToDevice")}
         </ReasonButton>
       </div>
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Write the anchors to the device?
+              {t("anchors.writeConfirmTitle")}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              The machine keeps these positions in its configuration, and plates
-              set against its anchors move with them.
+              {t("anchors.writeConfirmBody")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Table className="font-numeric [&_td]:text-right [&_th:not(:first-child)]:text-right">
             <TableHeader>
               <TableRow>
-                <TableHead>Anchor</TableHead>
-                <TableHead>Machine · mm</TableHead>
+                <TableHead>{t("anchors.anchor")}</TableHead>
+                <TableHead>{t("anchors.machineColumn")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -203,8 +205,10 @@ export function AnchorPositionsForm({
             </TableBody>
           </Table>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={write}>Write anchors</AlertDialogAction>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={write}>
+              {t("anchors.writeAnchors")}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -1,4 +1,5 @@
 import { useId } from "react"
+import { useTranslation } from "react-i18next"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   Field,
@@ -15,8 +16,7 @@ import {
   useWriteConfiguration,
 } from "@/platform/machine"
 
-const CAMERA_VIDEO_HINT =
-  "Size of the camera's video, saved in the machine's configuration"
+const CAMERA_VIDEO_HINT_KEY = "camera.videoHint"
 
 /** From 640 × 480 up; 16:9 and 5:4 are the middle of the camera's 4:3 picture. */
 const SIZES: readonly Option<string>[] = [
@@ -33,6 +33,7 @@ const SIZES: readonly Option<string>[] = [
  * has read.
  */
 export function DeviceCameraVideoField({ pending }: { pending: boolean }) {
+  const { t } = useTranslation("device")
   const id = useId()
   const { connection, availability } = useMachineSnapshot()
   const configuration = useCachedConfiguration(connection.id)
@@ -45,8 +46,8 @@ export function DeviceCameraVideoField({ pending }: { pending: boolean }) {
       : SIZES
   let reason = availability.writeConfiguration.allowed
     ? null
-    : (availability.writeConfiguration.reason ?? "Unavailable.")
-  if (!reason && !configuration) reason = "Read the configuration first."
+    : (availability.writeConfiguration.reason ?? t("common.unavailable"))
+  if (!reason && !configuration) reason = t("config.readFirst")
   const disabled = pending || write.isPending || reason !== null
 
   return (
@@ -54,16 +55,18 @@ export function DeviceCameraVideoField({ pending }: { pending: boolean }) {
       <Field orientation="horizontal" data-disabled={disabled}>
         <FieldContent className="min-w-0 self-center">
           <FieldLabel htmlFor={id}>
-            <Hint text={CAMERA_VIDEO_HINT}>Video size</Hint>
+            <Hint text={t(CAMERA_VIDEO_HINT_KEY)}>{t("camera.videoSize")}</Hint>
           </FieldLabel>
           {write.isPending && (
-            <FieldDescription role="status">Saving…</FieldDescription>
+            <FieldDescription role="status">
+              {t("config.saving")}
+            </FieldDescription>
           )}
         </FieldContent>
         <OptionSelect
           id={id}
-          aria-label="Video size"
-          aria-description={CAMERA_VIDEO_HINT}
+          aria-label={t("camera.videoSize")}
+          aria-description={t(CAMERA_VIDEO_HINT_KEY)}
           title={reason ?? undefined}
           className="w-44 shrink-0"
           numeric

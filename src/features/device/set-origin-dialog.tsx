@@ -1,4 +1,6 @@
 import { useId, useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { toast } from "sonner"
 import { Undo2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -23,28 +25,22 @@ import { useMachineCommand, useMachineSnapshot } from "@/platform/machine"
 
 const NO_SELECTION = () => {}
 
-const X_HINT =
-  "Machine X of work X0: where the plate's work origin is on the machine, as Run sets it, or a position of your own."
-const Y_HINT =
-  "Machine Y of work Y0: where the plate's work origin is on the machine, as Run sets it, or a position of your own."
+type DeviceT = TFunction<"device">
 
 /** Machine X and Y the plate's work origin is at, as Run sets them; why not when it cannot. */
 function plateOrigin(
   plate: Plate | null,
-  connectedId: string | null
+  connectedId: string | null,
+  t: DeviceT
 ):
   | { readonly position: readonly [number, number]; readonly factory: boolean }
   | { readonly reason: string } {
-  if (!plate) return { reason: "Choose a plate." }
+  if (!plate) return { reason: t("origin.choosePlate") }
   if (connectedId !== null && plate.setup.deviceId !== connectedId)
-    return { reason: "The plate is set up for another device." }
-  if (plate.setup.machineOrigin)
-    return { reason: "The plate runs from the origin the machine keeps." }
+    return { reason: t("origin.otherDevice") }
+  if (plate.setup.machineOrigin) return { reason: t("origin.machineKeeps") }
   const origin = workOriginOnMachine(plate.setup)
-  if (!origin)
-    return {
-      reason: "Read the device's anchors: the plate's origin is on its bed.",
-    }
+  if (!origin) return { reason: t("origin.readAnchors") }
   return { position: origin.position, factory: origin.factory }
 }
 
@@ -56,6 +52,7 @@ const entryText = (value: number) => formatMillimetres(value)
  * it. Work Z stays.
  */
 export function SetOriginDialog({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation("device")
   const id = useId()
   const plates = useWorkspace((state) => state.plates)
   const selectedPlateId = useWorkspace((state) => state.selectedPlateId)
@@ -67,7 +64,7 @@ export function SetOriginDialog({ onClose }: { onClose: () => void }) {
     () => selectedPlateId ?? plates.at(0)?.id ?? ""
   )
   const plate = plates.find((item) => item.id === plateId) ?? null
-  const fromPlate = plateOrigin(plate, connectedId)
+  const fromPlate = plateOrigin(plate, connectedId, t)
   const planned = "position" in fromPlate ? fromPlate.position : null
   const [entry, setEntry] = useState<{
     readonly plateId: string
@@ -103,10 +100,11 @@ export function SetOriginDialog({ onClose }: { onClose: () => void }) {
 
   const availability = machine.availability.setOrigin
   let reason: string | null = null
-  if (!availability.allowed) reason = availability.reason ?? "Unavailable."
-  else if (!valid) reason = "Enter machine X and Y."
+  if (!availability.allowed)
+    reason = availability.reason ?? t("common.unavailable")
+  else if (!valid) reason = t("origin.enterXY")
   else if (!MachineCommandSchema.safeParse(action).success)
-    reason = "Enter a value within the allowed range."
+    reason = t("origin.outOfRange")
 
   const edited =
     !!own &&
@@ -115,22 +113,25 @@ export function SetOriginDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <AppDialog
-      title="Set origin from plate"
+      title={t("origin.title")}
       onClose={onClose}
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <ReasonButton
-            label="Set origin"
+            label={t("origin.set")}
             reason={reason}
             disabled={command.isPending}
             onClick={() =>
               command.mutate(action, {
                 onSuccess: () => {
                   toast.success(
-                    `Work X0 Y0 is at machine X${entryText(x)} Y${entryText(y)}.`
+                    t("origin.setToast", {
+                      x: entryText(x),
+                      y: entryText(y),
+                    })
                   )
                   onClose()
                 },
@@ -138,14 +139,14 @@ export function SetOriginDialog({ onClose }: { onClose: () => void }) {
               })
             }
           >
-            Set origin
+            {t("origin.set")}
           </ReasonButton>
         </>
       }
     >
       <FieldGroup>
         <Field orientation="horizontal">
-          <FieldLabel htmlFor={`${id}-plate`}>Plate</FieldLabel>
+          <FieldLabel htmlFor={`${id}-plate`}>{t("origin.plate")}</FieldLabel>
           <OptionSelect
             id={`${id}-plate`}
             className="ml-auto w-56"
@@ -160,7 +161,7 @@ export function SetOriginDialog({ onClose }: { onClose: () => void }) {
         <div
           className="relative h-[26rem] overflow-hidden rounded-lg border"
           role="img"
-          aria-label="The plate from above, with the work origin to set"
+          aria-label={t("origin.viewerAria")}
         >
           <BedViewer
             plates={shown}
@@ -181,7 +182,7 @@ export function SetOriginDialog({ onClose }: { onClose: () => void }) {
         <div className="flex items-end gap-2">
           <Field>
             <FieldLabel htmlFor={`${id}-x`}>
-              <Hint text={X_HINT}>Machine X</Hint>
+              <Hint text={t("origin.xHint")}>{t("origin.machineX")}</Hint>
             </FieldLabel>
             <MeasurementInput
               id={`${id}-x`}
@@ -189,14 +190,14 @@ export function SetOriginDialog({ onClose }: { onClose: () => void }) {
               unit="mm"
               type="number"
               step="any"
-              aria-description={X_HINT}
+              aria-description={t("origin.xHint")}
               value={xText}
               onChange={(event) => edit("x", event.target.value)}
             />
           </Field>
           <Field>
             <FieldLabel htmlFor={`${id}-y`}>
-              <Hint text={Y_HINT}>Machine Y</Hint>
+              <Hint text={t("origin.yHint")}>{t("origin.machineY")}</Hint>
             </FieldLabel>
             <MeasurementInput
               id={`${id}-y`}
@@ -204,13 +205,13 @@ export function SetOriginDialog({ onClose }: { onClose: () => void }) {
               unit="mm"
               type="number"
               step="any"
-              aria-description={Y_HINT}
+              aria-description={t("origin.yHint")}
               value={yText}
               onChange={(event) => edit("y", event.target.value)}
             />
           </Field>
           <ReasonButton
-            label="Use the plate's origin"
+            label={t("origin.usePlateOrigin")}
             variant="outline"
             size="icon"
             reason={"reason" in fromPlate ? fromPlate.reason : null}
@@ -222,8 +223,7 @@ export function SetOriginDialog({ onClose }: { onClose: () => void }) {
         </div>
         {"factory" in fromPlate && fromPlate.factory && !edited && (
           <p role="status" className="text-xs text-muted-foreground">
-            From the factory anchor positions: read the device's anchors to use
-            its own.
+            {t("origin.factoryAnchor")}
           </p>
         )}
         {"reason" in fromPlate && (

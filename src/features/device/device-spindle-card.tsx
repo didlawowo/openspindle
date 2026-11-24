@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Gauge, Play, Square } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Field, FieldLabel } from "@/components/ui/field"
@@ -30,6 +31,7 @@ export function DeviceSpindleCard({
   reason: (key: AvailabilityKey, action?: MachineCommand) => string | null
   execute: (action: MachineCommand) => void
 }) {
+  const { t } = useTranslation("device")
   const fieldId = useId()
   const [rpmInput, setRpmInput] = useState("")
   useEffect(() => {
@@ -41,10 +43,10 @@ export function DeviceSpindleCard({
   const startSpindle: MachineCommand = { type: "spindleStart", rpm }
   let spindleState = "—"
   if (telemetry?.spindleOn != null)
-    spindleState = telemetry.spindleOn ? "Running" : "Off"
+    spindleState = telemetry.spindleOn ? t("spindle.running") : t("spindle.off")
   return (
     <ControlCard
-      title="Spindle"
+      title={t("status.spindle")}
       icon={<Gauge size={16} />}
       action={<Badge variant="secondary">{spindleState}</Badge>}
     >
@@ -56,11 +58,13 @@ export function DeviceSpindleCard({
         }}
       >
         <Field className="min-w-0 flex-1">
-          <FieldLabel htmlFor={`${fieldId}-rpm`}>Target speed</FieldLabel>
+          <FieldLabel htmlFor={`${fieldId}-rpm`}>
+            {t("spindle.targetSpeed")}
+          </FieldLabel>
           <MeasurementInput
             id={`${fieldId}-rpm`}
             unit="rpm"
-            aria-label="Target spindle speed"
+            aria-label={t("spindle.targetSpeedAria")}
             type="number"
             min={limits?.spindleRpmMin}
             max={limits?.spindleRpmMax}
@@ -74,20 +78,24 @@ export function DeviceSpindleCard({
           />
         </Field>
         <ReasonButton
-          label={telemetry?.spindleOn ? "Apply spindle speed" : "Start spindle"}
+          label={
+            telemetry?.spindleOn
+              ? t("spindle.applyLabel")
+              : t("spindle.startLabel")
+          }
           type="submit"
           reason={reason("spindleStart", startSpindle)}
           disabled={pending}
         >
           <Play />
-          {telemetry?.spindleOn ? "Apply" : "Start"}
+          {telemetry?.spindleOn ? t("spindle.apply") : t("spindle.start")}
         </ReasonButton>
         <ReasonButton
-          label="Stop spindle"
+          label={t("spindle.stopSpindle")}
           type="button"
           variant="outline"
           size="icon"
-          aria-label="Stop spindle"
+          aria-label={t("spindle.stopSpindle")}
           reason={reason("spindleStop")}
           disabled={pending}
           onClick={() => execute({ type: "spindleStop" })}
@@ -97,11 +105,11 @@ export function DeviceSpindleCard({
       </form>
       <dl className="flex flex-wrap justify-between gap-4 [&_dd]:font-numeric">
         <div className="flex items-center gap-2">
-          <dt className="text-muted-foreground">Actual</dt>
+          <dt className="text-muted-foreground">{t("spindle.actual")}</dt>
           <dd>{numberText(telemetry?.spindleRpm)} rpm</dd>
         </div>
         <div className="flex items-center gap-2">
-          <dt className="text-muted-foreground">Requested</dt>
+          <dt className="text-muted-foreground">{t("spindle.requested")}</dt>
           <dd>{numberText(telemetry?.spindleTargetRpm)} rpm</dd>
         </div>
       </dl>

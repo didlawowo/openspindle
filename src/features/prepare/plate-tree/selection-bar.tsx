@@ -1,4 +1,5 @@
 import { Folder } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { FieldDescription } from "@/components/ui/field"
 import {
@@ -16,6 +17,7 @@ import { groupableSections } from "./tree-rows"
 
 /** Actions on the program sections selected in the tree: group them, or clear the selection. */
 export function SelectionBar() {
+  const { t } = useTranslation("prepare")
   const workspace = useWorkspaceStore()
   const plate = useSelectedPlate()
   const compiled = useCompiledPlate(plate)
@@ -27,16 +29,14 @@ export function SelectionBar() {
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-2 border-t px-4 py-2">
       <FieldDescription className="font-numeric">
-        {selected.length} selected
+        {t("tree.selected", { count: selected.length })}
       </FieldDescription>
       <Button
         variant="outline"
         size="xs"
         disabled={!groupable}
         title={
-          groupable
-            ? "Group the selected sections"
-            : "Select adjacent, ungrouped sections of one operation"
+          groupable ? t("tree.groupSections") : t("tree.groupNeedsAdjacent")
         }
         onClick={() => {
           if (!groupable) return
@@ -47,7 +47,7 @@ export function SelectionBar() {
               ...plate.groups,
               {
                 id: newId(),
-                name: `Group ${plate.groups.length + 1}`,
+                name: t("tree.groupName", { number: plate.groups.length + 1 }),
                 sectionIds: groupable.map((section) => section.id),
               },
             ],
@@ -56,10 +56,10 @@ export function SelectionBar() {
         }}
       >
         <Folder />
-        Group
+        {t("tree.group")}
       </Button>
       <Button variant="ghost" size="xs" onClick={clearSectionSelection}>
-        Clear
+        {t("tree.clear")}
       </Button>
     </div>
   )

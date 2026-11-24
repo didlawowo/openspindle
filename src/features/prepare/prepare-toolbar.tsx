@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { CircuitBoard, Crosshair, Settings2, ShieldCheck } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
@@ -11,7 +12,7 @@ import {
 import { checkPlateDesignRules } from "@/features/design-rules/design-rule-check"
 import { openDialog } from "@/features/shell/dialogs"
 import {
-  PROBING_DESCRIPTION,
+  useProbingDescription,
   useProbingReason,
 } from "./add-operation/probing-picker"
 import { ArrangeTools } from "./arrange/arrange-tools"
@@ -22,6 +23,8 @@ import { ArrangeTools } from "./arrange/arrange-tools"
  * and the workspace settings.
  */
 export function PrepareToolbar() {
+  const { t } = useTranslation("prepare")
+  const probingDescription = useProbingDescription()
   const probingReason = useProbingReason()
   const workspace = useWorkspaceStore()
   const hasPlate = useWorkspace((state) => selectedPlate(state) !== null)
@@ -35,37 +38,37 @@ export function PrepareToolbar() {
         <div
           className="flex items-center gap-1 overflow-x-auto overflow-y-hidden"
           role="toolbar"
-          aria-label="Prepare tools"
+          aria-label={t("toolbar.ariaLabel")}
         >
           <ArrangeTools />
           <Separator orientation="vertical" />
           <ToolbarButton
-            label="Probing"
-            description={PROBING_DESCRIPTION}
+            label={t("toolbar.probing")}
+            description={probingDescription}
             reason={probingReason}
             onClick={() => openDialog({ kind: "probing" })}
           >
             <Crosshair />
           </ToolbarButton>
           <ToolbarButton
-            label="PCB"
-            description="Create operations from KiCad Gerber and Excellon files."
+            label={t("toolbar.pcb")}
+            description={t("toolbar.pcbDescription")}
             onClick={() => openDialog({ kind: "add-operation", preset: "pcb" })}
           >
             <CircuitBoard />
           </ToolbarButton>
           <Separator orientation="vertical" />
           <ToolbarButton
-            label="Check design rules"
-            description="Checks the selected plate's program against the project's design rules, and lists what breaks them."
-            reason={hasPlate ? null : "There is no plate to check."}
+            label={t("toolbar.checkDesignRules")}
+            description={t("toolbar.checkDesignRulesDescription")}
+            reason={hasPlate ? null : t("toolbar.noPlateToCheck")}
             onClick={() => checkPlateDesignRules(workspace.state)}
           >
             <ShieldCheck />
           </ToolbarButton>
           <ToolbarButton
-            label="Workspace settings"
-            description="The project's settings, such as its design rules."
+            label={t("toolbar.workspaceSettings")}
+            description={t("toolbar.workspaceSettingsDescription")}
             onClick={() => openDialog({ kind: "workspace-settings" })}
           >
             <Settings2 />

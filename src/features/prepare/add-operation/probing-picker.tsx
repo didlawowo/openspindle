@@ -1,4 +1,6 @@
 import { ArrowLeft } from "lucide-react"
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { Button } from "@/components/ui/button"
 import { FieldDescription, FieldLegend, FieldSet } from "@/components/ui/field"
 import { targetPlate } from "@/app/workspace/defaults"
@@ -33,8 +35,10 @@ import { useAddOperation } from "./use-add-operation"
 import type { AddedOperation } from "./use-add-operation"
 
 /** What Probing adds, as the toolbar and Add operation offer it. */
-export const PROBING_DESCRIPTION =
-  "Probe the top surface, map heights, trace the outline or find the work origin with a probe."
+export function useProbingDescription() {
+  const { t } = useTranslation("prepare")
+  return t("probing.description")
+}
 
 /**
  * Why Probing cannot add an operation where adding would put it (the selected plate, or a new
@@ -42,11 +46,12 @@ export const PROBING_DESCRIPTION =
  * when it can.
  */
 export function useProbingReason(): string | null {
+  const { t } = useTranslation("prepare")
   const library = useWorkspace((state) => state.tools)
   const plate = useWorkspace(selectedPlate)
   const kit = plate ? kitForPlate(plate) : DEFAULT_KIT
-  if (!kit.probing) return `The ${kit.name} has no probing.`
-  if (!library.some(isProbe)) return "The tool library has no probe."
+  if (!kit.probing) return t("probing.noProbing", { kit: kit.name })
+  if (!library.some(isProbe)) return t("probing.noProbeInLibrary")
   return null
 }
 
@@ -57,6 +62,7 @@ export function useProbingReason(): string | null {
  * the tool library can perform it.
  */
 function strategyOffer(
+  t: TFunction<"prepare">,
   strategy: ProbingStrategy,
   plate: Plate,
   machine: MachineProbing,
@@ -70,7 +76,7 @@ function strategyOffer(
   if (!tool) {
     // Where every probe it runs with is refused, the first says why.
     const refused = strategyProbes(strategy, library, machine).at(0)?.refused
-    return { reason: refused ?? "The tool library has no probe for this." }
+    return { reason: refused ?? t("probing.noProbeForThis") }
   }
   const replaced = replacedEntry(plate, tool, machine)
   if (!replaced) return { tool, replaces: null }
@@ -80,7 +86,10 @@ function strategyOffer(
   return {
     tool,
     replaces: [
-      `Uses ${tool.name}, which replaces ${entryText(replaced, library)}.`,
+      t("probing.usesReplaces", {
+        tool: tool.name,
+        entry: entryText(replaced, library),
+      }),
       ...(stranded ? [`${stranded}.`] : []),
     ].join(" "),
   }
@@ -117,6 +126,7 @@ export function ProbingSteps({
   onAdded: () => void
   onBack?: () => void
 }) {
+  const { t } = useTranslation("prepare")
   const library = useWorkspace((state) => state.tools)
   const selected = useWorkspace(selectedPlate)
   const context = useImportContext()
@@ -126,19 +136,23 @@ export function ProbingSteps({
   const kit = kitForPlate(plate)
   const machine = kit.probing
   if (!machine)
-    return <FieldDescription>The {kit.name} has no probing.</FieldDescription>
+    return (
+      <FieldDescription>
+        {t("probing.noProbing", { kit: kit.name })}
+      </FieldDescription>
+    )
 
   return (
     <div className="flex flex-col gap-4">
       {onBack && (
         <Button variant="ghost" className="self-start" onClick={onBack}>
           <ArrowLeft />
-          All sources
+          {t("probing.allSources")}
         </Button>
       )}
       {/* Setting up a job: inspection may join it as a group of its own. */}
       <FieldSet>
-        <FieldLegend>Setup</FieldLegend>
+        <FieldLegend>{t("probing.setup")}</FieldLegend>
         <ItemGroup className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {PROBING_STRATEGIES.map((strategy) => (
             <StrategyChoice
@@ -180,8 +194,9 @@ function StrategyChoice({
   library: readonly Tool[]
   onSelect: (tool: Tool) => void
 }) {
+  const { t } = useTranslation("prepare")
   const machine = kit.probing!
-  const offer = strategyOffer(strategy, plate, machine, library)
+  const offer = strategyOffer(t, strategy, plate, machine, library)
   const shown =
     "tool" in offer
       ? offer.tool
@@ -205,8 +220,9 @@ function StrategyChoice({
 
 /** Probing from the toolbar: the picker on its own. */
 export function ProbingPicker({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation("prepare")
   return (
-    <AppDialog title="Probing" width="wide" onClose={onClose}>
+    <AppDialog title={t("probing.title")} width="wide" onClose={onClose}>
       <ProbingSteps onAdded={onClose} />
     </AppDialog>
   )

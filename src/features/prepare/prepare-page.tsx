@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useDefaultLayout } from "react-resizable-panels"
 import {
   ResizableHandle,
@@ -11,6 +12,7 @@ import { BedSetupField, DeviceCard } from "./sidebar-header"
 
 /** Plates and their operations: set up stock, tools and fixtures, and preview them on the bed. */
 export function PreparePage() {
+  const { t } = useTranslation("prepare")
   const layout = useDefaultLayout({
     id: "openspindle-prepare",
     panelIds: ["sidebar", "viewer"],
@@ -39,7 +41,7 @@ export function PreparePage() {
           <PrepareInspector />
         </aside>
       </ResizablePanel>
-      <ResizableHandle withHandle aria-label="Resize side panel" />
+      <ResizableHandle withHandle aria-label={t("page.resizeSidePanel")} />
       <ResizablePanel id="viewer" minSize={320}>
         <PrepareViewer />
       </ResizablePanel>

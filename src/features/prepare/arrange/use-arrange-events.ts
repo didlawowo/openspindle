@@ -1,4 +1,6 @@
 import { toast } from "sonner"
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { useWorkspaceStore } from "@/app/workspace/workspace-context"
 import type { WorkspaceStore } from "@/app/workspace/store"
 import type {
@@ -47,10 +49,10 @@ function panelOf(item: SetupItemRef): PrepareSearch["panel"] {
 type LockTarget = { plate: Plate; item: Pick<SetupItem, "ref" | "locked"> }
 
 /** What a lock control says: the same wording wherever a fixture can be locked or unlocked. */
-export function lockToggleCopy(locked: boolean) {
+export function lockToggleCopy(t: TFunction<"prepare">, locked: boolean) {
   return {
-    label: locked ? "Unlock" : "Lock",
-    description: locked ? "Let it move again." : "Keep it in place.",
+    label: locked ? t("lock.unlock") : t("lock.lock"),
+    description: locked ? t("lock.letMove") : t("lock.keepInPlace"),
   }
 }
 
@@ -108,6 +110,7 @@ export function useArrangeEvents(handlers: {
   menu: (request: ArrangeMenuRequest) => void
   pick: (pick: ArrangePick) => void
 }): ArrangeEvents {
+  const { t } = useTranslation("prepare")
   const workspace = useWorkspaceStore()
   const select = useSelectSetupItem()
   const parts = useSuppressParts()
@@ -136,9 +139,7 @@ export function useArrangeEvents(handlers: {
           ? withPickedStart(operation.source, plate, pick.position, pick.target)
           : null
       if (!source) {
-        toast.error(
-          "The plate has no anchors to start from: read the device's anchors."
-        )
+        toast.error(t("arrange.noAnchors"))
         return
       }
       const result = workspace.dispatch({
@@ -160,7 +161,7 @@ export function useArrangeEvents(handlers: {
           ? withPickedEdge(operation.source, edge)
           : null
       if (!source) {
-        toast.error("The trace follows as many edges as it can.")
+        toast.error(t("arrange.traceEdges"))
         return
       }
       const result = workspace.dispatch({

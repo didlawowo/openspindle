@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Badge } from "@/components/ui/badge"
 import {
   Empty,
@@ -26,6 +27,7 @@ import { FixturePicture, modelSize } from "./fixture-picture"
 import {
   FIXTURE_KIND_GROUPS,
   addFixtureToPlate,
+  fixtureKindGroupLabel,
   usePlateBedSetup,
 } from "./plate-fixtures"
 
@@ -42,12 +44,13 @@ function FixtureChoice({
   title?: string
   onSelect: () => void
 }) {
+  const { t } = useTranslation("prepare")
   return (
     <Item
       variant="outline"
       render={<button type="button" />}
       className="flex-col items-stretch gap-2 p-2 text-left hover:bg-muted/50"
-      aria-label={`Add ${definition.name}`}
+      aria-label={t("fixtures.addNamed", { name: definition.name })}
       title={title}
       onClick={onSelect}
     >
@@ -62,12 +65,14 @@ function FixtureChoice({
           </ItemTitle>
           {placed > 0 && (
             <Badge variant="secondary" className="font-numeric">
-              {placed > 1 ? `${placed} on plate` : "On plate"}
+              {t("fixtures.onPlate", { count: placed })}
             </Badge>
           )}
         </div>
         <ItemDescription className="truncate font-numeric">
-          {definition.model ? `${modelSize(definition.model)} mm` : "No model"}
+          {definition.model
+            ? t("fixtures.sizeMm", { size: modelSize(definition.model) })
+            : t("fixtures.noModel")}
         </ItemDescription>
       </ItemContent>
     </Item>
@@ -84,6 +89,7 @@ function FixtureChoices({
   label: string
   onClose: () => void
 }) {
+  const { t } = useTranslation("prepare")
   const workspace = useWorkspaceStore()
   const selection = usePrepareSelection()
   const bedSetup = usePlateBedSetup(plate)
@@ -99,14 +105,15 @@ function FixtureChoices({
   }
   return (
     <AppDialog
-      title="Add fixture"
+      title={t("fixtures.addTitle")}
       description={label}
       width="wide"
       onClose={onClose}
     >
       {bedSetup.definitions.length ? (
         <div className="flex flex-col gap-4">
-          {FIXTURE_KIND_GROUPS.map(([kind, group]) => {
+          {FIXTURE_KIND_GROUPS.map((kind) => {
+            const group = fixtureKindGroupLabel(t, kind)
             const definitions = bedSetup.definitions.filter(
               (definition) => definition.kind === kind
             )
@@ -125,7 +132,9 @@ function FixtureChoices({
                       definition={definition}
                       placed={placed(definition)}
                       title={
-                        isBedKind(kind) ? `Replaces ${label}'s bed` : undefined
+                        isBedKind(kind)
+                          ? t("fixtures.replacesBed", { label })
+                          : undefined
                       }
                       onSelect={() => add(definition)}
                     />
@@ -138,10 +147,8 @@ function FixtureChoices({
       ) : (
         <Empty>
           <EmptyHeader>
-            <EmptyTitle>No fixtures to add</EmptyTitle>
-            <EmptyDescription>
-              Fixtures are defined on the Device tab.
-            </EmptyDescription>
+            <EmptyTitle>{t("fixtures.noneToAdd")}</EmptyTitle>
+            <EmptyDescription>{t("fixtures.definedOnDevice")}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       )}

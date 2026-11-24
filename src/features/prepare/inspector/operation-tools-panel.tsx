@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { FieldDescription } from "@/components/ui/field"
 import { ToolCard } from "@/components/workspace/tool-card"
 import { useWorkspace } from "@/app/workspace/workspace-context"
@@ -14,15 +15,16 @@ export function OperationToolsPanel({
   plate: Plate
   operation: Operation
 }) {
+  const { t } = useTranslation("prepare")
   const library = useWorkspace((state) => state.tools)
   if (!operation.tools.length)
     return (
       <FieldDescription className="p-4">
-        This operation selects no tools yet.
+        {t("tools.operationNone")}
       </FieldDescription>
     )
   return (
-    <div className="flex flex-col gap-3 p-3" aria-label="Operation tools">
+    <div className="flex flex-col gap-3 p-3" aria-label={t("tools.operation")}>
       {operation.tools.map((binding) => {
         const entry = plate.tools.find((tool) => tool.number === binding.plate)
         const tool = library.find((item) => item.id === entry?.toolId)
@@ -36,9 +38,11 @@ export function OperationToolsPanel({
           <div key={binding.local ?? "program"} className="flex flex-col gap-1">
             <ToolCard
               tool={tool}
-              slotLabel={toolNumberLabel(binding.plate)}
+              slotLabel={toolNumberLabel(t, binding.plate)}
               emptyLabel={
-                entry?.toolId ? "Missing from the library" : "Assign tool"
+                entry?.toolId
+                  ? t("tools.missingFromLibrary")
+                  : t("tools.assign")
               }
               onClick={() =>
                 openDialog({
@@ -50,9 +54,11 @@ export function OperationToolsPanel({
             {(renumbered || shared > 0) && (
               <FieldDescription>
                 {renumbered &&
-                  `The program's ${toolNumberLabel(binding.local)} runs as ${toolNumberLabel(binding.plate)}. `}
-                {shared > 0 &&
-                  `Shared with ${shared} other operation${shared === 1 ? "" : "s"}.`}
+                  t("tools.renumbered", {
+                    from: toolNumberLabel(t, binding.local),
+                    to: toolNumberLabel(t, binding.plate),
+                  })}
+                {shared > 0 && t("tools.sharedWith", { count: shared })}
               </FieldDescription>
             )}
           </div>

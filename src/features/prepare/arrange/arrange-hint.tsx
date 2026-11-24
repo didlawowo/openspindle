@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import {
   Card,
   CardDescription,
@@ -30,69 +32,77 @@ const signed = (value: number) => {
 }
 
 /** How far a drag has gone: the axes it moves along, and what it snapped to. */
-function dragText({ delta, snappedTo }: ArrangeDrag) {
+function dragText(t: TFunction<"prepare">, { delta, snappedTo }: ArrangeDrag) {
   const moved = (["X", "Y", "Z"] as const)
     .map((axis, index) => `${axis} ${signed(delta[index])}`)
     .join(", ")
-  return snappedTo ? `${moved} mm, on ${snappedTo}` : `${moved} mm`
+  return snappedTo
+    ? t("arrange.hint.dragSnapped", { moved, snappedTo })
+    : t("arrange.hint.drag", { moved })
 }
 
 function hintText(
+  t: TFunction<"prepare">,
   item: SetupItem,
   state: ArrangeState,
   pick: ArrangePick,
   drag: ArrangeDrag | null
 ) {
   if (item.fixed) return item.fixed
-  if (!state.moving) return "Move it with the move tool (M)."
-  if (drag) return <span className="font-numeric">{dragText(drag)}</span>
-  if (pick.from) return `Click the point to move ${pick.from.label} to.`
+  if (!state.moving) return t("arrange.hint.moveTool")
+  if (drag) return <span className="font-numeric">{dragText(t, drag)}</span>
+  if (pick.from)
+    return t("arrange.hint.clickToPoint", { label: pick.from.label })
   if (pick.notice === "pick-own-point")
-    return `First click a point of ${item.name}, then the point to align it to.`
+    return t("arrange.hint.pickOwnPoint", { name: item.name })
   const along = MOVE_AXES_LABELS[state.axes]
-  const snapping = state.snap ? ", snapping to points (hold Alt not to)" : ""
-  return `Drag it along ${along}${snapping}, or click one of its points and then another. Right-click for options.`
+  const snapping = state.snap ? t("arrange.hint.snapping") : ""
+  return t("arrange.hint.dragAlong", { axes: along, snapping })
 }
 
 /** What a point picked for a probing strategy snaps to (`pickTargets`). */
-function snapTargets(strategy: string) {
+function snapTargets(t: TFunction<"prepare">, strategy: string) {
   switch (strategy) {
     case "outside-corner":
-      return "outer corners"
+      return t("arrange.picking.targets.outerCorners")
     case "inside-corner":
-      return "inner corners"
+      return t("arrange.picking.targets.innerCorners")
     case "pocket-center":
-      return "hole centres"
+      return t("arrange.picking.targets.holeCentres")
     case "boss-center":
-      return "centres"
+      return t("arrange.picking.targets.centres")
     default:
-      return "corners and centres"
+      return t("arrange.picking.targets.cornersAndCentres")
   }
 }
 
 /** What a click picks for an operation: where it starts, or which edges it traces. */
 function pickingText(
+  t: TFunction<"prepare">,
   kind: OperationPicking["kind"],
   operation: Operation | null
 ) {
-  if (kind === "edges")
-    return "Click edges of the stock or fixtures to trace them, or click one again to drop it. Esc when done."
-  if (kind === "parts")
-    return "Click a path to suppress it, or a faint one to run it again. Esc when done."
+  if (kind === "edges") return t("arrange.picking.edges")
+  if (kind === "parts") return t("arrange.picking.parts")
   const source = operation?.source
-  const snapping = `snapping to ${snapTargets(source?.kind === "probing" ? source.strategy : "")}`
+  const snapping = t("arrange.picking.snapping", {
+    targets: snapTargets(t, source?.kind === "probing" ? source.strategy : ""),
+  })
   if (source?.kind === "probing" && source.task === "origin") {
     const { routine, corner } = source.params
     // A corner snapped to is the one probed; a free pick probes the corner the operation has.
     return findsCorner(routine)
-      ? `Click the corner to probe, ${snapping} (hold Alt to place it freely, as the ${PROBE_3D_CORNER_LABELS[corner].toLowerCase()} corner). Its start is set from there. Esc to cancel.`
-      : `Click the centre to probe, ${snapping} (hold Alt to place it freely). Its start is set from there. Esc to cancel.`
+      ? t("arrange.picking.corner", {
+          snapping,
+          corner: PROBE_3D_CORNER_LABELS[corner].toLowerCase(),
+        })
+      : t("arrange.picking.centre", { snapping })
   }
   const what =
     source?.kind === "probing" && source.task === "grid"
-      ? "where the grid starts"
-      : "where to touch"
-  return `Click ${what}, ${snapping} (hold Alt to place it freely). Esc to cancel.`
+      ? t("arrange.picking.gridStart")
+      : t("arrange.picking.touch")
+  return t("arrange.picking.click", { what, snapping })
 }
 
 /** What is selected in the viewer, and what clicking and dragging will do with it. */
@@ -103,6 +113,7 @@ export function ArrangeHint({
   target: ArrangeTarget | null
   pick: ArrangePick
 }) {
+  const { t } = useTranslation("prepare")
   const state = useArrange()
   const drag = useArrangeDrag()
   const { picking } = state
@@ -122,9 +133,9 @@ export function ArrangeHint({
         aria-live="polite"
       >
         <CardHeader>
-          <CardTitle>{operation?.name ?? "Pick"}</CardTitle>
+          <CardTitle>{operation?.name ?? t("arrange.pick")}</CardTitle>
           <CardDescription>
-            {pickingText(picking.kind, operation)}
+            {pickingText(t, picking.kind, operation)}
           </CardDescription>
         </CardHeader>
       </Card>
@@ -139,7 +150,7 @@ export function ArrangeHint({
       <CardHeader>
         <CardTitle>{target.item.name}</CardTitle>
         <CardDescription>
-          {hintText(target.item, state, pick, drag)}
+          {hintText(t, target.item, state, pick, drag)}
         </CardDescription>
       </CardHeader>
     </Card>

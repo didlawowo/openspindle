@@ -1,4 +1,6 @@
 import { useId } from "react"
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { Crosshair } from "lucide-react"
 import {
   Field,
@@ -11,7 +13,6 @@ import {
 import { OptionSelect } from "@/components/option-select"
 import { Hint } from "@/components/workspace/hint"
 import { ASSIST_KEYS, ASSIST_LABELS } from "@/machine/contract"
-import type { AssistMode } from "@/machine/contract"
 import type { PlateSetup } from "@/domain/plate/plate"
 import { COORDINATE_LIMIT } from "@/domain/primitives"
 import type { Point3 } from "@/domain/primitives"
@@ -28,23 +29,23 @@ type SetupFieldsProps = {
   onChange: (patch: Partial<PlateSetup>) => void
 }
 
-const ASSIST_MODE_OPTIONS: ReadonlyArray<{ value: AssistMode; label: string }> =
+const assistModeOptions = (t: TFunction<"prepare">) =>
   [
-    { value: "device", label: "Device setting" },
-    { value: "on", label: "On" },
-    { value: "off", label: "Off" },
-  ]
+    { value: "device", label: t("setup.assistDevice") },
+    { value: "on", label: t("setup.assistOn") },
+    { value: "off", label: t("setup.assistOff") },
+  ] as const
 
 const STOCK_ORIGINS = {
-  "": "Set from stock…",
-  "front-left-top": "Front-left · top",
-  "front-right-top": "Front-right · top",
-  "back-left-top": "Back-left · top",
-  "back-right-top": "Back-right · top",
-  "center-top": "Center · top",
-  "front-left-bottom": "Front-left · bottom",
-  "center-bottom": "Center · bottom",
-}
+  "": "setup.originFromStock",
+  "front-left-top": "setup.originFrontLeftTop",
+  "front-right-top": "setup.originFrontRightTop",
+  "back-left-top": "setup.originBackLeftTop",
+  "back-right-top": "setup.originBackRightTop",
+  "center-top": "setup.originCenterTop",
+  "front-left-bottom": "setup.originFrontLeftBottom",
+  "center-bottom": "setup.originCenterBottom",
+} as const
 type StockOrigin = Exclude<keyof typeof STOCK_ORIGINS, "">
 
 const isPoint = (value: readonly number[]): value is Point3 =>
@@ -54,25 +55,17 @@ const isPoint = (value: readonly number[]): value is Point3 =>
       Number.isFinite(coordinate) && Math.abs(coordinate) <= COORDINATE_LIMIT
   )
 
-const STOCK_ANCHOR_HINT =
-  "Where the stock sits: its front-left bottom corner, in bed coordinates from Anchor 1 or relative to another stored anchor."
-
-const WORK_ORIGIN_HINT =
-  "The plate's NC zero, which every operation machines from. Run sets its X and Y once the plate's anchors are read from its device; until then, set the physical work zero on Device. On Machine Origin, Run leaves X and Y where the machine keeps them. Read device puts its X and Y where the connected device keeps its work zero."
-
-const MACHINE_ORIGIN_LOCK =
-  "The machine's own work zero: Run does not set it. Read device to show where it is now."
-
 /** Where the stock sits on the bed, by its anchor, like each fixture. */
 export function StockPlacementFields({
   setup,
   disabled,
   onChange,
 }: SetupFieldsProps) {
+  const { t } = useTranslation("prepare")
   return (
     <AnchorPlacementFields
-      name="Stock"
-      hint={STOCK_ANCHOR_HINT}
+      name={t("inspector.tabStock")}
+      hint={t("setup.stockAnchorHint")}
       value={setup.stockAnchor}
       relativeTo={setup.stockRelativeTo}
       anchorSetup={setup.anchors}
@@ -114,15 +107,16 @@ export function WorkOriginFields({
   /** Reads where the connected device keeps its work zero into the work origin's X and Y. */
   readDevice?: MachineAction
 }) {
+  const { t } = useTranslation("prepare")
   const id = useId()
   const origins = stockOrigins(setup)
   const originOf = (value: string) =>
     Object.hasOwn(origins, value) ? origins[value as StockOrigin] : undefined
-  const originOptions = Object.entries(STOCK_ORIGINS).map(([value, label]) => {
+  const originOptions = Object.entries(STOCK_ORIGINS).map(([value, key]) => {
     const origin = value ? originOf(value) : undefined
     return {
       value,
-      label,
+      label: t(key),
       disabled:
         value !== "" &&
         (!(origin && isPoint(origin)) ||
@@ -133,12 +127,12 @@ export function WorkOriginFields({
   // From stock moves X and Y, which on the machine's origin are the machine's.
   const fromStockDisabled = disabled || !setup.stock || onMachine
   return (
-    <FieldSet aria-label="Origin">
+    <FieldSet aria-label={t("setup.origin")}>
       <FieldLegend>
-        <Hint text={WORK_ORIGIN_HINT}>Origin</Hint>
+        <Hint text={t("setup.workOriginHint")}>{t("setup.origin")}</Hint>
       </FieldLegend>
       <RelativePointFields
-        label="Origin"
+        label={t("setup.origin")}
         value={setup.workOrigin}
         relativeTo={setup.workOriginAnchor}
         anchorSetup={setup.anchors}
@@ -146,7 +140,7 @@ export function WorkOriginFields({
         zLock={zLock}
         machineOrigin={{
           selected: onMachine,
-          lock: MACHINE_ORIGIN_LOCK,
+          lock: t("setup.machineOriginLock"),
           onSelect: () => {
             onChange({ machineOrigin: true })
             // Where the machine has it now, as the view and checks place the plate by it.
@@ -161,12 +155,12 @@ export function WorkOriginFields({
       <div className="flex items-end gap-2">
         <Field data-disabled={fromStockDisabled}>
           <FieldLabel className="sr-only" htmlFor={`${id}-origin`}>
-            Set origin from stock
+            {t("setup.setOriginFromStock")}
           </FieldLabel>
           <OptionSelect
             id={`${id}-origin`}
             className="w-full"
-            aria-label="Set origin from stock"
+            aria-label={t("setup.setOriginFromStock")}
             options={originOptions}
             value=""
             disabled={fromStockDisabled}
@@ -179,8 +173,8 @@ export function WorkOriginFields({
         {readDevice && (
           <MachineActionButton
             action={readDevice}
-            label="Read device"
-            pendingLabel="Reading device…"
+            label={t("setup.readDevice")}
+            pendingLabel={t("setup.readingDevice")}
             icon={<Crosshair data-icon="inline-start" />}
           />
         )}
@@ -191,11 +185,12 @@ export function WorkOriginFields({
 
 /** Vacuum, air, bed cleaning and anti-static for the whole plate's run. */
 export function AssistFields({ setup, disabled, onChange }: SetupFieldsProps) {
+  const { t } = useTranslation("prepare")
   const id = useId()
   return (
-    <FieldSet aria-label="Plate assists">
+    <FieldSet aria-label={t("setup.assistsAria")}>
       <FieldLegend className="flex w-full items-baseline justify-between">
-        <span>Assists</span>
+        <span>{t("setup.assists")}</span>
       </FieldLegend>
       <FieldGroup className="gap-3">
         {ASSIST_KEYS.map((key) => (
@@ -211,8 +206,8 @@ export function AssistFields({ setup, disabled, onChange }: SetupFieldsProps) {
             <OptionSelect
               id={`${id}-${key}`}
               className="w-full min-w-0"
-              aria-label={`${ASSIST_LABELS[key]} assist`}
-              options={ASSIST_MODE_OPTIONS}
+              aria-label={t("setup.assistAria", { label: ASSIST_LABELS[key] })}
+              options={assistModeOptions(t)}
               value={setup.assists[key]}
               disabled={disabled}
               onValueChange={(value) =>
@@ -223,14 +218,10 @@ export function AssistFields({ setup, disabled, onChange }: SetupFieldsProps) {
         ))}
       </FieldGroup>
       {setup.assists.vacuum === "on" && (
-        <FieldDescription>
-          Vacuum uses the spindle-linked output.
-        </FieldDescription>
+        <FieldDescription>{t("setup.vacuumNote")}</FieldDescription>
       )}
       {setup.assists.bedClean === "on" && (
-        <FieldDescription>
-          Bed clean moves XY at the program’s final Z.
-        </FieldDescription>
+        <FieldDescription>{t("setup.bedCleanNote")}</FieldDescription>
       )}
     </FieldSet>
   )

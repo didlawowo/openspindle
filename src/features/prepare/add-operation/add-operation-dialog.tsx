@@ -1,12 +1,13 @@
 import { useState } from "react"
 import { ArrowLeft, CircuitBoard, Crosshair } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { FieldSet } from "@/components/ui/field"
 import { ImporterView } from "@/features/pcb/importer"
 import { AppDialog } from "@/features/shell/app-dialog"
 import {
-  PROBING_DESCRIPTION,
   ProbingSteps,
+  useProbingDescription,
   useProbingReason,
 } from "./probing-picker"
 import { SourceItem } from "./source-item"
@@ -19,17 +20,19 @@ export function AddOperationDialog({
   preset?: "pcb"
   onClose: () => void
 }) {
+  const { t } = useTranslation("prepare")
+  const probingDescription = useProbingDescription()
   const probingReason = useProbingReason()
   const [chosen, choose] = useState<"pcb" | "probing" | null>(preset ?? null)
   if (chosen === "probing")
     return (
-      <AppDialog title="Probing" width="wide" onClose={onClose}>
+      <AppDialog title={t("probing.title")} width="wide" onClose={onClose}>
         <ProbingSteps onAdded={onClose} onBack={() => choose(null)} />
       </AppDialog>
     )
   if (chosen === "pcb")
     return (
-      <AppDialog title="PCB" width="wide" onClose={onClose}>
+      <AppDialog title={t("toolbar.pcb")} width="wide" onClose={onClose}>
         <div className="flex flex-col gap-4">
           <Button
             variant="ghost"
@@ -37,25 +40,25 @@ export function AddOperationDialog({
             onClick={() => choose(null)}
           >
             <ArrowLeft />
-            All sources
+            {t("probing.allSources")}
           </Button>
           <ImporterView onClose={onClose} />
         </div>
       </AppDialog>
     )
   return (
-    <AppDialog title="Add operation" width="wide" onClose={onClose}>
+    <AppDialog title={t("addOperation.title")} width="wide" onClose={onClose}>
       <FieldSet>
         <SourceItem
           icon={<CircuitBoard />}
-          title="PCB"
-          description="Create operations from KiCad Gerber and Excellon files."
+          title={t("toolbar.pcb")}
+          description={t("toolbar.pcbDescription")}
           onSelect={() => choose("pcb")}
         />
         <SourceItem
           icon={<Crosshair />}
-          title="Probing"
-          description={PROBING_DESCRIPTION}
+          title={t("probing.title")}
+          description={probingDescription}
           reason={probingReason}
           onSelect={() => choose("probing")}
         />

@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo } from "react"
+import { useTranslation } from "react-i18next"
 import { FileCode2, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -84,6 +85,7 @@ function UpdateFromFusion({
   plate: Plate
   operationId: string
 }) {
+  const { t } = useTranslation("prepare")
   const update = useFusionUpdate()
   return (
     <Button
@@ -92,12 +94,13 @@ function UpdateFromFusion({
       onClick={() => update.mutate({ plateId: plate.id, operationId })}
     >
       <RefreshCw />
-      {update.isPending ? "Updating…" : "Update from Fusion 360"}
+      {update.isPending ? t("editor.updating") : t("editor.updateFromFusion")}
     </Button>
   )
 }
 
 function FileEditor({ plate, operation }: EditorProps<"file">) {
+  const { t } = useTranslation("prepare")
   const { nc, park, origin } = operation.source
   const id = useId()
   const update = useSourceUpdate(plate, operation.id, operation.revision)
@@ -113,11 +116,11 @@ function FileEditor({ plate, operation }: EditorProps<"file">) {
     <>
       <div className="flex flex-col gap-3">
         <FieldDescription className="font-numeric">
-          {lines} lines · {tools} tools
+          {t("editor.linesTools", { lines, tools })}
         </FieldDescription>
         {origin && (
           <FieldDescription>
-            From Fusion 360: {originText(origin)}
+            {t("editor.fromFusion", { origin: originText(origin) })}
           </FieldDescription>
         )}
         <div className="flex flex-wrap gap-2">
@@ -132,7 +135,7 @@ function FileEditor({ plate, operation }: EditorProps<"file">) {
             }
           >
             <FileCode2 />
-            View source
+            {t("editor.viewSource")}
           </Button>
           {origin && (
             <UpdateFromFusion plate={plate} operationId={operation.id} />
@@ -142,10 +145,11 @@ function FileEditor({ plate, operation }: EditorProps<"file">) {
       {parkCodes !== null && (
         <Field orientation="horizontal">
           <FieldContent>
-            <FieldLabel htmlFor={`${id}-park`}>Park after machining</FieldLabel>
+            <FieldLabel htmlFor={`${id}-park`}>
+              {t("editor.parkLabel")}
+            </FieldLabel>
             <FieldDescription>
-              Move to the machine's clearance position at the end, with the
-              program's own {parkCodes}.
+              {t("editor.parkHint", { codes: parkCodes })}
             </FieldDescription>
           </FieldContent>
           <Switch
@@ -193,6 +197,7 @@ function usePick(
   operationId: string,
   kind: "point" | "edges"
 ): ProbingPick {
+  const { t } = useTranslation("prepare")
   const picking = usePicking()
   useEffect(
     () => () => {
@@ -203,7 +208,7 @@ function usePick(
   const active = picking?.operationId === operationId && picking.kind === kind
   const reason =
     kind === "point" && !placementAnchors(plate.setup).length
-      ? "Read the device's anchors: a picked start is kept from one."
+      ? t("editor.pickNeedsAnchors")
       : null
   return {
     picking: active,
@@ -392,6 +397,7 @@ export function OperationEditor({
   plate: Plate
   operation: OperationOf<OperationSource["kind"]>
 }) {
+  const { t } = useTranslation("prepare")
   const source = operation.source
   switch (source.kind) {
     case "file":
@@ -399,12 +405,7 @@ export function OperationEditor({
     case "pcb":
       return <EditorView plateId={plate.id} operationId={operation.id} />
     case "unsupported":
-      return (
-        <FieldDescription>
-          This operation has no generated program. Replace it with a supported
-          operation before running.
-        </FieldDescription>
-      )
+      return <FieldDescription>{t("editor.unsupported")}</FieldDescription>
     case "probing":
       return (
         <ProbingEditor plate={plate} operation={{ ...operation, source }} />

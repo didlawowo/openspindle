@@ -1,4 +1,6 @@
 import { useMemo } from "react"
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { toast } from "sonner"
 import { useFixtureLibrary } from "@/app/fixtures/fixture-context"
 import type { WorkspaceStore } from "@/app/workspace/store"
@@ -18,17 +20,41 @@ import type { Plate } from "@/domain/plate/plate"
 import { selectSetupItem } from "../arrange/arrange-state"
 
 /** Fixture kinds as fixtures are offered: grouped, in this order. */
-export const FIXTURE_KIND_GROUPS: readonly (readonly [FixtureKind, string])[] =
-  [
-    ["bed", "Beds"],
-    ["wasteboard", "Wasteboards"],
-    ["clamp", "Clamps"],
-    ["holder", "Holders"],
-    ["vise", "Vises"],
-    ["vacuum-bed", "Vacuum beds"],
-    ["rotary", "Rotary modules"],
-    ["other", "Other"],
-  ]
+export const FIXTURE_KIND_GROUPS = [
+  "bed",
+  "wasteboard",
+  "clamp",
+  "holder",
+  "vise",
+  "vacuum-bed",
+  "rotary",
+  "other",
+] as const satisfies readonly FixtureKind[]
+
+/** The name a fixture kind group shows, in the order of `FIXTURE_KIND_GROUPS`. */
+export const fixtureKindGroupLabel = (
+  t: TFunction<"prepare">,
+  kind: FixtureKind
+): string => {
+  switch (kind) {
+    case "bed":
+      return t("fixtures.kindGroup.bed")
+    case "wasteboard":
+      return t("fixtures.kindGroup.wasteboard")
+    case "clamp":
+      return t("fixtures.kindGroup.clamp")
+    case "holder":
+      return t("fixtures.kindGroup.holder")
+    case "vise":
+      return t("fixtures.kindGroup.vise")
+    case "vacuum-bed":
+      return t("fixtures.kindGroup.vacuumBed")
+    case "rotary":
+      return t("fixtures.kindGroup.rotary")
+    default:
+      return t("fixtures.kindGroup.other")
+  }
+}
 
 /**
  * Compatible shared fixtures with the defaults of the plate's bed setup applied.
@@ -36,6 +62,7 @@ export const FIXTURE_KIND_GROUPS: readonly (readonly [FixtureKind, string])[] =
 export function usePlateBedSetup(
   plate: Plate
 ): BedSetup & { definitions: FixtureDefinition[] } {
+  const { t } = useTranslation("prepare")
   const profiles = useFixtureLibrary((library) => library.profiles)
   const definitions = useFixtureLibrary((library) => library.definitions)
   const { deviceId, bedSetupId } = plate.setup
@@ -45,7 +72,7 @@ export function usePlateBedSetup(
       ? bedSetupOf(profiles[profileId], bedSetupId)
       : {
           id: bedSetupId ?? DEFAULT_BED_SETUP,
-          name: "Not on this computer",
+          name: t("fixtures.notOnThisComputer"),
           fixtures: [],
           anchors: [],
         }
@@ -53,7 +80,7 @@ export function usePlateBedSetup(
       ...setup,
       definitions: bedSetupDefinitions(definitions, setup, deviceId),
     }
-  }, [profiles, definitions, profileId, deviceId, bedSetupId])
+  }, [profiles, definitions, profileId, deviceId, bedSetupId, t])
 }
 
 /**

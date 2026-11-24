@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { Pencil } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -13,8 +15,10 @@ import type { Plate, PlateTool } from "@/domain/plate/plate"
 import { isProbeSlot } from "@/domain/tools/tool-table"
 import { openDialog } from "@/features/shell/dialogs"
 
-export const toolNumberLabel = (number: number | null) =>
-  number === null ? "Program tool" : `T${number}`
+export const toolNumberLabel = (
+  t: TFunction<"prepare">,
+  number: number | null
+) => (number === null ? t("tools.programTool") : `T${number}`)
 
 const byNumber = (a: PlateTool, b: PlateTool) =>
   (a.number ?? -1) - (b.number ?? -1)
@@ -30,6 +34,7 @@ function usersOf(plate: Plate, number: number | null) {
 
 /** Moves an entry to another number; the NC of every operation using it follows. */
 function RenumberField({ plate, entry }: { plate: Plate; entry: PlateTool }) {
+  const { t } = useTranslation("prepare")
   const workspace = useWorkspaceStore()
   const current = entry.number
   const [draft, setDraft] = useState(String(current ?? ""))
@@ -58,7 +63,7 @@ function RenumberField({ plate, entry }: { plate: Plate; entry: PlateTool }) {
       <Input
         id={`tool-number-${plate.id}-${current}`}
         className="w-20 font-numeric"
-        aria-label={`Number of T${current}`}
+        aria-label={t("tools.numberAria", { number: current })}
         inputMode="numeric"
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
@@ -74,10 +79,11 @@ function RenumberField({ plate, entry }: { plate: Plate; entry: PlateTool }) {
 
 /** The plate's tool table: which library tool each T number holds, and who uses it. */
 export function PlateToolsPanel({ plate }: { plate: Plate }) {
+  const { t } = useTranslation("prepare")
   const library = useWorkspace((state) => state.tools)
   const entries = [...plate.tools].sort(byNumber)
   return (
-    <div className="flex flex-col gap-3 p-3" aria-label="Tool table">
+    <div className="flex flex-col gap-3 p-3" aria-label={t("tools.table")}>
       {entries.map((entry) => {
         const tool = library.find((item) => item.id === entry.toolId)
         const users = usersOf(plate, entry.number)
@@ -87,9 +93,11 @@ export function PlateToolsPanel({ plate }: { plate: Plate }) {
               <ToolCard
                 className="min-w-0 flex-1"
                 tool={tool}
-                slotLabel={toolNumberLabel(entry.number)}
+                slotLabel={toolNumberLabel(t, entry.number)}
                 emptyLabel={
-                  entry.toolId ? "Missing from the library" : "Assign tool"
+                  entry.toolId
+                    ? t("tools.missingFromLibrary")
+                    : t("tools.assign")
                 }
                 onClick={() =>
                   openDialog({
@@ -101,15 +109,15 @@ export function PlateToolsPanel({ plate }: { plate: Plate }) {
               <RenumberField plate={plate} entry={entry} />
             </div>
             {users.length > 0 && (
-              <FieldDescription>Used by {users.join(", ")}</FieldDescription>
+              <FieldDescription>
+                {t("tools.usedBy", { users: users.join(", ") })}
+              </FieldDescription>
             )}
           </div>
         )
       })}
       {!entries.length && (
-        <FieldDescription>
-          The plate's operations select no tools.
-        </FieldDescription>
+        <FieldDescription>{t("tools.noTools")}</FieldDescription>
       )}
       <Button
         variant="ghost"
@@ -117,7 +125,7 @@ export function PlateToolsPanel({ plate }: { plate: Plate }) {
         onClick={() => openDialog({ kind: "tools" })}
       >
         <Pencil />
-        Manage tool library
+        {t("tools.manageLibrary")}
       </Button>
     </div>
   )

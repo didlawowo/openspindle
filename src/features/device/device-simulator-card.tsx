@@ -1,4 +1,5 @@
 import { FastForward } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { OptionSelect } from "@/components/option-select"
 import { Hint } from "@/components/workspace/hint"
@@ -16,8 +17,7 @@ const SPEED_OPTIONS = SIMULATOR_SPEEDS.map((speed) => ({
   label: `${speed}×`,
 }))
 
-const SPEED_HINT =
-  "How many times faster than a Z1 the simulator moves. A change applies from its next move."
+const SPEED_HINT_KEY = "simulator.speedHint"
 
 /** The app's simulator, while it is the connected device: how fast it moves. */
 export function DeviceSimulatorCard({
@@ -25,18 +25,19 @@ export function DeviceSimulatorCard({
 }: {
   device: ConnectedDevice | null
 }) {
+  const { t } = useTranslation("device")
   const status = useSimulatorStatus().data
   const update = useUpdateSimulator()
   if (!status || !isAppSimulator(device, status)) return null
   return (
-    <ControlCard title="Simulator" icon={<FastForward size={16} />}>
+    <ControlCard title={t("simulator.title")} icon={<FastForward size={16} />}>
       <Field orientation="horizontal">
         <FieldLabel htmlFor="simulator-speed">
-          <Hint text={SPEED_HINT}>Speed</Hint>
+          <Hint text={t(SPEED_HINT_KEY)}>{t("simulator.speed")}</Hint>
         </FieldLabel>
         <OptionSelect
           id="simulator-speed"
-          aria-description={SPEED_HINT}
+          aria-description={t(SPEED_HINT_KEY)}
           className="w-28"
           numeric
           options={SPEED_OPTIONS}
@@ -46,7 +47,7 @@ export function DeviceSimulatorCard({
       </Field>
       {update.error && (
         <FieldError>
-          The speed could not be changed: {update.error.message}
+          {t("simulator.speedError", { message: update.error.message })}
         </FieldError>
       )}
     </ControlCard>

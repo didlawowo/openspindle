@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { LayoutTemplate, LocateFixed, Plus, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -33,21 +35,18 @@ import { BED_SETUP_LIMIT } from "@/domain/fixtures/profiles"
 import type { BedSetup, FixtureProfiles } from "@/domain/fixtures/profiles"
 import { fail, normalizeText, ok, toMicrometre } from "@/domain/primitives"
 
-const BED_SETUP_HINT =
-  "A way the device's bed is set up: its fixtures, which new plates start from, and anchors of its own. Plates on it follow its anchors."
-const DEFAULT_HINT = "New plates for this device start on this bed setup."
-const ANCHORS_HINT =
-  "Points of this bed setup, such as a jig's corner, kept as X and Y from the device's first anchor, so they move with it. Placements and probing can start from them like from the device's anchors."
+type DeviceT = TFunction<"device">
 
 /** "Anchor N" with the first number from `first` that no anchor's name has. */
 function nextAnchorName(
   first: number,
-  anchors: readonly { readonly name: string }[]
+  anchors: readonly { readonly name: string }[],
+  t: DeviceT
 ) {
   const names = new Set(anchors.map((anchor) => anchor.name))
   let number = first
-  while (names.has(`Anchor ${number}`)) number += 1
-  return `Anchor ${number}`
+  while (names.has(t("bedSetup.anchorName", { number }))) number += 1
+  return t("bedSetup.anchorName", { number })
 }
 
 /**
@@ -90,6 +89,7 @@ export function DeviceBedSetup({
   onMakeDefault: () => void
   onAnchorsChange: (anchors: BedSetupAnchor[]) => void
 }) {
+  const { t } = useTranslation("device")
   const available = Object.hasOwn(profiles, selectedId)
   const device = deviceAnchors ? deviceAnchorsOf(deviceAnchors) : []
   const first = device.at(0)
@@ -109,19 +109,19 @@ export function DeviceBedSetup({
       : null
   const reason = "reason" in current ? current.reason : null
   return (
-    <Card size="sm" role="region" aria-label="Bed setup">
+    <Card size="sm" role="region" aria-label={t("bedSetup.region")}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <LayoutTemplate className="size-4" />
-          <Hint text={BED_SETUP_HINT}>Bed setup</Hint>
+          <Hint text={t("bedSetup.hint")}>{t("bedSetup.title")}</Hint>
         </CardTitle>
         {available && (
           <CardAction className="flex gap-1">
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label="Add bed setup"
-              title="Add bed setup"
+              aria-label={t("bedSetup.add")}
+              title={t("bedSetup.add")}
               disabled={bedSetups.length >= BED_SETUP_LIMIT}
               onClick={onAdd}
             >
@@ -130,8 +130,8 @@ export function DeviceBedSetup({
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label={`Remove ${bedSetup.name}`}
-              title={`Remove ${bedSetup.name}`}
+              aria-label={t("bedSetup.remove", { name: bedSetup.name })}
+              title={t("bedSetup.remove", { name: bedSetup.name })}
               disabled={bedSetups.length <= 1}
               onClick={onRemove}
             >
@@ -143,17 +143,19 @@ export function DeviceBedSetup({
       <CardContent>
         <FieldGroup>
           <Field>
-            <FieldLabel htmlFor="fixture-library-device">Device</FieldLabel>
+            <FieldLabel htmlFor="fixture-library-device">
+              {t("bedSetup.device")}
+            </FieldLabel>
             <OptionSelect
               id="fixture-library-device"
-              aria-label="Project device"
+              aria-label={t("bedSetup.deviceAria")}
               className="w-full"
               options={[
                 ...(!available
                   ? [
                       {
                         value: selectedId,
-                        label: `${selectedId} · Not on this computer`,
+                        label: t("bedSetup.notOnComputer", { id: selectedId }),
                         disabled: true,
                       },
                     ]
@@ -170,7 +172,9 @@ export function DeviceBedSetup({
           {available && (
             <>
               <Field>
-                <FieldLabel htmlFor="device-bed-setup">Bed setup</FieldLabel>
+                <FieldLabel htmlFor="device-bed-setup">
+                  {t("bedSetup.title")}
+                </FieldLabel>
                 <OptionSelect
                   id="device-bed-setup"
                   className="w-full"
@@ -186,7 +190,7 @@ export function DeviceBedSetup({
                 name={bedSetup.name}
                 onRename={(typed) => {
                   const next = normalizeText(typed)
-                  if (!next) return fail("Enter a name.")
+                  if (!next) return fail(t("common.enterName"))
                   onRename(next)
                   return ok(next)
                 }}
@@ -196,34 +200,39 @@ export function DeviceBedSetup({
                   id="device-bed-setup-default"
                   checked={bedSetup.id === defaultBedSetupId}
                   disabled={bedSetup.id === defaultBedSetupId}
-                  aria-description={DEFAULT_HINT}
+                  aria-description={t("bedSetup.defaultHint")}
                   onCheckedChange={(checked) => {
                     if (checked) onMakeDefault()
                   }}
                 />
                 <FieldLabel htmlFor="device-bed-setup-default">
-                  <Hint text={DEFAULT_HINT}>Default for new plates</Hint>
+                  <Hint text={t("bedSetup.defaultHint")}>
+                    {t("bedSetup.default")}
+                  </Hint>
                 </FieldLabel>
               </Field>
               {first && (
                 <FieldSet>
                   <FieldLegend className="flex w-full items-center justify-between">
-                    <Hint text={ANCHORS_HINT}>Anchors from {first.name}</Hint>
+                    <Hint text={t("bedSetup.anchorsHint")}>
+                      {t("bedSetup.anchorsFrom", { name: first.name })}
+                    </Hint>
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      aria-label="Add anchor"
-                      title="Add anchor"
+                      aria-label={t("bedSetup.addAnchor")}
+                      title={t("bedSetup.addAnchor")}
                       disabled={anchors.length >= BED_SETUP_ANCHOR_LIMIT}
                       onClick={() =>
                         onAnchorsChange([
                           ...anchors,
                           {
                             id: crypto.randomUUID(),
-                            name: nextAnchorName(device.length + 1, [
-                              ...device,
-                              ...anchors,
-                            ]),
+                            name: nextAnchorName(
+                              device.length + 1,
+                              [...device, ...anchors],
+                              t
+                            ),
                             offset: here ?? [0, 0],
                           },
                         ])
@@ -239,11 +248,11 @@ export function DeviceBedSetup({
                     >
                       <NameField
                         name={anchor.name}
-                        label="Anchor name"
+                        label={t("bedSetup.anchorNameLabel")}
                         hideLabel
                         onRename={(typed) => {
                           const next = normalizeText(typed)
-                          if (!next) return fail("Enter a name.")
+                          if (!next) return fail(t("common.enterName"))
                           place(anchor.id, { name: next })
                           return ok(next)
                         }}
@@ -251,7 +260,10 @@ export function DeviceBedSetup({
                       <CoordinateInput
                         axis="X"
                         unit="mm"
-                        label={`${anchor.name} X from ${first.name}`}
+                        label={t("bedSetup.anchorX", {
+                          name: anchor.name,
+                          from: first.name,
+                        })}
                         value={anchor.offset[0]}
                         onCommit={(value) =>
                           place(anchor.id, {
@@ -262,7 +274,10 @@ export function DeviceBedSetup({
                       <CoordinateInput
                         axis="Y"
                         unit="mm"
-                        label={`${anchor.name} Y from ${first.name}`}
+                        label={t("bedSetup.anchorY", {
+                          name: anchor.name,
+                          from: first.name,
+                        })}
                         value={anchor.offset[1]}
                         onCommit={(value) =>
                           place(anchor.id, {
@@ -271,11 +286,13 @@ export function DeviceBedSetup({
                         }
                       />
                       <ReasonButton
-                        label={`Use the current position for ${anchor.name}`}
+                        label={t("anchors.useCurrent", { name: anchor.name })}
                         variant="outline"
                         size="icon"
-                        aria-label={`Use the current position for ${anchor.name}`}
-                        title={`Use the current position for ${anchor.name}`}
+                        aria-label={t("anchors.useCurrent", {
+                          name: anchor.name,
+                        })}
+                        title={t("anchors.useCurrent", { name: anchor.name })}
                         reason={reason}
                         onClick={() => {
                           if (here) place(anchor.id, { offset: here })
@@ -286,8 +303,8 @@ export function DeviceBedSetup({
                       <Button
                         variant="ghost"
                         size="icon"
-                        aria-label={`Remove ${anchor.name}`}
-                        title={`Remove ${anchor.name}`}
+                        aria-label={t("bedSetup.remove", { name: anchor.name })}
+                        title={t("bedSetup.remove", { name: anchor.name })}
                         onClick={() =>
                           onAnchorsChange(
                             anchors.filter((item) => item.id !== anchor.id)

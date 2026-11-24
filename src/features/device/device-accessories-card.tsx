@@ -1,4 +1,5 @@
 import { useId } from "react"
+import { useTranslation } from "react-i18next"
 import { Camera, Fan, Lightbulb, Power, RotateCw, Volume2 } from "lucide-react"
 import type { ReactNode } from "react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -78,22 +79,23 @@ export function DeviceAccessoriesCard({
   reason: (key: AvailabilityKey, action?: MachineCommand) => string | null
   execute: (action: MachineCommand) => void
 }) {
+  const { t } = useTranslation("device")
   const light = useWorkLightControl()
   const { features } = useMachineSnapshot()
   const busy = pending || light.pending
   const lightAction = telemetry?.lightOn === true ? "light" : "lightBrightness"
   return (
-    <ControlCard title="Accessories" icon={<Power size={16} />}>
+    <ControlCard title={t("accessories.title")} icon={<Power size={16} />}>
       <FieldGroup className="grid gap-4 sm:grid-cols-2">
         <OutputControl
-          label="Beep"
+          label={t("accessories.beep")}
           icon={<Volume2 size={19} />}
           value={telemetry?.beepOn}
           disabled={busy || reason("beep") !== null}
           onChange={(enabled) => execute({ type: "beep", enabled })}
         />
         <OutputControl
-          label="Follow spindle"
+          label={t("accessories.followSpindle")}
           icon={<RotateCw size={19} />}
           value={telemetry?.vacuumAuto}
           disabled={busy || reason("vacuumAuto") !== null}
@@ -103,11 +105,11 @@ export function DeviceAccessoriesCard({
       <FieldSet>
         <FieldLegend className="flex items-center gap-2">
           <Lightbulb size={16} />
-          Work light
+          {t("accessories.workLight")}
         </FieldLegend>
         <FieldGroup>
           <OutputControl
-            label="Light"
+            label={t("accessories.light")}
             value={telemetry?.lightOn}
             disabled={busy || reason(lightAction) !== null}
             onChange={(enabled) => {
@@ -127,12 +129,12 @@ export function DeviceAccessoriesCard({
       <FieldSet>
         <FieldLegend className="flex items-center gap-2">
           <Fan size={16} />
-          Vacuum
+          {t("accessories.vacuum")}
         </FieldLegend>
         <FieldGroup>
           <OutputControl
-            label="Vacuum"
-            description="External extractor"
+            label={t("accessories.vacuum")}
+            description={t("accessories.vacuumDescription")}
             value={telemetry?.vacuumOn}
             disabled={busy || reason("vacuum") !== null}
             onChange={(enabled) => execute({ type: "vacuum", enabled })}
@@ -144,7 +146,7 @@ export function DeviceAccessoriesCard({
         <FieldSet>
           <FieldLegend className="flex items-center gap-2">
             <Camera size={16} />
-            Camera
+            {t("accessories.camera")}
           </FieldLegend>
           <FieldGroup>
             <DeviceCameraVideoField pending={busy} />

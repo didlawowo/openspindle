@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Crosshair, LayoutDashboard, Move3D } from "lucide-react"
 import { cn } from "cn"
 import { Button } from "@/components/ui/button"
@@ -31,16 +32,6 @@ import { ControlCard } from "./device-control-card"
 
 const AXES = ["X", "Y", "Z"] as const
 
-const ORIGIN_HINT =
-  "Where the machine keeps work zero, in machine coordinates: the machine position less the work position, and in Z less the tool offset."
-
-/** What setting an axis's work position does besides; Z takes the tool in the spindle as the reference. */
-const WORK_HINT: Readonly<Record<Axis, string>> = {
-  X: "Where the tool is in work X: zero it, or enter where it is.",
-  Y: "Where the tool is in work Y: zero it, or enter where it is.",
-  Z: "Where the tool is in work Z: zero it, or enter where it is. Setting work Z also clears the tool-length offset: later tools are measured from this one.",
-}
-
 /**
  * An axis's work position, large in its colour, with the machine position and where work zero
  * is below; a click opens zeroing it, or setting it to a coordinate.
@@ -58,6 +49,7 @@ function AxisTile({
   reason: (key: AvailabilityKey, action?: MachineCommand) => string | null
   execute: (action: MachineCommand) => void
 }) {
+  const { t } = useTranslation("device")
   const id = useId()
   const [open, setOpen] = useState(false)
   const [entry, setEntry] = useState("")
@@ -86,7 +78,7 @@ function AxisTile({
           <button
             type="button"
             className="flex min-w-0 flex-col gap-1 rounded-lg bg-muted px-3 py-2 text-left outline-none hover:bg-muted/70 focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            aria-label={`Work ${axis}`}
+            aria-label={t("coordinates.work", { axis })}
           />
         }
       >
@@ -99,16 +91,16 @@ function AxisTile({
           </span>
         </span>
         <span className="flex justify-between gap-2 text-xs text-muted-foreground">
-          <span>Machine</span>
+          <span>{t("coordinates.machine")}</span>
           <span className="font-numeric">
             {numberText(telemetry?.machine?.[key], 3)}
           </span>
         </span>
         <span
           className="flex justify-between gap-2 text-xs text-muted-foreground"
-          title={ORIGIN_HINT}
+          title={t("coordinates.originHint")}
         >
-          <span>Origin</span>
+          <span>{t("coordinates.origin")}</span>
           <span className="font-numeric">
             {numberText(telemetry?.workOrigin?.[key], 3)}
           </span>
@@ -123,7 +115,9 @@ function AxisTile({
           }}
         >
           <FieldLabel htmlFor={`${id}-work`}>
-            <Hint text={WORK_HINT[axis]}>Work {axis}</Hint>
+            <Hint text={t(`coordinates.workHint${axis}`)}>
+              {t("coordinates.work", { axis })}
+            </Hint>
           </FieldLabel>
           <div className="flex gap-2">
             <MeasurementInput
@@ -138,20 +132,20 @@ function AxisTile({
               onChange={(event) => setEntry(event.target.value)}
             />
             <ReasonButton
-              label={`Set work ${axis}`}
+              label={t("coordinates.setWork", { axis })}
               type="submit"
               reason={
                 entry.trim()
                   ? reason("setWork", set)
-                  : "Enter where the tool is."
+                  : t("coordinates.enterPosition")
               }
               disabled={pending}
             >
-              Set
+              {t("coordinates.set")}
             </ReasonButton>
           </div>
           <ReasonButton
-            label={`Zero ${axis}`}
+            label={t("coordinates.zero", { axis })}
             type="button"
             variant="outline"
             reason={reason("zero", zero)}
@@ -159,7 +153,7 @@ function AxisTile({
             onClick={() => done(zero)}
           >
             <Crosshair />
-            Zero {axis}
+            {t("coordinates.zero", { axis })}
           </ReasonButton>
         </form>
       </PopoverContent>
@@ -183,6 +177,7 @@ export function DeviceCoordinatesCard({
   allowed: (action: MachineCommand) => boolean
   execute: (action: MachineCommand) => void
 }) {
+  const { t } = useTranslation("device")
   const [confirmXyz, setConfirmXyz] = useState(false)
   useEffect(() => {
     setConfirmXyz(false)
@@ -191,23 +186,25 @@ export function DeviceCoordinatesCard({
   const hasPlates = useWorkspace((state) => state.plates.length > 0)
   return (
     <ControlCard
-      title="Coordinates"
+      title={t("coordinates.title")}
       icon={<Move3D size={16} />}
       action={
         <div className="flex gap-1">
           <ReasonButton
-            label="Set origin from plate"
+            label={t("coordinates.setOriginFromPlate")}
             variant="ghost"
             size="sm"
-            reason={hasPlates ? reason("setOrigin") : "Add a plate first."}
+            reason={
+              hasPlates ? reason("setOrigin") : t("coordinates.addPlateFirst")
+            }
             disabled={pending}
             onClick={() => openDialog({ kind: "set-origin" })}
           >
             <LayoutDashboard />
-            From plate…
+            {t("coordinates.fromPlate")}
           </ReasonButton>
           <ReasonButton
-            label="Zero XYZ"
+            label={t("coordinates.zeroXyz")}
             variant="ghost"
             size="sm"
             reason={reason("zero")}
@@ -215,7 +212,7 @@ export function DeviceCoordinatesCard({
             onClick={() => setConfirmXyz(true)}
           >
             <Crosshair />
-            Zero XYZ
+            {t("coordinates.zeroXyz")}
           </ReasonButton>
         </div>
       }
@@ -234,10 +231,10 @@ export function DeviceCoordinatesCard({
       </div>
       {confirmXyz && (
         <FieldSet role="alert">
-          <FieldLegend variant="label">Zero work coordinates</FieldLegend>
-          <FieldDescription>
-            Setting work Z to zero also clears the tool-length offset.
-          </FieldDescription>
+          <FieldLegend variant="label">
+            {t("coordinates.zeroXyzLegend")}
+          </FieldLegend>
+          <FieldDescription>{t("coordinates.zeroXyzHint")}</FieldDescription>
           <div className="flex flex-wrap gap-2">
             <Button
               size="sm"
@@ -247,14 +244,14 @@ export function DeviceCoordinatesCard({
                 setConfirmXyz(false)
               }}
             >
-              Zero XYZ and clear offset
+              {t("coordinates.zeroXyzConfirm")}
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setConfirmXyz(false)}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
           </div>
         </FieldSet>

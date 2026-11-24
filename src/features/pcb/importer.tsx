@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { FileUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -49,6 +50,7 @@ export function ImporterView({
   disabled?: boolean
   onClose?: () => void
 }) {
+  const { t } = useTranslation("pcb")
   const workspace = useWorkspaceStore()
   const host = useHost()
   const queryClient = useQueryClient()
@@ -87,19 +89,16 @@ export function ImporterView({
       setReading(true)
       setError(null)
       try {
-        if (pcbJobActive(queryClient))
-          throw new Error("PCB editing is unavailable while running a job.")
+        if (pcbJobActive(queryClient)) throw new Error(t("importer.jobActive"))
         if (workspace.session !== session)
-          throw new Error(
-            "The project changed before this import started. Import the files again."
-          )
+          throw new Error(t("importer.projectChangedBefore"))
         const target = targetPlate(plate, context(), true)
         const operations: Operation[] = []
         for (const file of files) {
           // Only Gerber and drill files; anything else dropped with them is ignored.
           if (!hasAcceptedExtension(file.name)) continue
           if (file.size > LIMITS.inputFile)
-            throw new Error(`${file.name} exceeds the 8 MiB source limit.`)
+            throw new Error(t("importer.overSourceLimit", { name: file.name }))
           const content = await file.text()
           if (!isActive()) return
           const matches = matchInputs({ name: file.name, content })
@@ -115,7 +114,7 @@ export function ImporterView({
           )
           if (dataBytes(data) > OPERATION_DATA_BYTES)
             throw new Error(
-              `${file.name} is too large to keep in an operation.`
+              t("importer.tooLargeForOperation", { name: file.name })
             )
           operations.push(
             createOperation(operationName(data), {
@@ -125,18 +124,12 @@ export function ImporterView({
             })
           )
         }
-        if (!operations.length)
-          throw new Error(
-            "No supported PCB files found. Choose copper, solder mask, outline or drill files."
-          )
+        if (!operations.length) throw new Error(t("importer.noSupportedFiles"))
         if (operations.length > MAX_FILES)
-          throw new Error(`Import at most ${MAX_FILES} PCB files at once.`)
+          throw new Error(t("importer.tooManyFiles", { max: MAX_FILES }))
         if (workspace.session !== session)
-          throw new Error(
-            "The project changed while these files were being read. Import them again."
-          )
-        if (pcbJobActive(queryClient))
-          throw new Error("PCB editing is unavailable while running a job.")
+          throw new Error(t("importer.projectChangedDuring"))
+        if (pcbJobActive(queryClient)) throw new Error(t("importer.jobActive"))
         if (!isActive()) return
         const commands: WorkspaceCommand[] = operations.map((operation) => ({
           type: "operation.add",
@@ -158,7 +151,7 @@ export function ImporterView({
         setError(
           problem instanceof Error
             ? problem.message
-            : "Could not import the selected files."
+            : t("importer.importFailed")
         )
       } finally {
         readLock.current = false
@@ -180,9 +173,12 @@ export function ImporterView({
     imported.mutate({ files, session: workspace.session })
   }
 
-  let target = "Add PCB operations to a new plate."
+  let target = t("importer.newPlate")
   if (plate)
-    target = `Add operations to ${plateLabel(plate, plates.indexOf(plate))} · ${plate.setup.stock?.name ?? "No stock assigned"}`
+    target = t("importer.existingPlate", {
+      plate: plateLabel(plate, plates.indexOf(plate)),
+      stock: plate.setup.stock?.name ?? t("importer.noStock"),
+    })
 
   return (
     <div className="flex min-w-0 flex-col gap-5">
@@ -200,19 +196,15 @@ export function ImporterView({
         }}
       >
         <FileUp />
-        <span>Drop Gerber and drill files here</span>
-        <FieldDescription>
-          Each file creates its own operation on this plate. File types are
-          detected automatically; unrelated files are ignored. Select an
-          operation to choose its tool and settings.
-        </FieldDescription>
+        <span>{t("importer.dropHere")}</span>
+        <FieldDescription>{t("importer.dropHint")}</FieldDescription>
         <Input
           ref={input}
           hidden
           type="file"
           multiple
           accept={ACCEPT}
-          aria-label="Choose PCB source files"
+          aria-label={t("importer.filesAria")}
           disabled={inactive}
           onChange={(event) => {
             void selectFiles(Array.from(event.target.files ?? []))
@@ -225,7 +217,7 @@ export function ImporterView({
           disabled={inactive}
           onClick={() => input.current?.click()}
         >
-          {reading ? "Importing files…" : "Choose files"}
+          {reading ? t("importer.importing") : t("importer.chooseFiles")}
         </Button>
       </div>
       {error && <p role="alert">{error}</p>}

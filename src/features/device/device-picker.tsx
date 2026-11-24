@@ -1,4 +1,5 @@
 import { useId, useState } from "react"
+import { useTranslation } from "react-i18next"
 import type { ReactNode } from "react"
 import { useForm } from "@tanstack/react-form"
 import { useQuery } from "@tanstack/react-query"
@@ -44,16 +45,17 @@ import {
   useMachineSnapshot,
 } from "@/platform/machine"
 
-const ManualTargetSchema = z.object({
-  host: z.string().trim().refine(isLocalIPv4, "Enter a local IPv4 address."),
-  port: z
-    .string()
-    .refine(
-      (port) =>
-        /^\d{1,5}$/.test(port) && Number(port) >= 1 && Number(port) <= 65535,
-      "Enter a port from 1 to 65535."
-    ),
-})
+const manualTargetSchema = (hostError: string, portError: string) =>
+  z.object({
+    host: z.string().trim().refine(isLocalIPv4, hostError),
+    port: z
+      .string()
+      .refine(
+        (port) =>
+          /^\d{1,5}$/.test(port) && Number(port) >= 1 && Number(port) <= 65535,
+        portError
+      ),
+  })
 
 const targetId = (target: Pick<ConnectTarget, "host" | "port">) =>
   `${target.host}:${target.port}`
@@ -128,6 +130,7 @@ function LeavingJobDialog({
   leaving: LeavingJob
   onClose: () => void
 }) {
+  const { t } = useTranslation("device")
   return (
     <AlertDialog
       open
@@ -141,7 +144,7 @@ function LeavingJobDialog({
           <AlertDialogDescription>{leaving.reason}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
             onClick={() => {
@@ -158,6 +161,7 @@ function LeavingJobDialog({
 }
 
 export function DevicePicker({ close }: { close: () => void }) {
+  const { t } = useTranslation("device")
   const machine = useMachineHost()
   const fieldId = useId()
   const snapshot = useMachineSnapshot()
@@ -184,8 +188,10 @@ export function DevicePicker({ close }: { close: () => void }) {
         onSuccess: close,
         onError: (error) =>
           askToLeave(error, {
-            title: `Connect to ${target.name ?? target.host}?`,
-            action: "Connect",
+            title: t("picker.connectTitle", {
+              name: target.name ?? target.host,
+            }),
+            action: t("picker.connect"),
             confirm: () => connectTo(target, true),
           }),
       }
@@ -196,15 +202,20 @@ export function DevicePicker({ close }: { close: () => void }) {
       {
         onError: (error) =>
           askToLeave(error, {
-            title: `Disconnect from ${name}?`,
-            action: "Disconnect",
+            title: t("picker.disconnectTitle", { name }),
+            action: t("picker.disconnect"),
             confirm: () => disconnectFrom(name, true),
           }),
       }
     )
   const form = useForm({
     defaultValues: { host: "", port: "2222" },
-    validators: { onSubmit: ManualTargetSchema },
+    validators: {
+      onSubmit: manualTargetSchema(
+        t("picker.hostError"),
+        t("picker.portError")
+      ),
+    },
     onSubmit: ({ value }) =>
       connectTo({ host: value.host.trim(), port: Number(value.port) }),
   })
@@ -223,14 +234,16 @@ export function DevicePicker({ close }: { close: () => void }) {
         <DeviceItem
           model={device.model}
           name={device.name}
-          description={`${device.host} · Connected`}
+          description={t("picker.connectedAt", { host: device.host })}
         >
           <Button
             variant="outline"
             disabled={busy}
             onClick={() => disconnectFrom(device.name)}
           >
-            {disconnect.isPending ? "Disconnecting…" : "Disconnect"}
+            {disconnect.isPending
+              ? t("picker.disconnecting")
+              : t("picker.disconnect")}
           </Button>
         </DeviceItem>
       )}
@@ -239,7 +252,7 @@ export function DevicePicker({ close }: { close: () => void }) {
           variant="label"
           className="flex w-full items-center justify-between gap-3"
         >
-          <span>On your network</span>
+          <span>{t("picker.onNetwork")}</span>
           <Button
             variant="ghost"
             size="sm"
@@ -251,7 +264,7 @@ export function DevicePicker({ close }: { close: () => void }) {
             ) : (
               <RefreshCw data-icon="inline-start" />
             )}
-            {scanning ? "Searching…" : "Search again"}
+            {scanning ? t("picker.searching") : t("picker.searchAgain")}
           </Button>
         </FieldLegend>
         {/* Room for the cards' rings, which the scrolling would clip, keeping the cards in line. */}
@@ -261,21 +274,23 @@ export function DevicePicker({ close }: { close: () => void }) {
         >
           {!devices.length && (
             <FieldDescription className="py-6 text-center">
-              {scanning ? "Searching for devices…" : "No devices found"}
+              {scanning ? t("picker.searchingDevices") : t("picker.noDevices")}
             </FieldDescription>
           )}
           {devices.map((found) => {
             const id = targetId(found)
             const connected = device !== null && targetId(device) === id
-            let label = "Connect"
-            if (connected) label = "Connected"
-            if (pendingId === id) label = "Connecting…"
+            let label = t("picker.connect")
+            if (connected) label = t("picker.connected")
+            if (pendingId === id) label = t("picker.connecting")
             return (
               <DeviceItem
                 key={id}
                 model={connected ? device.model : null}
                 name={found.name}
-                description={found.busy && !connected ? `${id} · In use` : id}
+                description={
+                  found.busy && !connected ? t("picker.inUse", { id }) : id
+                }
               >
                 <Button
                   variant="outline"
@@ -302,7 +317,7 @@ export function DevicePicker({ close }: { close: () => void }) {
         }}
       >
         <FieldSet>
-          <FieldLegend variant="label">Connect by IP address</FieldLegend>
+          <FieldLegend variant="label">{t("picker.byIp")}</FieldLegend>
           <FieldGroup className="grid grid-cols-[minmax(0,1fr)_6rem] items-start gap-3 sm:grid-cols-[minmax(0,1fr)_6rem_auto]">
             <form.Field name="host">
               {(field) => (
@@ -311,7 +326,7 @@ export function DevicePicker({ close }: { close: () => void }) {
                   data-invalid={!field.state.meta.isValid}
                 >
                   <FieldLabel htmlFor={`${fieldId}-host`}>
-                    IP address
+                    {t("picker.ipAddress")}
                   </FieldLabel>
                   <Input
                     id={`${fieldId}-host`}
@@ -331,7 +346,9 @@ export function DevicePicker({ close }: { close: () => void }) {
             <form.Field name="port">
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid}>
-                  <FieldLabel htmlFor={`${fieldId}-port`}>Port</FieldLabel>
+                  <FieldLabel htmlFor={`${fieldId}-port`}>
+                    {t("picker.port")}
+                  </FieldLabel>
                   <Input
                     id={`${fieldId}-port`}
                     type="number"
@@ -357,7 +374,7 @@ export function DevicePicker({ close }: { close: () => void }) {
                   className="col-span-2 sm:col-span-1 sm:mt-6"
                   disabled={busy || !hasHost}
                 >
-                  {manualPending ? "Connecting…" : "Connect"}
+                  {manualPending ? t("picker.connecting") : t("picker.connect")}
                 </Button>
               )}
             </form.Subscribe>

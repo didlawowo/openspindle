@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { CircleAlert, PencilLine, Waypoints } from "lucide-react"
 import type { ReactNode } from "react"
 import { bedAnchors } from "@/domain/anchors/stored-anchors"
@@ -46,8 +47,7 @@ const coordinateFormat = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 3,
 })
 
-const STORE_HINT =
-  "The device keeps every bed setup's anchors in its configuration too, besides its own (openspindle.anchor3 and on, each X and Y from the first anchor). OpenSpindle reads them with the device's anchors, and writes them when they change while the device is idle. Their names and bed setups stay in OpenSpindle."
+const STORE_HINT_KEY = "anchors.storeHint"
 
 /** Whether the device stores the bed setups' anchors too, and why it did not store them. */
 export type AnchorStoring = {
@@ -58,17 +58,18 @@ export type AnchorStoring = {
 }
 
 function StoreAnchors({ storing }: { storing: AnchorStoring }) {
+  const { t } = useTranslation("device")
   return (
     <FieldGroup className="gap-2">
       <Field orientation="horizontal">
         <FieldContent>
           <FieldLabel htmlFor="device-store-anchors">
-            <Hint text={STORE_HINT}>Store bed setup anchors on the device</Hint>
+            <Hint text={t(STORE_HINT_KEY)}>{t("anchors.storeLabel")}</Hint>
           </FieldLabel>
         </FieldContent>
         <Switch
           id="device-store-anchors"
-          aria-description={STORE_HINT}
+          aria-description={t(STORE_HINT_KEY)}
           checked={storing.enabled}
           onCheckedChange={storing.onChange}
         />
@@ -83,7 +84,7 @@ function StoreAnchors({ storing }: { storing: AnchorStoring }) {
             <span>{storing.failed.error}</span>
           </FieldError>
           <Button variant="outline" size="sm" onClick={storing.failed.onRetry}>
-            Write again
+            {t("anchors.writeAgain")}
           </Button>
         </Field>
       )}
@@ -91,8 +92,7 @@ function StoreAnchors({ storing }: { storing: AnchorStoring }) {
   )
 }
 
-const BED_OFFSET_HINT =
-  "How far the bed and its holes sit from where the machine's kit places them from the first anchor. Only the 3D view uses it; the device is not changed."
+const BED_OFFSET_HINT_KEY = "anchors.bedOffsetHint"
 
 /**
  * Where the machine's bed model sits from where its kit places it, from the first anchor, the
@@ -106,23 +106,24 @@ function BedOffset({
   offset: AnchorXY
   onAlign: (offset: AnchorXY) => void
 }) {
+  const { t } = useTranslation("device")
   return (
     <FieldSet>
       <FieldLegend>
-        <Hint text={BED_OFFSET_HINT}>Bed offset</Hint>
+        <Hint text={t(BED_OFFSET_HINT_KEY)}>{t("anchors.bedOffset")}</Hint>
       </FieldLegend>
       <FieldGroup className="grid grid-cols-2 gap-3">
         <CoordinateInput
           axis="X"
           unit="mm"
-          label="Bed offset X"
+          label={t("anchors.bedOffsetX")}
           value={offset[0]}
           onCommit={(value) => onAlign([value, offset[1]])}
         />
         <CoordinateInput
           axis="Y"
           unit="mm"
-          label="Bed offset Y"
+          label={t("anchors.bedOffsetY")}
           value={offset[1]}
           onCommit={(value) => onAlign([offset[0], value])}
         />
@@ -152,39 +153,42 @@ export function DeviceAnchors({
   /** Whether the device stores the bed setups' anchors too; absent where it cannot. */
   storing?: AnchorStoring
 }) {
+  const { t } = useTranslation("device")
   const [editing, setEditing] = useState(false)
   if (!setup && !loading && !error && !action) return null
-  let sourceLabel = setup ? "Defaults" : "Not read yet"
-  if (setup?.source === "firmware-config") sourceLabel = "Device configuration"
-  if (loading) sourceLabel = "Reading…"
-  if (writing?.writing) sourceLabel = "Writing…"
+  let sourceLabel = t("anchors.sourceDefaults")
+  if (!setup) sourceLabel = t("anchors.sourceNotRead")
+  if (setup?.source === "firmware-config")
+    sourceLabel = t("anchors.sourceFirmware")
+  if (loading) sourceLabel = t("anchors.reading")
+  if (writing?.writing) sourceLabel = t("anchors.writing")
   return (
     <Card
       size="sm"
       role="region"
       className="min-w-0"
-      aria-label="Stored anchors"
+      aria-label={t("anchors.region")}
     >
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Waypoints size={16} />
-          Anchors
+          {t("anchors.title")}
         </CardTitle>
         <CardDescription>{sourceLabel}</CardDescription>
         {(action || (writing && setup)) && (
           <CardAction className="flex gap-2">
             {writing && setup && (
               <ReasonButton
-                label="Edit machine positions"
+                label={t("anchors.edit")}
                 variant="outline"
                 size="sm"
-                aria-label="Edit machine positions"
+                aria-label={t("anchors.edit")}
                 reason={writing.reason}
                 disabled={editing}
                 onClick={() => setEditing(true)}
               >
                 <PencilLine data-icon="inline-start" />
-                Edit
+                {t("anchors.editShort")}
               </ReasonButton>
             )}
             {action}
@@ -203,11 +207,11 @@ export function DeviceAnchors({
             </colgroup>
             <TableHeader>
               <TableRow>
-                <TableHead>Anchor</TableHead>
-                <TableHead>Machine X · mm</TableHead>
-                <TableHead>Machine Y · mm</TableHead>
-                <TableHead>Bed X · mm</TableHead>
-                <TableHead>Bed Y · mm</TableHead>
+                <TableHead>{t("anchors.anchor")}</TableHead>
+                <TableHead>{t("anchors.machineX")}</TableHead>
+                <TableHead>{t("anchors.machineY")}</TableHead>
+                <TableHead>{t("anchors.bedX")}</TableHead>
+                <TableHead>{t("anchors.bedY")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -260,7 +264,7 @@ export function DeviceAnchors({
             />
             <span>
               {error.startsWith("Timed out reading firmware")
-                ? "Reading device anchors timed out."
+                ? t("anchors.readTimedOut")
                 : error}
             </span>
           </FieldError>

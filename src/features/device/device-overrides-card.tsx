@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Gauge } from "lucide-react"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import type {
@@ -29,6 +30,7 @@ export function DeviceOverridesCard({
   reason: (key: AvailabilityKey, action?: MachineCommand) => string | null
   execute: (action: MachineCommand) => void
 }) {
+  const { t } = useTranslation("device")
   const fieldId = useId()
   const [feedPercent, setFeedPercent] = useState("")
   const [spindlePercent, setSpindlePercent] = useState("")
@@ -37,26 +39,31 @@ export function DeviceOverridesCard({
     setSpindlePercent("")
   }, [device?.host, device?.port])
   return (
-    <ControlCard title="Overrides" icon={<Gauge size={16} />}>
+    <ControlCard title={t("overrides.title")} icon={<Gauge size={16} />}>
       <FieldGroup className="grid gap-4 sm:grid-cols-2">
         {(
           [
             {
               type: "feedOverride",
-              label: "Feed",
+              labelKey: "overrides.feed",
+              ariaKey: "overrides.feedAria",
+              applyAriaKey: "overrides.applyFeedAria",
               reported: telemetry?.feedOverride,
               value: feedPercent,
               setValue: setFeedPercent,
             },
             {
               type: "spindleOverride",
-              label: "Spindle",
+              labelKey: "overrides.spindle",
+              ariaKey: "overrides.spindleAria",
+              applyAriaKey: "overrides.applySpindleAria",
               reported: telemetry?.spindleOverride,
               value: spindlePercent,
               setValue: setSpindlePercent,
             },
           ] as const
         ).map((setting) => {
+          const label = t(setting.labelKey)
           const percent =
             setting.value === ""
               ? (setting.reported ?? 100)
@@ -75,7 +82,7 @@ export function DeviceOverridesCard({
                   htmlFor={`${fieldId}-${setting.type}`}
                   className="justify-between"
                 >
-                  {setting.label}{" "}
+                  {label}{" "}
                   <span className="font-numeric text-muted-foreground">
                     {setting.reported != null
                       ? `${numberText(setting.reported)}%`
@@ -87,7 +94,7 @@ export function DeviceOverridesCard({
                     id={`${fieldId}-${setting.type}`}
                     unit="%"
                     type="number"
-                    aria-label={`${setting.label} override`}
+                    aria-label={t(setting.ariaKey)}
                     min={limits?.overrideMin}
                     max={limits?.overrideMax}
                     step={1}
@@ -97,13 +104,13 @@ export function DeviceOverridesCard({
                     onChange={(event) => setting.setValue(event.target.value)}
                   />
                   <ReasonButton
-                    label={`Apply ${setting.label.toLowerCase()} override`}
+                    label={t(setting.applyAriaKey)}
                     type="submit"
                     variant="outline"
                     reason={reason(setting.type, action)}
                     disabled={pending}
                   >
-                    Apply
+                    {t("overrides.apply")}
                   </ReasonButton>
                 </div>
               </Field>
@@ -113,11 +120,15 @@ export function DeviceOverridesCard({
       </FieldGroup>
       <dl className="grid gap-4 sm:grid-cols-2 [&_dd]:font-numeric">
         <div className="flex items-center justify-between gap-2">
-          <dt className="text-muted-foreground">Spindle</dt>
+          <dt className="text-muted-foreground">
+            {t("overrides.spindleTemperature")}
+          </dt>
           <dd>{numberText(telemetry?.spindleTemperature)} °C</dd>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <dt className="text-muted-foreground">Controller</dt>
+          <dt className="text-muted-foreground">
+            {t("overrides.controllerTemperature")}
+          </dt>
           <dd>{numberText(telemetry?.controllerTemperature)} °C</dd>
         </div>
       </dl>

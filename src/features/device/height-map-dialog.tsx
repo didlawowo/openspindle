@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react"
+import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { machineId } from "@/machine/contract"
 import {
@@ -38,6 +39,7 @@ const report = (error: Error) => toast.error(error.message)
  * along rather than the one read last.
  */
 export function HeightMapDialog({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation("device")
   const workspace = useWorkspaceStore()
   const machine = useMachineSnapshot()
   const read = useReadHeightMap()
@@ -60,7 +62,7 @@ export function HeightMapDialog({ onClose }: { onClose: () => void }) {
     retrieve().catch(report)
   }, [applying, readable, retrieve])
   return (
-    <AppDialog title="Measured heights" width="wide" onClose={onClose}>
+    <AppDialog title={t("heightMap.title")} width="wide" onClose={onClose}>
       <HeightMapView
         key={deviceId ?? "disconnected"}
         map={map}
@@ -76,7 +78,9 @@ export function HeightMapDialog({ onClose }: { onClose: () => void }) {
             toolOffset: telemetry.toolOffset,
           }
         }
-        clearReason={clear.allowed ? null : (clear.reason ?? "Unavailable.")}
+        clearReason={
+          clear.allowed ? null : (clear.reason ?? t("common.unavailable"))
+        }
         clearing={command.isPending}
         onClear={() =>
           command.mutate({ type: "clearHeightMap" }, { onError: report })

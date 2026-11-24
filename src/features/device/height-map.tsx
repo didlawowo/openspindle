@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Grid3X3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { HeightMap } from "@/machine/contract"
@@ -31,24 +32,33 @@ export function HeightMapCard({
   map?: HeightMap
   onOpen: () => void
 }) {
+  const { t } = useTranslation("device")
   return (
-    <Card size="sm" role="region" className="min-w-0" aria-label="Height map">
+    <Card
+      size="sm"
+      role="region"
+      className="min-w-0"
+      aria-label={t("heightMap.region")}
+    >
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Grid3X3 size={16} />
-          Height map
+          {t("heightMap.titleCard")}
         </CardTitle>
         <CardAction>
           <Button size="sm" variant="outline" onClick={onOpen}>
-            Measured heights
+            {t("heightMap.title")}
           </Button>
         </CardAction>
       </CardHeader>
       {map && (
         <CardContent>
           <CardDescription className="font-numeric">
-            {map.columns} × {map.rows} points ·{" "}
-            {new Date(map.receivedAt).toLocaleTimeString()}
+            {t("heightMap.pointsCount", {
+              columns: map.columns,
+              rows: map.rows,
+            })}{" "}
+            · {new Date(map.receivedAt).toLocaleTimeString()}
           </CardDescription>
         </CardContent>
       )}
@@ -94,6 +104,7 @@ export function HeightMapView({
   clearing: boolean
   onClear: () => void
 }) {
+  const { t } = useTranslation("device")
   const [error, setError] = useState("")
   const [view, setView] = useState<"map" | "source">("map")
   const statistics = map ? heightStatistics(map.heights) : null
@@ -103,9 +114,7 @@ export function HeightMapView({
       await onRetrieve()
     } catch (cause) {
       setError(
-        cause instanceof Error
-          ? cause.message
-          : "Could not retrieve the height map."
+        cause instanceof Error ? cause.message : t("heightMap.retrieveFailed")
       )
     }
   }
@@ -113,15 +122,15 @@ export function HeightMapView({
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <h3>{deviceName ?? "No device connected"}</h3>
+          <h3>{deviceName ?? t("heightMap.noDevice")}</h3>
           {map && (
             <>
-              <FieldDescription>
-                Device grid · process not reported
-              </FieldDescription>
+              <FieldDescription>{t("heightMap.deviceGrid")}</FieldDescription>
               <FieldDescription className="font-numeric">
                 <time dateTime={new Date(map.receivedAt).toISOString()}>
-                  Retrieved {new Date(map.receivedAt).toLocaleString()}
+                  {t("heightMap.retrieved", {
+                    when: new Date(map.receivedAt).toLocaleString(),
+                  })}
                 </time>
               </FieldDescription>
             </>
@@ -129,23 +138,25 @@ export function HeightMapView({
         </div>
         <div className="flex flex-wrap gap-2">
           <ReasonButton
-            label="Clear height map"
+            label={t("heightMap.clear")}
             reason={clearReason}
             variant="outline"
             disabled={clearing}
             onClick={onClear}
           >
-            {clearing ? "Clearing…" : "Clear height map"}
+            {clearing ? t("heightMap.clearing") : t("heightMap.clear")}
           </ReasonButton>
           <ReasonButton
-            label="Retrieve height map"
+            label={t("heightMap.retrieve")}
             reason={readError}
             disabled={reading}
             onClick={() => void retrieve()}
           >
             {reading
-              ? "Retrieving…"
-              : `Retrieve M375.1${deferred ? " after the program" : ""}`}
+              ? t("heightMap.retrieving")
+              : deferred
+                ? t("heightMap.retrieveDeferred")
+                : t("heightMap.retrieveCommand")}
           </ReasonButton>
         </div>
       </div>
@@ -153,40 +164,48 @@ export function HeightMapView({
         <HeightMapFacts
           facts={[
             {
-              label: "Compensation",
+              label: t("heightMap.compensation"),
               value:
                 applied.compensation === null
-                  ? "Off"
-                  : `On · ${formatSpan(applied.compensation)} mm range`,
+                  ? t("heightMap.compensationOff")
+                  : t("heightMap.compensationOn", {
+                      span: formatSpan(applied.compensation),
+                    }),
             },
             {
-              label: "Work Z0 at machine Z",
+              label: t("heightMap.workZ"),
               value: millimetres(applied.workZ),
             },
-            { label: "Tool offset", value: millimetres(applied.toolOffset) },
+            {
+              label: t("heightMap.toolOffset"),
+              value: millimetres(applied.toolOffset),
+            },
           ]}
         />
       )}
       {error && <FieldError>{error}</FieldError>}
       {!map ? (
         <FieldDescription className="py-8 text-center">
-          {readError ?? "No height map retrieved."}
+          {readError ?? t("heightMap.none")}
         </FieldDescription>
       ) : (
         <>
           <HeightMapFacts
             facts={[
-              { label: "Grid", value: `${map.columns} × ${map.rows}` },
               {
-                label: "Minimum",
+                label: t("heightMap.grid"),
+                value: `${map.columns} × ${map.rows}`,
+              },
+              {
+                label: t("heightMap.minimum"),
                 value: statistics ? `${formatHeight(statistics.min)} mm` : "—",
               },
               {
-                label: "Maximum",
+                label: t("heightMap.maximum"),
                 value: statistics ? `${formatHeight(statistics.max)} mm` : "—",
               },
               {
-                label: "Range",
+                label: t("heightMap.range"),
                 value: statistics ? `${formatSpan(statistics.range)} mm` : "—",
               },
             ]}
@@ -197,14 +216,22 @@ export function HeightMapView({
               if (value === "map" || value === "source") setView(value)
             }}
           >
-            <TabsList variant="line" aria-label="Height map view">
-              <TabsTrigger value="map">Height map</TabsTrigger>
-              <TabsTrigger value="source">Firmware output</TabsTrigger>
+            <TabsList variant="line" aria-label={t("heightMap.viewAria")}>
+              <TabsTrigger value="map">{t("heightMap.titleCard")}</TabsTrigger>
+              <TabsTrigger value="source">
+                {t("heightMap.firmwareOutput")}
+              </TabsTrigger>
             </TabsList>
-            <TabsContent value="source" aria-label="Firmware output">
+            <TabsContent
+              value="source"
+              aria-label={t("heightMap.firmwareOutput")}
+            >
               <pre className="mt-3 max-h-[440px] overflow-auto">{map.raw}</pre>
             </TabsContent>
-            <TabsContent value="map" aria-label="Measured height map">
+            <TabsContent
+              value="map"
+              aria-label={t("heightMap.measuredMapAria")}
+            >
               <HeightMapGrid map={map} />
             </TabsContent>
           </Tabs>

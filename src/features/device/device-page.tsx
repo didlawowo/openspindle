@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useIsMutating } from "@tanstack/react-query"
 import { Crosshair } from "lucide-react"
 import { toast } from "sonner"
@@ -48,6 +49,7 @@ import { ReadAnchorsButton } from "./read-anchors-button"
  * Anchors are read on connecting; reading them again and writing their positions happen here.
  */
 export function DevicePage() {
+  const { t } = useTranslation("device")
   const machine = useMachineSnapshot()
   const readAnchors = useReadAnchors()
   const writeAnchors = useWriteAnchors()
@@ -103,20 +105,21 @@ export function DevicePage() {
         }
       : {
           reason: shownConnected
-            ? "The machine's position is not known."
-            : "Connect this device to take where it is.",
+            ? t("page.positionUnknown")
+            : t("page.connectToTake"),
         }
   const entry = machine.availability.writeAnchors
   const device = machine.connection.device
   const read = machine.anchors.value
   // Edits start from the anchors shown, so they must be what the connected device stores now:
   // its own, as read since it connected, never another device's or the defaults.
-  let reason = available ? null : "This device profile is not on this computer."
-  if (!reason && !entry.allowed) reason = entry.reason ?? "Unavailable."
+  let reason = available ? null : t("page.profileMissing")
+  if (!reason && !entry.allowed)
+    reason = entry.reason ?? t("common.unavailable")
   if (!reason && device && deviceId !== machineId(device))
-    reason = `These are another device's anchors. Choose ${device.name} as the project device to edit its own.`
+    reason = t("page.otherDeviceAnchors", { name: device.name })
   else if (!reason && (!read || profile.anchors?.fetchedAt !== read.fetchedAt))
-    reason = "Read the anchors first."
+    reason = t("page.readFirst")
   const writing: AnchorWriting = {
     reason,
     writing: writingAnchors,
@@ -127,9 +130,9 @@ export function DevicePage() {
         {
           onSuccess: ({ afterRestart }) => {
             done()
-            toast.success("Anchors written to the device.", {
+            toast.success(t("page.anchorsWritten"), {
               description: afterRestart
-                ? "Reset the machine for its own moves to use them."
+                ? t("page.anchorsWrittenHint")
                 : undefined,
             })
           },
@@ -155,14 +158,14 @@ export function DevicePage() {
               action={
                 <>
                   <ReasonButton
-                    label="Probe anchor"
+                    label={t("page.probeAnchor")}
                     variant="outline"
                     size="sm"
                     reason={probeAnchor.reason}
                     onClick={probeAnchor.run}
                   >
                     <Crosshair data-icon="inline-start" />
-                    Probe anchor
+                    {t("page.probeAnchor")}
                   </ReasonButton>
                   {storesAnchors && (
                     <ReadAnchorsButton
@@ -170,7 +173,7 @@ export function DevicePage() {
                       onRead={() =>
                         readAnchors.mutate(undefined, {
                           onSuccess: () =>
-                            toast.success("Stored anchors updated."),
+                            toast.success(t("page.storedAnchorsUpdated")),
                           onError: (error) => toast.error(error.message),
                         })
                       }
@@ -223,7 +226,7 @@ export function DevicePage() {
               current={currentFromAnchor}
               onAdd={() => {
                 const id = fixtures.addBedSetup(
-                  `${bedSetup.name} copy`,
+                  t("page.bedSetupCopy", { name: bedSetup.name }),
                   bedSetup.id
                 )
                 if (id) setShownBedSetup(id)

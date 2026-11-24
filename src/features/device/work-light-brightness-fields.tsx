@@ -1,4 +1,5 @@
 import { useEffect, useId } from "react"
+import { useTranslation } from "react-i18next"
 import { useForm } from "@tanstack/react-form"
 import { z } from "zod"
 import {
@@ -15,49 +16,52 @@ import {
 import { MeasurementInput } from "@/components/workspace/measurement-input"
 import { Hint } from "@/components/workspace/hint"
 
-const DAYLIGHT_HINT =
-  "Used with OpenSpindle’s light appearance. With System selected, it follows your system’s appearance."
-const NIGHT_HINT =
-  "Used with OpenSpindle’s dark appearance. With System selected, it follows your system’s appearance."
-const INACTIVITY_TIMER_HINT =
-  "Turns the light off after this many minutes of machine inactivity while OpenSpindle is connected. 0 means never."
+const DAYLIGHT_HINT_KEY = "workLight.daylightHint"
+const NIGHT_HINT_KEY = "workLight.nightHint"
+const INACTIVITY_TIMER_HINT_KEY = "workLight.inactivityHint"
 
-const BrightnessFieldSchema = z.object({
-  percent: z
-    .string()
-    .refine(
-      (value) => WorkLightPercentSchema.safeParse(Number(value)).success,
-      "Enter a whole percentage from 1 to 100."
-    ),
-})
+/** The schema's message is translated, so it is built where a `t` is available. */
+const brightnessSchema = (errorMessage: string) =>
+  z.object({
+    percent: z
+      .string()
+      .refine(
+        (value) => WorkLightPercentSchema.safeParse(Number(value)).success,
+        errorMessage
+      ),
+  })
 
-const InactivityTimerSchema = z.object({
-  minutes: z
-    .string()
-    .refine(
-      (value) =>
-        value.trim() !== "" &&
-        WorkLightIdleMinutesSchema.safeParse(Number(value)).success,
-      "Enter whole minutes from 0 to 1440."
-    ),
-})
+const inactivityTimerSchema = (errorMessage: string) =>
+  z.object({
+    minutes: z
+      .string()
+      .refine(
+        (value) =>
+          value.trim() !== "" &&
+          WorkLightIdleMinutesSchema.safeParse(Number(value)).success,
+        errorMessage
+      ),
+  })
 
 /** Draft typing stays local; only a completed field updates the saved preference. */
 function BrightnessField({
   label,
   hint,
+  ariaLabel,
   value,
   onCommit,
 }: {
   label: string
   hint: string
+  ariaLabel: string
   value: number
   onCommit: (percent: number) => void
 }) {
+  const { t } = useTranslation("device")
   const id = useId()
   const form = useForm({
     defaultValues: { percent: String(value) },
-    validators: { onChange: BrightnessFieldSchema },
+    validators: { onChange: brightnessSchema(t("workLight.percentError")) },
     onSubmit: ({ value: submitted }) => onCommit(Number(submitted.percent)),
   })
   useEffect(() => {
@@ -85,7 +89,7 @@ function BrightnessField({
             <div className="w-28 shrink-0">
               <MeasurementInput
                 id={id}
-                aria-label={`Work light ${label.toLowerCase()}`}
+                aria-label={ariaLabel}
                 aria-description={hint}
                 type="number"
                 unit="%"
@@ -115,10 +119,13 @@ function InactivityTimerField({
   value: number
   onCommit: (minutes: number) => void
 }) {
+  const { t } = useTranslation("device")
   const id = useId()
   const form = useForm({
     defaultValues: { minutes: String(value) },
-    validators: { onChange: InactivityTimerSchema },
+    validators: {
+      onChange: inactivityTimerSchema(t("workLight.minutesError")),
+    },
     onSubmit: ({ value: submitted }) => onCommit(Number(submitted.minutes)),
   })
   useEffect(() => {
@@ -139,15 +146,17 @@ function InactivityTimerField({
           >
             <FieldContent className="min-w-0 self-center">
               <FieldLabel htmlFor={id}>
-                <Hint text={INACTIVITY_TIMER_HINT}>Inactivity timer</Hint>
+                <Hint text={t(INACTIVITY_TIMER_HINT_KEY)}>
+                  {t("workLight.inactivity")}
+                </Hint>
               </FieldLabel>
               <FieldError errors={field.state.meta.errors} />
             </FieldContent>
             <div className="w-28 shrink-0">
               <MeasurementInput
                 id={id}
-                aria-label="Work light inactivity timer"
-                aria-description={INACTIVITY_TIMER_HINT}
+                aria-label={t("workLight.inactivityAria")}
+                aria-description={t(INACTIVITY_TIMER_HINT_KEY)}
                 type="number"
                 unit="min"
                 min={0}
@@ -170,19 +179,22 @@ function InactivityTimerField({
 }
 
 export function WorkLightBrightnessFields() {
+  const { t } = useTranslation("device")
   const { brightness, setBrightness, idleMinutes, setIdleMinutes, saveError } =
     useWorkLightPreferences()
   return (
     <>
       <BrightnessField
-        label="Daylight brightness"
-        hint={DAYLIGHT_HINT}
+        label={t("workLight.daylight")}
+        hint={t(DAYLIGHT_HINT_KEY)}
+        ariaLabel={t("workLight.daylightAria")}
         value={brightness.light}
         onCommit={(percent) => setBrightness("light", percent)}
       />
       <BrightnessField
-        label="Night brightness"
-        hint={NIGHT_HINT}
+        label={t("workLight.night")}
+        hint={t(NIGHT_HINT_KEY)}
+        ariaLabel={t("workLight.nightAria")}
         value={brightness.dark}
         onCommit={(percent) => setBrightness("dark", percent)}
       />

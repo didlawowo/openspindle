@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
 import { RpcError } from "@openspindle/rpc"
 import {
   useWorkspace,
@@ -30,34 +31,26 @@ export type PcbSave = {
 function usePcbSave(plateId: string, operationId: string) {
   const workspace = useWorkspaceStore()
   const queryClient = useQueryClient()
+  const { t } = useTranslation("pcb")
   return useMutation({
     mutationFn: async (next: PcbSave): Promise<OperationOf<"pcb">> => {
       if (next.session !== workspace.session)
-        throw new RpcError(
-          "CONFLICT",
-          "The project changed while this toolpath was being generated."
-        )
+        throw new RpcError("CONFLICT", t("editor.projectChanged"))
       if (pcbLocked(queryClient))
-        throw new RpcError(
-          "UNAVAILABLE",
-          "PCB editing is unavailable while importing or running a job."
-        )
+        throw new RpcError("UNAVAILABLE", t("editor.locked"))
       const plate = workspace.state.plates.find((item) => item.id === plateId)
       const operation = plate?.operations.find(
         (item) => item.id === operationId
       )
       if (!plate || !operation || operation.source.kind !== "pcb")
-        throw new Error("This PCB operation is no longer available.")
+        throw new Error(t("editor.noLongerAvailable"))
       if (
         operation.revision !== next.revision ||
         operation.source !== next.expectedSource ||
         stableJson(toolAssignments(plate, operation as OperationOf<"pcb">)) !==
           next.assignmentsKey
       )
-        throw new RpcError(
-          "CONFLICT",
-          "This operation changed since it was read."
-        )
+        throw new RpcError("CONFLICT", t("editor.changedSinceRead"))
       const target = { plateId, operationId }
       const commands: WorkspaceCommand[] = [
         {
@@ -72,9 +65,7 @@ function usePcbSave(plateId: string, operationId: string) {
       const tools = new Map<number | null, string>()
       for (const [slot, toolId] of Object.entries(next.toolAssignments)) {
         if (!workspace.state.tools.some((tool) => tool.id === toolId))
-          throw new Error(
-            "The selected tool is no longer in the library. Choose it again."
-          )
+          throw new Error(t("editor.toolGone"))
         tools.set(slot === "default" ? null : Number(slot), toolId)
       }
       if (tools.size)
@@ -85,7 +76,7 @@ function usePcbSave(plateId: string, operationId: string) {
         .find((item) => item.id === plateId)
         ?.operations.find((item) => item.id === operationId)
       if (!saved || saved.source.kind !== "pcb")
-        throw new Error("This PCB operation is no longer available.")
+        throw new Error(t("editor.noLongerAvailable"))
       return saved as OperationOf<"pcb">
     },
   })
@@ -101,6 +92,7 @@ export function EditorView({
   operationId: string
   disabled?: boolean
 }) {
+  const { t } = useTranslation("pcb")
   const workspace = useWorkspaceStore()
   const locked = usePcbLocked()
   const session = pcbSession(workspace)
@@ -110,11 +102,7 @@ export function EditorView({
   const operation = plate?.operations.find((item) => item.id === operationId)
   const save = usePcbSave(plateId, operationId)
   if (!plate || !operation || operation.source.kind !== "pcb")
-    return (
-      <FieldDescription>
-        This PCB operation is no longer available.
-      </FieldDescription>
-    )
+    return <FieldDescription>{t("editor.noLongerAvailable")}</FieldDescription>
   return (
     <OperationEditor
       key={`${session.id}:${operationId}`}

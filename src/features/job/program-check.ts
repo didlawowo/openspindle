@@ -1,5 +1,6 @@
 import type { CompiledPlate } from "@/domain/compile/compile"
 import type { PreparedProgram } from "@/machine/contract"
+import { useTranslation } from "react-i18next"
 import { useProgramCheck } from "@/platform/machine"
 
 /** What the connected firmware's dialect makes of a compiled program. */
@@ -13,11 +14,12 @@ export type ProgramCheck =
 export function useCompiledProgramCheck(
   compiled: CompiledPlate | null
 ): ProgramCheck {
+  const { t } = useTranslation("job")
   const source =
     compiled && compiled.mode !== "empty" ? compiled.program.source : null
   const { data, error } = useProgramCheck(source)
   if (source === null)
-    return { status: "unavailable", reason: "There is no program to check." }
+    return { status: "unavailable", reason: t("check.noProgram") }
   if (data)
     return data.ok
       ? { status: "ready", program: data.program }

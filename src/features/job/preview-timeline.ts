@@ -24,7 +24,9 @@ export type PreviewTick = {
     | "end"
     | "operation"
     | "message"
+  /** A user's name shown as is, or an i18n key rendered with `params`. */
   label: string
+  params?: Record<string, string | number>
 }
 export type PreviewTimeline = {
   steps: PreviewStep[]
@@ -39,10 +41,13 @@ export type TimelineSource = Pick<
 >
 
 /** A tick before its step is known: what starts at a line. */
-type Mark = Pick<PreviewTick, "kind" | "label">
+type Mark = Pick<PreviewTick, "kind" | "label" | "params">
 
 /** The pause compiling writes before an operation that pauses before it: an M0. */
-const STOP_BEFORE: Mark = { kind: "pause", label: "Pause (M0)" }
+const STOP_BEFORE: Mark = {
+  kind: "pause",
+  label: "timelinePanel.pauseM0",
+}
 
 /**
  * The timelines of compiled programs, with the sections, operations and probing each was built
@@ -139,7 +144,8 @@ function timelineOf(
         step,
         line,
         kind: "probe",
-        label: `Probe grid · ${grid.samples.length} points`,
+        label: "timelinePanel.probeGrid",
+        params: { count: grid.samples.length },
       })
     } else steps.push({ line })
     for (const item of marks.get(line) ?? [])
@@ -148,7 +154,8 @@ function timelineOf(
     const ends = block.words.some(
       (word) => word.letter === "M" && [2, 30].includes(word.value)
     )
-    if (ends) ticks.push({ step, line, kind: "end", label: "Program end" })
+    if (ends)
+      ticks.push({ step, line, kind: "end", label: "timelinePanel.programEnd" })
     const spindleCommands = block.words.filter(
       (word) => word.letter === "M" && [3, 4, 5].includes(word.value)
     )
@@ -159,8 +166,9 @@ function timelineOf(
         kind: "spindle",
         label:
           spindle.value === 5
-            ? "Spindle off"
-            : `Spindle on (M${spindle.value})`,
+            ? "timelinePanel.spindleOff"
+            : "timelinePanel.spindleOn",
+        params: spindle.value === 5 ? undefined : { value: spindle.value },
       })
     if (ends) break
   }

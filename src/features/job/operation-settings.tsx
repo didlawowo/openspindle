@@ -1,4 +1,5 @@
 import { useMemo } from "react"
+import { useTranslation } from "react-i18next"
 import { Fan, Gauge, RotateCw, Wind } from "lucide-react"
 import { machineProgram } from "@/app/workspace/machine-program"
 import { kitForPlate } from "@/domain/fixtures/catalog"
@@ -46,11 +47,6 @@ const rangeText = (range: ValueRange | null, none: string) => {
     : `${numberText(low)}–${numberText(high)}`
 }
 
-const switchText = (on: boolean | null) => {
-  if (on === null) return "—"
-  return on ? "On" : "Off"
-}
-
 /**
  * What an operation sets the machine to, each by the icon the machine status card shows its
  * reading with: the spindle's speed, the vacuum, the spindle air and the feed. A value names
@@ -61,31 +57,36 @@ export function OperationSettingsRow({
 }: {
   settings: OperationSettings
 }) {
+  const { t } = useTranslation("job")
+  const switchText = (on: boolean | null) => {
+    if (on === null) return "—"
+    return on ? t("readout.on") : t("readout.off")
+  }
   return (
     <dl
-      aria-label="Settings"
+      aria-label={t("settings.region")}
       className="flex flex-wrap items-center gap-x-4 gap-y-1 [&_dd]:font-numeric [&_dt]:text-muted-foreground"
     >
-      <div className="flex items-center gap-1.5" title="Spindle speed, rpm">
-        <dt aria-label="Spindle speed, rpm">
+      <div className="flex items-center gap-1.5" title={t("readout.speed")}>
+        <dt aria-label={t("readout.speed")}>
           <RotateCw size={14} />
         </dt>
-        <dd>{rangeText(settings.spindle, "Off")}</dd>
+        <dd>{rangeText(settings.spindle, t("readout.off"))}</dd>
       </div>
-      <div className="flex items-center gap-1.5" title="Vacuum">
-        <dt aria-label="Vacuum">
+      <div className="flex items-center gap-1.5" title={t("settings.vacuum")}>
+        <dt aria-label={t("settings.vacuum")}>
           <Fan size={14} />
         </dt>
         <dd>{switchText(settings.vacuum)}</dd>
       </div>
-      <div className="flex items-center gap-1.5" title="Spindle air">
-        <dt aria-label="Spindle air">
+      <div className="flex items-center gap-1.5" title={t("settings.air")}>
+        <dt aria-label={t("settings.air")}>
           <Wind size={14} />
         </dt>
         <dd>{switchText(settings.spindleAir)}</dd>
       </div>
-      <div className="flex items-center gap-1.5" title="Feed rate, mm/min">
-        <dt aria-label="Feed rate, mm/min">
+      <div className="flex items-center gap-1.5" title={t("readout.feed")}>
+        <dt aria-label={t("readout.feed")}>
           <Gauge size={14} />
         </dt>
         <dd>{rangeText(settings.feed, "—")}</dd>

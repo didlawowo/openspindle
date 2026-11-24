@@ -1,6 +1,8 @@
 import type { ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 import { Radio } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import type { JobT } from "./job-view"
 import { PreviewTimelineBar } from "./timeline-bar"
 import type { JobEta, JobTimeline } from "./use-job-timeline"
 
@@ -15,22 +17,29 @@ function clockText(seconds: number) {
 }
 
 /** "12:34 left + 2 tool changes": how long the plan takes, and the tool changes on the way. */
-function etaText({ seconds, toolChanges, remaining }: JobEta) {
+function etaText({ seconds, toolChanges, remaining }: JobEta, t: JobT) {
   const changes =
-    toolChanges === 1 ? "1 tool change" : `${toolChanges} tool changes`
+    toolChanges === 1
+      ? t("eta.toolChangesOne")
+      : t("eta.toolChangesOther", { count: toolChanges })
   return [
-    `${clockText(seconds)}${remaining ? " left" : ""}`,
-    toolChanges > 0 ? `+ ${changes}` : null,
+    remaining
+      ? t("eta.left", { time: clockText(seconds) })
+      : clockText(seconds),
+    toolChanges > 0 ? changes : null,
   ]
     .filter((part) => part !== null)
     .join(" ")
 }
 
-function timelineTitle({ following, target, eta }: JobTimeline): string {
-  let title = "Toolpath preview"
+function timelineTitle(
+  { following, target, eta }: JobTimeline,
+  t: JobT
+): string {
+  let title = t("timelinePanel.preview")
   if (following && target)
-    title = target.active ? "Live position" : "End of job"
-  return eta ? `${title} · ${etaText(eta)}` : title
+    title = target.active ? t("timelinePanel.live") : t("timelinePanel.end")
+  return eta ? `${title} · ${etaText(eta, t)}` : title
 }
 
 /** The timeline under the viewer: preview playback, or this window's job position. */
@@ -43,6 +52,7 @@ export function JobTimelineBar({
   details?: ReactNode
 }) {
   const { target, following } = timeline
+  const { t } = useTranslation("job")
   return (
     <PreviewTimelineBar
       timeline={timeline.timeline}
@@ -52,14 +62,16 @@ export function JobTimelineBar({
       onPlay={timeline.togglePlay}
       speed={timeline.speed}
       onSpeed={timeline.setSpeed}
-      title={timelineTitle(timeline)}
+      title={timelineTitle(timeline, t)}
       details={details}
       actions={
         target &&
         !following && (
           <Button variant="outline" size="sm" onClick={timeline.follow}>
             <Radio data-icon="inline-start" />
-            {target.active ? "Back to live" : "Back to job position"}
+            {target.active
+              ? t("timelinePanel.backToLive")
+              : t("timelinePanel.backToJob")}
           </Button>
         )
       }

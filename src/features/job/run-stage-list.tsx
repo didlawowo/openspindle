@@ -100,7 +100,7 @@ function StageItem({
 }) {
   const { t } = useTranslation("job")
   const { icon: Icon } = STATUS[status]
-  const label = {
+  const label: string = {
     pending: t("status.upNext"),
     active: t("status.running"),
     waiting: t("status.waiting"),

@@ -1,4 +1,5 @@
 import { useMemo } from "react"
+import { useTranslation } from "react-i18next"
 import { Card, CardContent } from "@/components/ui/card"
 import { AxisLabel } from "@/components/workspace/axis-label"
 import type { MachineOrigin } from "@/components/workspace/bed-viewer"
@@ -40,13 +41,14 @@ export function MachineOriginCard({
   workOrigin: Point3 | null
 }) {
   if (!telemetry) return null
+  const { t } = useTranslation("job")
   const from = (axis: 0 | 1 | 2) =>
     origin && workOrigin ? origin.position[axis] - workOrigin[axis] : null
   return (
     <Card
       size="sm"
       role="region"
-      aria-label="Work origin"
+      aria-label={t("origin.region")}
       className="w-28 shadow-lg"
     >
       <CardContent>
@@ -63,7 +65,10 @@ export function MachineOriginCard({
             <AxisLabel axis="Z" />
           </dt>
           <dd>{numberText(from(2), 3)}</dd>
-          <dt className="font-medium text-muted-foreground" title="Tool offset">
+          <dt
+            className="font-medium text-muted-foreground"
+            title={t("origin.toolOffset")}
+          >
             T
           </dt>
           <dd>{numberText(telemetry.toolOffset, 3)}</dd>

@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Camera, Minus, ZoomIn, ZoomOut } from "lucide-react"
 import { cn } from "cn"
 import type { FrameSource } from "@/app/job/frame"
@@ -36,6 +37,7 @@ export function JobCamera({
   /** The frames of the shown plate's plan the 3D view draws, while its job is followed. */
   frames?: FrameSource
 }) {
+  const { t } = useTranslation("job")
   const { connection, features } = useMachineSnapshot()
   const [minimized, setMinimized] = useStoredFlag(
     "openspindle:job-camera-minimized"
@@ -50,8 +52,8 @@ export function JobCamera({
             variant="ghost"
             size="icon-sm"
             type="button"
-            aria-label="Show camera"
-            title="Show camera"
+            aria-label={t("camera.show")}
+            title={t("camera.show")}
             onClick={() => setMinimized(false)}
           >
             <Camera />
@@ -71,15 +73,17 @@ export function JobCamera({
         actions={
           <>
             <CameraFeedButton
-              aria-label={zoomed ? "Zoom out camera" : "Zoom in camera"}
-              title={zoomed ? "Zoom out" : "Zoom in"}
+              aria-label={zoomed ? t("camera.zoomOut") : t("camera.zoomIn")}
+              title={
+                zoomed ? t("camera.zoomOutTitle") : t("camera.zoomInTitle")
+              }
               onClick={() => setZoomed(!zoomed)}
             >
               {zoomed ? <ZoomOut /> : <ZoomIn />}
             </CameraFeedButton>
             <CameraFeedButton
-              aria-label="Minimize camera"
-              title="Minimize"
+              aria-label={t("camera.minimize")}
+              title={t("camera.minimizeTitle")}
               onClick={() => setMinimized(true)}
             >
               <Minus />

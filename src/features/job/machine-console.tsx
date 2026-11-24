@@ -1,4 +1,5 @@
 import { memo, useCallback, useLayoutEffect, useMemo, useRef } from "react"
+import { useTranslation } from "react-i18next"
 import { revalidateLogic, useForm } from "@tanstack/react-form"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { SendHorizontal } from "lucide-react"
@@ -32,9 +33,9 @@ const MARKS: Record<ConsoleEntry["direction"], string> = {
 }
 
 const DIRECTIONS: Record<ConsoleEntry["direction"], string> = {
-  sent: "Sent",
-  received: "Received",
-  note: "Note",
+  sent: "console.direction.sent",
+  received: "console.direction.received",
+  note: "console.direction.note",
 }
 
 /** Scrolled this close to the end, the view follows new entries. */
@@ -47,6 +48,7 @@ const ConsoleRow = memo(function ConsoleRow({
 }: {
   entry: ConsoleEntry
 }) {
+  const { t } = useTranslation("job")
   return (
     <div
       className={cn(
@@ -62,7 +64,9 @@ const ConsoleRow = memo(function ConsoleRow({
       <span
         className="w-3 shrink-0 text-center text-muted-foreground"
         role="img"
-        aria-label={DIRECTIONS[entry.direction]}
+        aria-label={t(DIRECTIONS[entry.direction], {
+          defaultValue: DIRECTIONS[entry.direction],
+        })}
       >
         {MARKS[entry.direction]}
       </span>
@@ -101,6 +105,7 @@ function consoleLineSchema(model: string | null, settings: RuleSettings) {
  * schema finds shows on the field. What the machine replies shows in the console.
  */
 function ConsoleCommand() {
+  const { t } = useTranslation("job")
   const { availability, connection } = useMachineSnapshot()
   const settings = useWorkspace((state) => state.ruleSettings)
   const send = useSendConsoleLine()
@@ -110,7 +115,9 @@ function ConsoleCommand() {
     [model, settings]
   )
   const entry = availability.console
-  const reason = entry.allowed ? null : (entry.reason ?? "Unavailable.")
+  const reason = entry.allowed
+    ? null
+    : (entry.reason ?? t("console.unavailable"))
   const form = useForm({
     defaultValues: { line: "" },
     validationLogic: VALIDATION_LOGIC,
@@ -140,7 +147,7 @@ function ConsoleCommand() {
             <Field data-invalid={invalid || undefined}>
               <InputGroup>
                 <InputGroupInput
-                  aria-label="Command"
+                  aria-label={t("console.command")}
                   aria-invalid={invalid || undefined}
                   className="font-mono"
                   placeholder="G0 X10 Y10"
@@ -156,8 +163,8 @@ function ConsoleCommand() {
                 <InputGroupAddon align="inline-end">
                   <ReasonButton
                     type="submit"
-                    label="Send"
-                    aria-label="Send"
+                    label={t("console.send")}
+                    aria-label={t("console.send")}
                     variant="ghost"
                     size="icon-xs"
                     reason={reason}
@@ -185,6 +192,7 @@ function ConsoleCommand() {
  * out. Virtualized: with up to a thousand entries kept, only the rows near the viewport render.
  */
 export function MachineConsole() {
+  const { t } = useTranslation("job")
   const { entries, clear } = useMachineConsole()
   const viewport = useRef<HTMLDivElement>(null)
   const following = useRef(true)
@@ -205,16 +213,19 @@ export function MachineConsole() {
     if (element && following.current) element.scrollTop = element.scrollHeight
   }, [entries, items])
   return (
-    <section className="flex h-full min-h-0 flex-col" aria-label="Console">
+    <section
+      className="flex h-full min-h-0 flex-col"
+      aria-label={t("console.aria")}
+    >
       <header className="flex items-center justify-between gap-2 px-3 py-2">
-        <span>Console</span>
+        <span>{t("console.region")}</span>
         <Button
           variant="ghost"
           size="sm"
           disabled={!entries.length}
           onClick={clear}
         >
-          Clear
+          {t("console.clear")}
         </Button>
       </header>
       <Separator />
@@ -222,7 +233,7 @@ export function MachineConsole() {
         ref={viewport}
         className="min-h-0 flex-1 overflow-auto py-1 text-xs"
         role="log"
-        aria-label="Machine console"
+        aria-label={t("console.aria")}
         tabIndex={0}
         onScroll={(event) => {
           const element = event.currentTarget
@@ -249,7 +260,9 @@ export function MachineConsole() {
             ))}
           </div>
         ) : (
-          <p className="px-3 py-0.5 text-muted-foreground">No messages yet</p>
+          <p className="px-3 py-0.5 text-muted-foreground">
+            {t("console.empty")}
+          </p>
         )}
       </div>
       <Separator />

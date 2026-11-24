@@ -1,4 +1,5 @@
 import { useId } from "react"
+import { useTranslation } from "react-i18next"
 import { Play, X } from "lucide-react"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Switch } from "@/components/ui/switch"
@@ -6,7 +7,7 @@ import { Hint } from "@/components/workspace/hint"
 import { useMachineSnapshot } from "@/platform/machine"
 import type { JobActions, MachineAction } from "./job-hooks"
 import { JobStatusBadge } from "./job-status-badge"
-import type { JobView } from "./job-view"
+import type { JobT, JobView } from "./job-view"
 import {
   MachineActionButton,
   PauseButton,
@@ -24,14 +25,15 @@ function JobControls({
   actions: JobActions
   run: MachineAction
 }) {
+  const { t } = useTranslation("job")
   const { features } = useMachineSnapshot()
   switch (view.kind) {
     case "idle":
       return (
         <MachineActionButton
           action={run}
-          label="Run"
-          pendingLabel="Sending…"
+          label={t("controls.run")}
+          pendingLabel={t("controls.sending")}
           variant="default"
           icon={<Play data-icon="inline-start" />}
         />
@@ -53,7 +55,7 @@ function JobControls({
           {features?.atc !== true && (
             <MachineActionButton
               action={actions.confirmToolChange}
-              label="Confirm installed"
+              label={t("controls.confirmInstalled")}
               variant="default"
               icon={<Play data-icon="inline-start" />}
             />
@@ -75,7 +77,7 @@ function JobControls({
       return (
         <MachineActionButton
           action={actions.dismiss}
-          label="Dismiss"
+          label={t("controls.dismiss")}
           icon={<X data-icon="inline-start" />}
         />
       )
@@ -89,12 +91,13 @@ export type KeepTool = {
   readonly onKeptChange: (kept: boolean) => void
 }
 
-const keepToolHint = (tool: number) =>
-  `The machine holds T${tool}, the program's first tool. Kept, the job starts without stopping to change and measure it: for a bit you set work Z with.`
+const keepToolHint = (tool: number, t: JobT) =>
+  t("controls.keepToolHint", { tool })
 
 function KeepToolSwitch({ keepTool }: { keepTool: KeepTool }) {
   const id = useId()
-  const hint = keepToolHint(keepTool.tool)
+  const { t } = useTranslation("job")
+  const hint = keepToolHint(keepTool.tool, t)
   return (
     <Field orientation="horizontal" className="w-auto">
       <Switch
@@ -104,7 +107,9 @@ function KeepToolSwitch({ keepTool }: { keepTool: KeepTool }) {
         onCheckedChange={keepTool.onKeptChange}
       />
       <FieldLabel htmlFor={id}>
-        <Hint text={hint}>Keep T{keepTool.tool}</Hint>
+        <Hint text={hint}>
+          {t("controls.keepTool", { tool: keepTool.tool })}
+        </Hint>
       </FieldLabel>
     </Field>
   )
@@ -127,10 +132,11 @@ export function JobToolbar({
   /** Offered beside Run while the machine holds the program's first tool. */
   keepTool: KeepTool | null
 }) {
+  const { t } = useTranslation("job")
   return (
     <div
       role="toolbar"
-      aria-label="Job controls"
+      aria-label={t("controls.toolbarAria")}
       className="flex shrink-0 flex-wrap items-center gap-2 border-b p-3"
     >
       <JobControls view={view} actions={actions} run={run} />

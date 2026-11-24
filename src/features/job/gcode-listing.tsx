@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import type { KeyboardEvent } from "react"
 import { useVirtualizer } from "@tanstack/react-virtual"
+import { useTranslation } from "react-i18next"
 import {
   ArrowDownToLine,
   LandPlot,
@@ -28,6 +29,7 @@ import { useOperationIcon } from "@/features/prepare/operation-icon"
 import type { ProgramChange } from "@/machine/contract"
 import { CHANGE_LABELS, buildListingModel } from "./listing-model"
 import type { ListingHeader, ListingHeaderKind } from "./listing-model"
+import type { JobT } from "./job-view"
 import { preparedLines, preparedProgram } from "./program-check"
 import type { ProgramCheck } from "./program-check"
 
@@ -53,8 +55,14 @@ const HEADER_ICONS: Record<ListingHeaderKind, LucideIcon> = {
   section: Route,
 }
 
-const changeText = (change: ProgramChange) =>
-  `${CHANGE_LABELS[change.reason]}: ${change.before} → ${change.after}`
+const changeText = (change: ProgramChange, t: JobT) =>
+  t("listing.changeText", {
+    label: t(CHANGE_LABELS[change.reason], {
+      defaultValue: CHANGE_LABELS[change.reason],
+    }),
+    before: change.before,
+    after: change.after,
+  })
 
 /** A line's number, change mark and code; shared by rows and the width sizer. */
 function LineContent({
@@ -124,6 +132,7 @@ export function GCodeLines({
   className?: string
 }) {
   const id = useId()
+  const { t } = useTranslation("job")
   const prepared = preparedProgram(check)
   const lines = useMemo(
     () => (prepared ? preparedLines(prepared) : compiled.program.lines),
@@ -136,8 +145,9 @@ export function GCodeLines({
         compiled,
         operations,
         prepared,
+        t,
       }),
-    [lines.length, compiled, operations, prepared]
+    [lines.length, compiled, operations, prepared, t]
   )
   const widest = useMemo(
     () =>
@@ -262,8 +272,18 @@ export function GCodeLines({
                 height: item.size,
                 transform: `translateY(${item.start}px)`,
               }}
-              title={change ? changeText(change) : undefined}
-              aria-label={`Line ${row.line}: ${text}${change ? ` (${CHANGE_LABELS[change.reason]})` : ""}`}
+              title={change ? changeText(change, t) : undefined}
+              aria-label={t("listing.lineLabel", {
+                line: row.line,
+                text,
+                note: change
+                  ? t("listing.changeNote", {
+                      label: t(CHANGE_LABELS[change.reason], {
+                        defaultValue: CHANGE_LABELS[change.reason],
+                      }),
+                    })
+                  : "",
+              })}
               onClick={() => {
                 onSeekLine(row.line)
                 viewport.current?.focus({ preventScroll: true })

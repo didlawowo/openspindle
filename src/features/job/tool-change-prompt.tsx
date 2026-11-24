@@ -1,4 +1,5 @@
 import { createAtom, useSelector } from "@tanstack/react-store"
+import { useTranslation } from "react-i18next"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   AlertDialog,
@@ -15,18 +16,19 @@ import type { Tool } from "@/domain/tools/tool"
 import { useMachineSnapshot } from "@/platform/machine"
 import type { MachineAction } from "./job-hooks"
 import { pauseKey } from "./job-view"
-import type { JobViewOf, ToolRequest } from "./job-view"
+import type { JobT, JobViewOf, ToolRequest } from "./job-view"
 import { MachineActionButton, StageCard } from "./stage-card"
 
 /** Product details worth checking against the tool in hand. */
 function ToolDetails({ tool }: { tool: Tool }) {
+  const { t } = useTranslation("job")
   const details = [
-    { label: "Kind", value: tool.kind },
-    { label: "Vendor", value: tool.vendor },
-    { label: "Product", value: tool.productId },
-    { label: "Material", value: tool.material },
-    { label: "Coating", value: tool.coating },
-    { label: "Notes", value: tool.notes },
+    { label: t("details.kind"), value: tool.kind },
+    { label: t("details.vendor"), value: tool.vendor },
+    { label: t("details.product"), value: tool.productId },
+    { label: t("details.material"), value: tool.material },
+    { label: t("details.coating"), value: tool.coating },
+    { label: t("details.notes"), value: tool.notes },
   ].filter((detail) => !!detail.value)
   if (!details.length) return null
   return (
@@ -44,16 +46,15 @@ function ToolDetails({ tool }: { tool: Tool }) {
 /** Why the plate's tool cannot be shown, when it cannot. */
 function missingToolNote(
   request: ToolRequest,
-  knownPlate: boolean
+  knownPlate: boolean,
+  t: JobT
 ): string | null {
-  if (!knownPlate)
-    return "This job was started outside this window, so its plate's tool table is unknown."
-  if (request.number === null)
-    return "The machine did not report which tool it waits for."
+  if (!knownPlate) return t("toolChange.startedOutside")
+  if (request.number === null) return t("toolChange.unknownNumber")
   if (!request.entry)
-    return `T${request.number} is not in the plate's tool table as it was run.`
+    return t("toolChange.notInTable", { number: request.number })
   if (!request.tool)
-    return `T${request.number} had no library tool assigned when the job was run.`
+    return t("toolChange.noLibraryTool", { number: request.number })
   return null
 }
 
@@ -79,6 +80,7 @@ function ToolChangeDialog({
 }) {
   const key = pauseKey(view.job, view.wait)
   const dismissed = useSelector(dismissedAtom) === key
+  const { t } = useTranslation("job")
   const { tool } = view.request
   return (
     <AlertDialog
@@ -89,7 +91,7 @@ function ToolChangeDialog({
     >
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Change tool</AlertDialogTitle>
+          <AlertDialogTitle>{t("toolChange.dialogTitle")}</AlertDialogTitle>
         </AlertDialogHeader>
         {tool && <ToolCard tool={tool} slotLabel={slot ?? undefined} />}
         {note && (
@@ -99,15 +101,15 @@ function ToolChangeDialog({
         )}
         <AlertDialogDescription>
           {operation
-            ? `Job resumes with ${operation.name} after confirmation.`
-            : "Job resumes after confirmation."}
+            ? t("toolChange.resumesWith", { name: operation.name })
+            : t("toolChange.resumes")}
         </AlertDialogDescription>
         <AlertDialogFooter>
-          <AlertDialogCancel>Dismiss</AlertDialogCancel>
+          <AlertDialogCancel>{t("toolChange.dismiss")}</AlertDialogCancel>
           <MachineActionButton
             action={confirm}
-            label="Confirm"
-            pendingLabel="Confirming…"
+            label={t("toolChange.confirm")}
+            pendingLabel={t("toolChange.confirming")}
             variant="default"
             icon={null}
           />
@@ -131,19 +133,20 @@ export function ToolChangePrompt({
   operation: Operation | null
   confirm: MachineAction
 }) {
+  const { t } = useTranslation("job")
   const { features } = useMachineSnapshot()
   const atc = features?.atc === true
   const { request } = view
   const slot = request.number === null ? null : `T${request.number}`
-  const note = missingToolNote(request, view.session !== null)
+  const note = missingToolNote(request, view.session !== null, t)
   return (
     <>
       <StageCard
-        title={slot ? `Install ${slot}` : "Change the tool"}
+        title={
+          slot ? t("toolChange.install", { slot }) : t("toolChange.changeTool")
+        }
         description={
-          atc
-            ? "The machine waits for its tool changer."
-            : "The machine waits with the spindle stopped. Install the tool, then choose Confirm installed."
+          atc ? t("toolChange.atcWaiting") : t("toolChange.manualWaiting")
         }
       >
         {request.tool && (

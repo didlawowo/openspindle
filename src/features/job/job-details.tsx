@@ -1,4 +1,5 @@
 import { TriangleAlert } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { FieldDescription } from "@/components/ui/field"
 import { Progress } from "@/components/ui/progress"
@@ -33,20 +34,23 @@ export function JobProgressDetails({
   /** Name the operation too; not in a card that is the operation's own. */
   withOperation?: boolean
 }) {
+  const { t } = useTranslation("job")
   const progress = job.progress
   if (!progress) return null
   const line = playedLine(job, subject) ?? progress.line
   const position = subject
     ? positionText(programPosition(subject, line), withOperation)
     : null
-  const part = partLabel(job)
+  const part = partLabel(job, t)
   return (
     <div className="flex flex-col gap-2">
-      <Progress value={progress.percent} aria-label="Program progress" />
+      <Progress value={progress.percent} aria-label={t("progress.aria")} />
       <FieldDescription className="flex justify-between gap-3 font-numeric">
         <span>
-          Line {line.toLocaleString()} of{" "}
-          {job.program.lineCount.toLocaleString()}
+          {t("progress.lineOf", {
+            line: line.toLocaleString(),
+            total: job.program.lineCount.toLocaleString(),
+          })}
           {part && ` · ${part.toLowerCase()}`}
         </span>
         <span>{formatDuration(progress.elapsedSeconds)}</span>
@@ -60,22 +64,21 @@ const MAX_LISTED_FAULTS = 5
 
 /** Errors the machine reported for played lines. */
 export function JobFaults({ job }: { job: JobState }) {
+  const { t } = useTranslation("job")
   const count = job.faults.length
   if (!count) return null
   return (
     <Alert variant="destructive">
       <TriangleAlert />
-      <AlertTitle>
-        {count === 1
-          ? "The machine reported an error"
-          : `The machine reported ${count} errors`}
-      </AlertTitle>
+      <AlertTitle>{t("faults.title", { count })}</AlertTitle>
       <AlertDescription>
         <ul className="flex flex-col gap-1">
           {job.faults.slice(0, MAX_LISTED_FAULTS).map((fault, index) => (
             <li key={index}>
               {fault.line !== null && (
-                <span className="font-numeric">Line {fault.line}: </span>
+                <span className="font-numeric">
+                  {t("faults.line", { line: fault.line })}
+                </span>
               )}
               {fault.message}
             </li>

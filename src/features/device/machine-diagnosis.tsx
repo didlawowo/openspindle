@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { createAtom, useSelector } from "@tanstack/react-store"
 import {
   CircleAlert,
@@ -124,6 +125,7 @@ function iconOf(resolution: Resolution): LucideIcon {
  * availability says; Reset asks first. What an inspection reads becomes evidence.
  */
 function useResolutions() {
+  const { t } = useTranslation("job")
   const { availability, connection } = useMachineSnapshot()
   const telemetry = useFreshTelemetry()
   const command = useMachineCommand()
@@ -135,7 +137,7 @@ function useResolutions() {
     switch (resolution.kind) {
       case "command":
         return {
-          reason: availabilityReason(availability[resolution.command.type]),
+          reason: availabilityReason(availability[resolution.command.type], t),
           pending: command.isPending,
           run: () =>
             command.mutate(resolution.command, {
@@ -150,19 +152,19 @@ function useResolutions() {
         }
       case "reset":
         return {
-          reason: availabilityReason(availability.reset),
+          reason: availabilityReason(availability.reset, t),
           pending: reset.isPending,
           run: () => setConfirmReset(true),
         }
       case "stop":
         return {
-          reason: availabilityReason(availability.stop),
+          reason: availabilityReason(availability.stop, t),
           pending: stop.isPending,
           run: () => stop.mutate(undefined, { onError: report }),
         }
       case "inspect":
         return {
-          reason: availabilityReason(availability.readSwitches),
+          reason: availabilityReason(availability.readSwitches, t),
           pending: readSwitches.isPending,
           run: () => {
             const read = {

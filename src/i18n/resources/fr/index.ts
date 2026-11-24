@@ -1,4 +1,5 @@
 import type { UiResources } from "../en"
+import { frJob } from "./job"
 import { frMenu } from "./menu"
 import { frSettings } from "./settings"
 import { frShell } from "./shell"
@@ -8,4 +9,5 @@ export const frResources: UiResources = {
   settings: frSettings,
   menu: frMenu,
   shell: frShell,
+  job: frJob,
 }

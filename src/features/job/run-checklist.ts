@@ -10,13 +10,13 @@ import {
 import type { Diagnostic, QuickFix, Severity } from "@/domain/diagnostics"
 import type { Plate } from "@/domain/plate/plate"
 import { PLATE_CHAIN } from "@/domain/plate/run-rules"
-import { plural } from "@/domain/primitives"
 import { failureDiagnostic } from "@/domain/rules/diagnostics"
 import type { StageFailure } from "@/domain/rules/stages"
 import { QUICK_FIX_LABELS } from "@/features/prepare/quick-fix"
 import type { MachineSnapshot } from "@/machine/contract"
 import type { PrepareSearch } from "@/routes/_workspace/prepare"
 import type { ProgramCheck } from "./program-check"
+import type { JobT } from "./job-view"
 
 /** What a check offers to resolve it: a Prepare or Device link, or a machine action. */
 export type RunFix =
@@ -77,8 +77,9 @@ export type RunContext = {
 /** One row of the Run checklist: a named condition of Run, as it shows for the context. */
 export type RunCheckRow = {
   readonly id: string
+  /** The row's label, a key of the `job` namespace. */
   readonly label: string
-  readonly show: (context: RunContext) => RunCheckResult
+  readonly show: (context: RunContext, t: JobT) => RunCheckResult
 }
 
 const pass = (reason?: string, fix?: RunFix): RunCheckResult => ({
@@ -96,21 +97,24 @@ const fail = (reason: string, fix?: RunFix): RunCheckResult => ({
   fix,
 })
 
-const OPEN_DEVICE: RunFix = { kind: "device", label: "Open Device" }
-const OPEN_PREPARE: RunFix = {
+const openDevice = (t: JobT): RunFix => ({
+  kind: "device",
+  label: t("fix.openDevice"),
+})
+const openPrepare = (t: JobT): RunFix => ({
   kind: "prepare",
-  label: "Open Prepare",
+  label: t("fix.openPrepare"),
   search: {},
-}
+})
 
 /** Diagnostic quick fixes lead to Prepare, except machine actions, which run here. */
-export function fixFor(diagnostic: Diagnostic): RunFix {
+export function fixFor(diagnostic: Diagnostic, t: JobT): RunFix {
   const fix = diagnostic.fix
   const operation = diagnosticOperation(diagnostic)
   if (!fix)
     return {
       kind: "prepare",
-      label: operation ? "Open operation" : "Open Prepare",
+      label: operation ? t("fix.openOperation") : t("fix.openPrepare"),
       search: operation ? { operation } : {},
     }
   const label = QUICK_FIX_LABELS[fix.kind]
@@ -126,7 +130,7 @@ export function fixFor(diagnostic: Diagnostic): RunFix {
     case "resolve-rule":
       return {
         kind: "prepare",
-        label: "Open operation",
+        label: t("fix.openOperation"),
         search: { operation: fix.operationId },
       }
   }
@@ -144,18 +148,23 @@ const isOperationDiagnostic = (diagnostic: Diagnostic) =>
 const isProgramDiagnostic = (diagnostic: Diagnostic) =>
   !isToolDiagnostic(diagnostic) && !isOperationDiagnostic(diagnostic)
 
-const summary = (diagnostic: Diagnostic, count: number) =>
-  count > 1 ? `${diagnostic.message} (+${count - 1} more)` : diagnostic.message
+const summary = (diagnostic: Diagnostic, count: number, t: JobT) =>
+  count > 1
+    ? `${diagnostic.message} ${t("check.more", { count: count - 1 })}`
+    : diagnostic.message
 
 /** Errors fail the check; warnings pass with a note. */
-function diagnosticsResult(diagnostics: readonly Diagnostic[]): RunCheckResult {
+function diagnosticsResult(
+  diagnostics: readonly Diagnostic[],
+  t: JobT
+): RunCheckResult {
   const errors = blocking(diagnostics)
   const error = errors.at(0)
-  if (error) return fail(summary(error, errors.length), fixFor(error))
+  if (error) return fail(summary(error, errors.length, t), fixFor(error, t))
   const warning = diagnostics.at(0)
   return warning
     ? {
-        ...pass(summary(warning, diagnostics.length), fixFor(warning)),
+        ...pass(summary(warning, diagnostics.length, t), fixFor(warning, t)),
         warning: true,
       }
     : pass()
@@ -177,14 +186,14 @@ const runDiagnostic = (failure: StageFailure<"run">) =>
 
 export const deviceConnected: RunCheckRow = {
   id: "device",
-  label: "Device connected",
-  show: ({ snapshot }) => {
+  label: "check.device",
+  show: ({ snapshot }, t) => {
     const { status, device, error } = snapshot.connection
     if (status === "connected") return pass(device?.name)
-    if (status === "connecting") return pending("Connecting…")
-    return fail(error ?? "Connect a device first.", {
+    if (status === "connecting") return pending(t("check.connecting"))
+    return fail(error ?? t("check.connectFirst"), {
       kind: "device",
-      label: "Connect",
+      label: t("fix.connect"),
     })
   },
 }
@@ -195,43 +204,43 @@ export const deviceConnected: RunCheckRow = {
  */
 export const plateCompiles: RunCheckRow = {
   id: "program",
-  label: "Plate compiles",
-  show: ({ runFailures, diagnostics }) => {
+  label: "check.program",
+  show: ({ runFailures, diagnostics }, t) => {
     const failure = runFailures.find(({ rule }) => rule.chain === PLATE_CHAIN)
     if (failure)
-      return fail(failure.rule.explain(failure).problem, OPEN_PREPARE)
-    return diagnosticsResult(diagnostics.filter(isProgramDiagnostic))
+      return fail(failure.rule.explain(failure).problem, openPrepare(t))
+    return diagnosticsResult(diagnostics.filter(isProgramDiagnostic), t)
   },
 }
 
 export const toolsAssigned: RunCheckRow = {
   id: "tools",
-  label: "Tools assigned",
-  show: ({ plate, diagnostics }) =>
+  label: "check.tools",
+  show: ({ plate, diagnostics }, t) =>
     plate
-      ? diagnosticsResult(diagnostics.filter(isToolDiagnostic))
-      : pending("Waits for a plate."),
+      ? diagnosticsResult(diagnostics.filter(isToolDiagnostic), t)
+      : pending(t("check.waitsForPlate")),
 }
 
 export const operationsCurrent: RunCheckRow = {
   id: "operations",
-  label: "Operations up to date",
-  show: ({ plate, diagnostics }) =>
+  label: "check.operations",
+  show: ({ plate, diagnostics }, t) =>
     plate
-      ? diagnosticsResult(diagnostics.filter(isOperationDiagnostic))
-      : pending("Waits for a plate."),
+      ? diagnosticsResult(diagnostics.filter(isOperationDiagnostic), t)
+      : pending(t("check.waitsForPlate")),
 }
 
 /** Problems a check lists at most; its reason counts them all. */
 const LISTED_ISSUES = 3
 
 /** "2 errors, 1 warning". */
-function counts(diagnostics: readonly Diagnostic[]) {
+function counts(diagnostics: readonly Diagnostic[], t: JobT) {
   const errors = blocking(diagnostics).length
   const warnings = diagnostics.length - errors
   return [
-    errors ? plural(errors, "error") : null,
-    warnings ? plural(warnings, "warning") : null,
+    errors ? t("check.errors", { count: errors }) : null,
+    warnings ? t("check.warnings", { count: warnings }) : null,
   ]
     .filter((count) => count !== null)
     .join(", ")
@@ -244,15 +253,15 @@ function counts(diagnostics: readonly Diagnostic[]) {
  */
 export const designRulesMet: RunCheckRow = {
   id: "design-rules",
-  label: "Design rules met",
-  show: ({ plate, designRules }) => {
-    if (!plate || !designRules) return pending("Waits for a plate.")
+  label: "check.designRules",
+  show: ({ plate, designRules }, t) => {
+    if (!plate || !designRules) return pending(t("check.waitsForPlate"))
     const { violations } = designRules
     if (!violations.length) return pass()
-    const reason = `${counts(violations)}.`
+    const reason = `${counts(violations, t)}.`
     const fix: RunFix = {
       kind: "design-rules",
-      label: "Show in Prepare",
+      label: t("fix.showInPrepare"),
       plateId: plate.id,
     }
     const issues = keyDiagnostics(violations)
@@ -275,39 +284,40 @@ export const designRulesMet: RunCheckRow = {
  */
 export const matchesMachine: RunCheckRow = {
   id: "setup",
-  label: "Plate matches the machine",
-  show: ({ plate, snapshot, runFailures }) => {
-    if (!plate) return pending("Waits for a plate.")
+  label: "check.matchesMachine",
+  show: ({ plate, snapshot, runFailures }, t) => {
+    if (!plate) return pending(t("check.waitsForPlate"))
     if (snapshot.connection.status !== "connected")
-      return pending("Waits for a connected device.")
+      return pending(t("check.waitsForDevice"))
     return diagnosticsResult(
       runFailures
         .filter(({ rule }) => rule.chain !== PLATE_CHAIN)
-        .map(runDiagnostic)
+        .map(runDiagnostic),
+      t
     )
   },
 }
 
 export const programTransfers: RunCheckRow = {
   id: "transfer",
-  label: "Program transfers",
-  show: ({ compiled, check }) => {
-    if (!compiles(compiled)) return pending("Waits for a plate that compiles.")
+  label: "check.transfer",
+  show: ({ compiled, check }, t) => {
+    if (!compiles(compiled)) return pending(t("check.waitsForCompiled"))
     switch (check.status) {
       case "unavailable":
         return pending(check.reason)
       case "checking":
-        return pending("Checking the program against the machine's dialect…")
+        return pending(t("check.checkingProgram"))
       case "rejected":
         return fail(check.error)
       case "ready": {
         const { changeCount, parts } = check.program
         const notes = [
           parts.length > 1
-            ? `Sent in ${parts.length} parts, split at tool changes; every part is uploaded before the first plays.`
+            ? t("check.sentParts", { count: parts.length })
             : null,
           changeCount
-            ? `${changeCount.toLocaleString()} lines adjusted for the machine; see the G-code list.`
+            ? t("check.linesAdjusted", { lines: changeCount.toLocaleString() })
             : null,
         ].filter((note) => note !== null)
         return pass(notes.length ? notes.join(" ") : undefined)
@@ -318,17 +328,14 @@ export const programTransfers: RunCheckRow = {
 
 export const machineReady: RunCheckRow = {
   id: "machine",
-  label: "Machine ready",
-  show: ({ snapshot }) => {
+  label: "check.machine",
+  show: ({ snapshot }, t) => {
     if (snapshot.connection.status !== "connected")
-      return pending("Waits for a connected device.")
+      return pending(t("check.waitsForDevice"))
     const run = snapshot.availability.run
     return run.allowed
       ? pass()
-      : fail(
-          run.reason ?? "The machine cannot start a program now.",
-          OPEN_DEVICE
-        )
+      : fail(run.reason ?? t("check.machineCannotStart"), openDevice(t))
   },
 }
 
@@ -360,19 +367,23 @@ export type RunChecklist = {
 
 export function evaluateRunChecklist(
   context: RunContext,
+  t: JobT,
   rows: readonly RunCheckRow[] = RUN_CHECKLIST
 ): RunChecklist {
   const checks = rows.map((row) => ({
     id: row.id,
-    label: row.label,
-    result: row.show(context),
+    label: t(row.label, { defaultValue: row.label }),
+    result: row.show(context, t),
   }))
   const blocked = checks.find((check) => check.result.status !== "pass")
   return {
     checks,
     ready: !blocked,
     blocker: blocked
-      ? `${blocked.label}: ${blocked.result.reason ?? "not yet."}`
+      ? t("check.blocker", {
+          label: blocked.label,
+          reason: blocked.result.reason ?? t("check.notYet"),
+        })
       : null,
   }
 }

@@ -1,6 +1,8 @@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { FieldDescription } from "@/components/ui/field"
 import { Progress } from "@/components/ui/progress"
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { usePlateIndex } from "@/app/workspace/workspace-context"
 import { plateLabel } from "@/domain/plate/plate"
 import { JobFaults, JobProgressDetails } from "./job-details"
@@ -14,99 +16,101 @@ import type {
 } from "./job-view"
 import { StageCard } from "./stage-card"
 
-const TRANSFER_TEXT: Record<
-  TransferStep,
-  { title: string; description: string }
-> = {
+/** The job's translations, passed to the builders of stage text. */
+type JobT = TFunction<"job">
+
+const transferTexts = (
+  t: JobT
+): Record<TransferStep, { title: string; description: string }> => ({
   preparing: {
-    title: "Preparing the machine",
-    description:
-      "Checking homing and machine state, then applying the plate's assists.",
+    title: t("transfer.preparingTitle"),
+    description: t("transfer.preparingDescription"),
   },
   uploading: {
-    title: "Uploading the program",
-    description: "The program is written to the machine's storage.",
+    title: t("transfer.uploadingTitle"),
+    description: t("transfer.uploadingDescription"),
   },
   verifying: {
-    title: "Verifying the upload",
-    description:
-      "Every byte is read back and compared before the program starts.",
+    title: t("transfer.verifyingTitle"),
+    description: t("transfer.verifyingDescription"),
   },
   starting: {
-    title: "Starting the program",
-    description: "Waiting for the machine to report the program running.",
+    title: t("transfer.startingTitle"),
+    description: t("transfer.startingDescription"),
   },
-}
+})
 
-const OUTCOME_TEXT: Record<JobOutcome, { title: string; description: string }> =
-  {
-    completed: {
-      title: "Job completed",
-      description: "The machine reported the program finished.",
-    },
-    stopped: {
-      title: "Job stopped",
-      description:
-        "Stop halted the machine. Home it on the Device tab before the next job.",
-    },
-    failed: {
-      title: "Job failed",
-      description: "The machine aborted the program.",
-    },
-    unverified: {
-      title: "Completion not verified",
-      description:
-        "The machine did not confirm how the program ended. Check the machine before running again.",
-    },
-    lost: {
-      title: "Connection lost",
-      description:
-        "The job may still be running on the machine. Check it before reconnecting.",
-    },
-  }
+const outcomeTexts = (
+  t: JobT
+): Record<JobOutcome, { title: string; description: string }> => ({
+  completed: {
+    title: t("outcome.completedTitle"),
+    description: t("outcome.completedDescription"),
+  },
+  stopped: {
+    title: t("outcome.stoppedTitle"),
+    description: t("outcome.stoppedDescription"),
+  },
+  failed: {
+    title: t("outcome.failedTitle"),
+    description: t("outcome.failedDescription"),
+  },
+  unverified: {
+    title: t("outcome.unverifiedTitle"),
+    description: t("outcome.unverifiedDescription"),
+  },
+  lost: {
+    title: t("outcome.lostTitle"),
+    description: t("outcome.lostDescription"),
+  },
+})
 
 /** A program sent as parts has every part written and read back before the first plays. */
-function transferText(view: JobViewOf<"transferring">) {
-  const part = partLabel(view.job)?.toLowerCase()
+function transferText(view: JobViewOf<"transferring">, t: JobT) {
+  const texts = transferTexts(t)
+  const part = partLabel(view.job, t)?.toLowerCase()
   if (part && view.step === "uploading")
     return {
-      title: `Uploading ${part}`,
-      description:
-        "The program is too large for one file, so it is sent in parts split at its tool changes. Every part is written to the machine's storage before the first plays.",
+      title: t("transfer.uploadingPart", { part }),
+      description: t("transfer.partsDescription"),
     }
   if (part && view.step === "verifying")
-    return { ...TRANSFER_TEXT.verifying, title: `Verifying ${part}` }
-  return TRANSFER_TEXT[view.step]
+    return { ...texts.verifying, title: t("transfer.verifyingPart", { part }) }
+  return texts[view.step]
 }
 
 export function TransferStage({ view }: { view: JobViewOf<"transferring"> }) {
-  const text = transferText(view)
+  const { t } = useTranslation("job")
+  const text = transferText(view, t)
   return (
     <StageCard title={text.title} description={text.description}>
       {view.percent !== null && (
-        <Progress value={view.percent} aria-label="Transfer progress" />
+        <Progress
+          value={view.percent}
+          aria-label={t("transfer.progressAria")}
+        />
       )}
     </StageCard>
   )
 }
 
 export function FinishingStage({ view }: { view: JobViewOf<"finishing"> }) {
+  const { t } = useTranslation("job")
   return (
     <StageCard
-      title={view.cleaning ? "Cleaning the bed" : "Finishing"}
+      title={
+        view.cleaning ? t("finish.cleaningTitle") : t("finish.finishingTitle")
+      }
       description={
         view.cleaning
-          ? "Bed cleaning runs after the program. The job completes when the machine reports it done."
-          : "The last blocks are running. The job completes when the machine confirms it."
+          ? t("finish.cleaningDescription")
+          : t("finish.finishingDescription")
       }
     >
       <JobProgressDetails job={view.job} subject={view.session} />
       {view.job.overdue && (
         <Alert>
-          <AlertDescription>
-            This takes longer than expected. The job is still tracked; check the
-            machine.
-          </AlertDescription>
+          <AlertDescription>{t("finish.overdue")}</AlertDescription>
         </Alert>
       )}
       <JobFaults job={view.job} />
@@ -115,7 +119,8 @@ export function FinishingStage({ view }: { view: JobViewOf<"finishing"> }) {
 }
 
 export function EndedStage({ view }: { view: JobViewOf<"ended"> }) {
-  const text = OUTCOME_TEXT[view.outcome]
+  const { t } = useTranslation("job")
+  const text = outcomeTexts(t)[view.outcome]
   const error = view.job.error
   return (
     <StageCard
@@ -141,12 +146,13 @@ export function JobSummary({
   view: JobView
   subject: JobSubject | null
 }) {
+  const { t } = useTranslation("job")
   const index = usePlateIndex(subject?.plate.id)
   if (view.kind === "idle")
     return (
       <div className="flex min-w-0 flex-col gap-0.5">
         <h2 className="truncate">
-          {subject ? plateLabel(subject.plate, index) : "No plate"}
+          {subject ? plateLabel(subject.plate, index) : t("summary.noPlate")}
         </h2>
       </div>
     )
@@ -155,8 +161,10 @@ export function JobSummary({
       <h2 className="truncate">{view.session?.label ?? view.job.name}</h2>
       <FieldDescription className="font-numeric">
         {view.session
-          ? `Run at ${new Date(view.job.startedAt).toLocaleTimeString()}`
-          : "Started outside this window; its plate is unknown here."}
+          ? t("summary.runAt", {
+              time: new Date(view.job.startedAt).toLocaleTimeString(),
+            })
+          : t("summary.startedElsewhere")}
       </FieldDescription>
     </div>
   )

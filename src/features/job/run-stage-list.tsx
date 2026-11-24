@@ -1,5 +1,6 @@
 import { Fragment } from "react"
 import type { ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 import {
   CircleCheck,
   CircleDashed,
@@ -64,7 +65,7 @@ import {
 } from "./operation-settings"
 import type { JobActions } from "./job-hooks"
 import { EndedStage, FinishingStage, TransferStage } from "./job-stages"
-import type { JobSubject, JobView } from "./job-view"
+import type { JobSubject, JobT, JobView } from "./job-view"
 import { PausePrompt } from "./pause-prompt"
 import { RunChecklistCard } from "./run-checklist-card"
 import { SaveAsAnchor } from "./save-as-anchor"
@@ -75,16 +76,15 @@ import type { OperationStage, StageStatus } from "./run-stages"
 import { StageCard } from "./stage-card"
 import { ToolChangePrompt } from "./tool-change-prompt"
 
-const STATUS: Record<StageStatus, { label: string; icon: LucideIcon | null }> =
-  {
-    pending: { label: "Up next", icon: CircleDashed },
-    active: { label: "Running", icon: null },
-    waiting: { label: "Waiting", icon: CirclePause },
-    done: { label: "Done", icon: CircleCheck },
-    failed: { label: "Failed", icon: CircleX },
-    stopped: { label: "Stopped", icon: Square },
-    skipped: { label: "Not run", icon: CircleMinus },
-  }
+const STATUS: Record<StageStatus, { icon: LucideIcon | null }> = {
+  pending: { icon: CircleDashed },
+  active: { icon: null },
+  waiting: { icon: CirclePause },
+  done: { icon: CircleCheck },
+  failed: { icon: CircleX },
+  stopped: { icon: Square },
+  skipped: { icon: CircleMinus },
+}
 
 /** A stage that is not the current one: its status, what it does or did, and its results. */
 function StageItem({
@@ -98,7 +98,17 @@ function StageItem({
   description?: ReactNode
   children?: ReactNode
 }) {
-  const { label, icon: Icon } = STATUS[status]
+  const { t } = useTranslation("job")
+  const { icon: Icon } = STATUS[status]
+  const label = {
+    pending: t("status.upNext"),
+    active: t("status.running"),
+    waiting: t("status.waiting"),
+    done: t("status.done"),
+    failed: t("status.failed"),
+    stopped: t("status.stopped"),
+    skipped: t("status.notRun"),
+  }[status]
   return (
     <Card
       size="sm"
@@ -154,7 +164,8 @@ function AnchorOffset({
 function operationSummary(
   operation: Operation,
   subject: JobSubject,
-  tools: readonly Tool[]
+  tools: readonly Tool[],
+  t: JobT
 ): ReactNode {
   const { source } = operation
   const probing = source.kind === "probing" ? source : null
@@ -163,38 +174,43 @@ function operationSummary(
       const { placement } = probing.params
       return (
         <>
-          Touches the stock top{" "}
+          {t("summary.touchOff.touchesTop")}{" "}
           {placement.kind === "anchor" ? (
             <>
-              at{" "}
+              {t("summary.at")}{" "}
               <AnchorOffset
-                name={anchorName(subject, placement.anchorId)}
+                name={anchorName(subject, placement.anchorId, t)}
                 offset={placement.offset}
               />
             </>
           ) : (
-            "below the probe"
+            t("summary.touchOff.belowProbe")
           )}{" "}
-          and sets work <AxisLabel axis="Z" /> there.
+          {t("summary.touchOff.setsWorkZ")} <AxisLabel axis="Z" />{" "}
+          {t("summary.touchOff.there")}
         </>
       )
     }
     case "grid": {
       const [columns, rows] = probing.params.points
       const [width, depth] = probing.params.size
-      return `Probes ${columns} × ${rows} points over ${mm(width)} × ${mm(depth)} mm.`
+      return t("summary.grid", {
+        columns,
+        rows,
+        width: mm(width),
+        depth: mm(depth),
+      })
     }
     case "outline": {
       const target = outlineTarget(probing.params)
-      if (target.kind === "toolpath")
-        return "Traces the plate's toolpath bounds with the probe's pointer."
+      if (target.kind === "toolpath") return t("summary.outlineToolpath")
       const edges = itemEdges(subject.plate.setup)
       const names = target.edges.map(
         (ref) =>
           edges.find((edge) => sameEdge(edge.ref, ref))?.label ??
-          `a missing ${ref.side} edge`
+          t("summary.missingEdge", { side: ref.side })
       )
-      return `Traces ${names.join(", ")} with the probe's pointer.`
+      return t("summary.outlineEdges", { names: names.join(", ") })
     }
     case "origin": {
       const { placement } = probing.params
@@ -204,20 +220,28 @@ function operationSummary(
       )
       return (
         <>
-          Finds {probe3dTarget(probing.params)}{" "}
+          {t("summary.origin.finds")} {probe3dTarget(probing.params, t)}{" "}
           {placement.kind === "anchor" ? (
             <>
-              from{" "}
+              {t("summary.origin.from")}{" "}
               <AnchorOffset
-                name={anchorName(subject, placement.anchorId)}
+                name={anchorName(subject, placement.anchorId, t)}
                 offset={placement.offset}
               />
               {z && <> {z}</>}
             </>
           ) : (
-            <>from the probe position{z && <> at {z}</>}</>
+            <>
+              {t("summary.origin.fromProbe")}
+              {z && (
+                <>
+                  {" "}
+                  {t("summary.origin.at")} {z}
+                </>
+              )}
+            </>
           )}{" "}
-          and sets the work origin there.
+          {t("summary.origin.setsOrigin")}
         </>
       )
     }
@@ -225,16 +249,16 @@ function operationSummary(
       const names = toolNames(operation, subject, tools)
       return names.length
         ? names.join(", ")
-        : `${operationKindLabel(operation)} with no tool change.`
+        : t("summary.noToolChange", { kind: operationKindLabel(operation) })
     }
   }
 }
 
-function anchorName(subject: JobSubject, anchorId: string): string {
+function anchorName(subject: JobSubject, anchorId: string, t: JobT): string {
   return (
     subject.plate.setup.anchors?.anchors.find(
       (anchor) => anchor.id === anchorId
-    )?.name ?? "its anchor"
+    )?.name ?? t("summary.anchorFallback")
   )
 }
 
@@ -277,44 +301,44 @@ const gridMap = (grid: GridMeasurement): HeightMap => ({
 })
 
 /** How far the machine got with a grid. */
-function gridText(grid: GridMeasurement): string {
+function gridText(grid: GridMeasurement, t: JobT): string {
   switch (grid.status) {
     case "probing":
-      return "The machine is probing the grid."
+      return t("grid.probing")
     case "failed":
-      return "The machine could not finish the grid."
+      return t("grid.failed")
     case "completed":
-      return "The machine measured the grid and compensates Z for it."
+      return t("grid.completed")
   }
 }
 
 /** What a 3D probing operation finds, in words. */
-function probe3dTarget({ routine, corner, axes }: OriginParams): string {
+function probe3dTarget({ routine, corner, axes }: OriginParams, t: JobT) {
   const at = PROBE_3D_CORNER_LABELS[corner].toLowerCase()
-  const across = axes === "xy" ? "X and Y" : axes.toUpperCase()
+  const across = axes === "xy" ? t("probe3d.acrossXY") : axes.toUpperCase()
   switch (routine) {
     case "outside-corner":
-      return `the ${at} corner`
+      return t("probe3d.outsideCorner", { corner: at })
     case "inside-corner":
-      return `the ${at} inside corner`
+      return t("probe3d.insideCorner", { corner: at })
     case "pocket-center":
-      return `the pocket's center in ${across}`
+      return t("probe3d.pocketCenter", { axes: across })
     case "boss-center":
-      return `the boss's center in ${across}`
+      return t("probe3d.bossCenter", { axes: across })
   }
 }
 
 /** What a 3D probing routine that has not found what it probes did, by its stage's status. */
-function probe3dUnfinished(params: OriginParams, status: StageStatus) {
-  const target = probe3dTarget(params)
+function probe3dUnfinished(params: OriginParams, status: StageStatus, t: JobT) {
+  const target = probe3dTarget(params, t)
   switch (status) {
     case "failed":
     case "stopped":
-      return `The machine stopped probing ${target} before it found it.`
+      return t("probe3d.stoppedBefore", { target })
     case "done":
-      return `The machine did not report every contact of the routine, so where it found ${target} is unknown.`
+      return t("probe3d.noContacts", { target })
     default:
-      return `The machine is probing ${target}.`
+      return t("probe3d.probing", { target })
   }
 }
 
@@ -334,7 +358,8 @@ function probe3dFacts(
   params: OriginParams,
   ball: number,
   { contacts }: ContactsMeasurement,
-  status: StageStatus
+  status: StageStatus,
+  t: JobT
 ): {
   description: ReactNode
   facts: Fact[]
@@ -348,28 +373,37 @@ function probe3dFacts(
   })
   const facts: Fact[] = []
   if (result.top !== null)
-    facts.push({ label: "Top", value: <Height z={result.top} /> })
+    facts.push({ label: t("facts.top"), value: <Height z={result.top} /> })
   const size = result.size.filter((value) => value !== null)
   if (size.length)
     facts.push({
-      label: params.routine === "pocket-center" ? "Pocket" : "Boss",
+      label:
+        params.routine === "pocket-center"
+          ? t("facts.pocket")
+          : t("facts.boss"),
       value: `${size.map(mm).join(" × ")} mm`,
     })
-  facts.push({ label: "Contacts", value: String(contacts.length) })
+  facts.push({ label: t("facts.contacts"), value: String(contacts.length) })
   if (!result.complete || !set.length)
-    return { description: probe3dUnfinished(params, status), facts, found }
-  const feature = findsCorner(params.routine) ? "corner" : "center"
+    return {
+      description: probe3dUnfinished(params, status, t),
+      facts,
+      found,
+    }
+  const feature = findsCorner(params.routine)
+    ? t("probe3d.featureCorner")
+    : t("probe3d.featureCenter")
   return {
     found,
     description: (
       <>
-        Found the {feature} and set work{" "}
+        {t("probe3d.foundIntro", { feature })}{" "}
         {set.map(({ axis }) => (
           <Fragment key={axis}>
             <AxisValue axis={axis} value="0" joined />{" "}
           </Fragment>
         ))}
-        there, at machine
+        {t("probe3d.foundThere")}
         {set.map(({ axis, value }) => (
           <Fragment key={axis}>
             {" "}
@@ -379,7 +413,8 @@ function probe3dFacts(
         {result.top !== null && (
           <>
             {" "}
-            and <AxisValue axis="Z" value="0" joined /> on the top it touched
+            {t("probe3d.foundAnd")} <AxisValue axis="Z" value="0" joined />{" "}
+            {t("probe3d.foundOnTop")}
           </>
         )}
         .
@@ -390,11 +425,11 @@ function probe3dFacts(
 }
 
 /** A tool measured at the tool sensor, by what it is. */
-function sensorLabel(tool: number | null): string {
-  if (tool === PROBE_TOOL) return "Probe at sensor"
-  if (tool === PROBE_3D_TOOL) return "3D probe at sensor"
-  if (tool === null) return "Tool at sensor"
-  return `T${tool} at sensor`
+function sensorLabel(tool: number | null, t: JobT): string {
+  if (tool === PROBE_TOOL) return t("sensor.probeAtSensor")
+  if (tool === PROBE_3D_TOOL) return t("sensor.probe3dAtSensor")
+  if (tool === null) return t("sensor.toolAtSensor")
+  return t("sensor.toolNAtSensor", { tool })
 }
 
 /** What the machine measured in an operation, or what it will do there, and what it sets. */
@@ -402,7 +437,8 @@ function operationResults(
   stage: OperationStage,
   subject: JobSubject,
   tools: readonly Tool[],
-  settings: OperationSettings | undefined
+  settings: OperationSettings | undefined,
+  t: JobT
 ): { description: ReactNode; details: ReactNode } {
   const { operation, surface, grid, contacts, status } = stage
   const facts: Fact[] = []
@@ -421,7 +457,7 @@ function operationResults(
     source.task === "origin" &&
     ball !== null
   ) {
-    const probed = probe3dFacts(source.params, ball, contacts, status)
+    const probed = probe3dFacts(source.params, ball, contacts, status, t)
     description = probed.description
     facts.push(...probed.facts)
     found = probed.found
@@ -431,35 +467,39 @@ function operationResults(
     const { work } = surface
     description = (
       <>
-        Touched the stock top at machine{" "}
-        <AxisValue axis="X" value={coordinate(x)} />{" "}
+        {t("touch.atMachine")} <AxisValue axis="X" value={coordinate(x)} />{" "}
         <AxisValue axis="Y" value={coordinate(y)} />
         {work && (
           <>
-            , work <AxisValue axis="X" value={coordinate(work[0])} />{" "}
+            , {t("touch.work")}{" "}
+            <AxisValue axis="X" value={coordinate(work[0])} />{" "}
             <AxisValue axis="Y" value={coordinate(work[1])} />,
           </>
         )}{" "}
-        and set work <AxisValue axis="Z" value="0" joined /> there.
+        {t("touch.setWork")} <AxisValue axis="Z" value="0" joined />{" "}
+        {t("touch.there")}
       </>
     )
-    facts.push({ label: "Stock top", value: <Height z={z} /> })
+    facts.push({ label: t("facts.stockTop"), value: <Height z={z} /> })
   }
   if (grid) {
     const measured = grid.heights
       .flat()
       .filter((value) => value !== null).length
-    description = gridText(grid)
+    description = gridText(grid, t)
     facts.push(
-      { label: "Grid", value: `${grid.columns} × ${grid.rows}` },
-      { label: "Measured", value: `${measured} / ${grid.columns * grid.rows}` }
+      { label: t("facts.grid"), value: `${grid.columns} × ${grid.rows}` },
+      {
+        label: t("facts.measured"),
+        value: `${measured} / ${grid.columns * grid.rows}`,
+      }
     )
     if (grid.range !== null)
-      facts.push({ label: "Range", value: `${mm(grid.range)} mm` })
+      facts.push({ label: t("facts.range"), value: `${mm(grid.range)} mm` })
   }
   for (const tool of stage.tools)
     facts.push({
-      label: sensorLabel(tool.tool),
+      label: sensorLabel(tool.tool, t),
       value: <Height z={tool.machine[2]} />,
     })
   if (
@@ -474,11 +514,11 @@ function operationResults(
     const method = machine && methodFor(source, machine, subject.plate)
     description =
       machine && method && !machine.cycles.includes(method)
-        ? "The machine does not report this touch's measurement: it touches with G38.2."
-        : "The machine reports its measurements only when it probes from a stored anchor with the work origin kept relative to one."
+        ? t("touch.g38Only")
+        : t("touch.anchorOnly")
   }
   return {
-    description: description ?? operationSummary(operation, subject, tools),
+    description: description ?? operationSummary(operation, subject, tools, t),
     details: (
       <>
         {settings && <OperationSettingsRow settings={settings} />}
@@ -501,11 +541,13 @@ function OperationItem({
   tools: readonly Tool[]
   settings: OperationSettings | undefined
 }) {
+  const { t } = useTranslation("job")
   const { description, details } = operationResults(
     stage,
     subject,
     tools,
-    settings
+    settings,
+    t
   )
   return (
     <StageItem
@@ -532,15 +574,15 @@ function RunningOperation({
   tools: readonly Tool[]
   settings: OperationSettings | undefined
 }) {
+  const { t } = useTranslation("job")
   const results =
-    stage && subject ? operationResults(stage, subject, tools, settings) : null
+    stage && subject
+      ? operationResults(stage, subject, tools, settings, t)
+      : null
   return (
     <StageCard
-      title={stage?.operation.name ?? "Running"}
-      description={
-        results?.description ??
-        "The machine runs the program; the timeline follows its line."
-      }
+      title={stage?.operation.name ?? t("status.running")}
+      description={results?.description ?? t("running.machineRuns")}
     >
       <JobProgressDetails
         job={view.job}
@@ -601,25 +643,26 @@ function CurrentStage({
 
 /** The end of the run: its progress while it finishes, its outcome once it has ended. */
 function FinishItem({ view, status }: { view: JobView; status: StageStatus }) {
+  const { t } = useTranslation("job")
   if (view.kind === "finishing") return <FinishingStage view={view} />
   if (view.kind === "ended") return <EndedStage view={view} />
   return (
     <StageItem
-      title="Finish"
+      title={t("finish.title")}
       status={status}
-      description="The job completes when the machine confirms the program ended."
+      description={t("finish.description")}
     />
   )
 }
 
 /** What the upload sent: every file, and how many when the program went as parts. */
-function uploadedText(job: JobState): string {
+function uploadedText(job: JobState, t: JobT): string {
   const parts = programParts(job.program)
   const bytes = parts.reduce((sum, part) => sum + part.bytes, 0)
   const size = `${(bytes / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })} kB`
   return parts.length > 1
-    ? `${size} in ${parts.length} parts written and read back.`
-    : `${size} written and read back.`
+    ? t("upload.parts", { size, count: parts.length })
+    : t("upload.single", { size })
 }
 
 /**
@@ -644,6 +687,7 @@ export function RunStageList({
   /** The files the checked program is sent as. */
   parts: number
 }) {
+  const { t } = useTranslation("job")
   const stages = runStages(view, subject)
   const settings = useOperationSettings(subject)
   const readAnchors = useReadAnchorsFix(subject?.plate.id ?? null)
@@ -671,7 +715,7 @@ export function RunStageList({
     />
   ) : null
   return (
-    <ol className="flex flex-col gap-2" aria-label="Run stages">
+    <ol className="flex flex-col gap-2" aria-label={t("list.aria")}>
       <li>
         {view.kind === "idle" ? (
           <RunChecklistCard
@@ -681,9 +725,11 @@ export function RunStageList({
           />
         ) : (
           <StageItem
-            title="Checks"
+            title={t("checks.title")}
             status={stages.preflight}
-            description={`Passed before Run at ${new Date(view.job.startedAt).toLocaleTimeString()}.`}
+            description={t("checks.passedAt", {
+              time: new Date(view.job.startedAt).toLocaleTimeString(),
+            })}
           />
         )}
       </li>
@@ -692,12 +738,12 @@ export function RunStageList({
           <TransferStage view={view} />
         ) : (
           <StageItem
-            title="Upload"
+            title={t("upload.title")}
             status={stages.transfer}
             description={
               view.kind === "idle"
-                ? "The program is written to the machine's storage and read back before it starts."
-                : uploadedText(view.job)
+                ? t("upload.description")
+                : uploadedText(view.job, t)
             }
           />
         )}

@@ -1,4 +1,6 @@
 import type { FormEvent } from "react"
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import {
   Questionnaire,
   QuestionnaireActions,
@@ -31,7 +33,7 @@ import type { Resolution } from "@/domain/design-rules/program-rules"
 import { linesText } from "@/domain/nc/program-lines"
 import { plateLabel } from "@/domain/plate/plate"
 import type { Plate } from "@/domain/plate/plate"
-import { capitalize, plural } from "@/domain/primitives"
+import { capitalize } from "@/domain/primitives"
 import type { SplitMode, SplitPart } from "@/domain/post-processing/split"
 import { AppDialog } from "./app-dialog"
 import { closeDialog } from "./dialogs"
@@ -56,6 +58,9 @@ const NEW_PLATE = ""
 const WHOLE = "whole"
 
 const splitName = (index: number) => `split-${index}`
+
+/** The shell's translations, passed to the question builders. */
+type ShellT = TFunction<"shell">
 
 /**
  * An issue alike in one program or several, asked about once: the same rule, problem and
@@ -103,51 +108,60 @@ function issueGroups(plan: ImportPlan): IssueGroup[] {
 function plateQuestion(
   plan: ImportPlan,
   plates: readonly Plate[],
-  selectedPlateId: string | null
+  selectedPlateId: string | null,
+  t: ShellT
 ): Question {
   const [only] = plan.programs
   return {
     name: "plate",
     title:
       plan.programs.length === 1
-        ? `Which plate does ${only.fileName} go to?`
-        : "Which plate do the programs go to?",
+        ? t("import.plateOne", { file: only.fileName })
+        : t("import.plateMany"),
     choices: [
       ...plates.map((plate, index) => ({
         value: plate.id,
         label: plateLabel(plate, index),
       })),
-      { value: NEW_PLATE, label: "A new plate" },
+      { value: NEW_PLATE, label: t("import.newPlate") },
     ],
     initial: selectedPlateId ?? NEW_PLATE,
   }
 }
 
-const partNames = (parts: readonly SplitPart[]) =>
-  `${plural(parts.length, "operation")}: ${parts.map((part) => part.name).join(", ")}`
+const partNames = (parts: readonly SplitPart[], t: ShellT) =>
+  t("import.parts", {
+    count: parts.length,
+    names: parts.map((part) => part.name).join(", "),
+  })
 
 function splitQuestion(
   program: PlannedProgram,
-  index: number
+  index: number,
+  t: ShellT
 ): Question | null {
   const { tool, toolpath } = program.split
   if (!tool.length && !toolpath.length) return null
   const modes: Array<{ mode: SplitMode; label: string }> = [
-    { mode: "tool", label: "By tool" },
-    { mode: "toolpath", label: "By toolpath" },
+    { mode: "tool", label: t("import.byTool") },
+    { mode: "toolpath", label: t("import.byToolpath") },
   ]
   return {
     name: splitName(index),
-    title: `Split ${program.fileName} into operations?`,
+    title: t("import.splitTitle", { file: program.fileName }),
     choices: [
-      { value: WHOLE, label: "No splitting", description: "One operation." },
+      {
+        value: WHOLE,
+        label: t("import.noSplitting"),
+        description: t("import.oneOperation"),
+      },
       ...modes.flatMap(({ mode, label }) =>
         program.split[mode].length
           ? [
               {
                 value: mode,
                 label,
-                description: partNames(program.split[mode]),
+                description: partNames(program.split[mode], t),
               },
             ]
           : []
@@ -158,21 +172,28 @@ function splitQuestion(
 }
 
 /** Where an issue is: its lines in one program, or the programs it is in. */
-function issuePlace(plan: ImportPlan, group: IssueGroup): string {
+function issuePlace(plan: ImportPlan, group: IssueGroup, t: ShellT): string {
   const [first, ...others] = group.programs
   const { fileName } = plan.programs[first.index]
   if (!others.length)
-    return `${capitalize(linesText(first.lines))} of ${fileName}.`
-  return `In ${fileName} and ${plural(others.length, "other program")}.`
+    return t("import.issueInFile", {
+      lines: capitalize(linesText(first.lines)),
+      file: fileName,
+    })
+  return t("import.issueInMany", { count: others.length, file: fileName })
 }
 
-function issueQuestion(plan: ImportPlan, group: IssueGroup): Question {
+function issueQuestion(
+  plan: ImportPlan,
+  group: IssueGroup,
+  t: ShellT
+): Question {
   const { issue } = group
   return {
     name: group.name,
     title: issue.label,
     problem: {
-      text: `${issue.problem} ${issuePlace(plan, group)}`,
+      text: `${issue.problem} ${issuePlace(plan, group, t)}`,
       suggestion: suggestionOf(issue),
     },
     choices: issue.choices.map((choice) => ({
@@ -192,22 +213,23 @@ function questionsOf(
   plan: ImportPlan,
   groups: readonly IssueGroup[],
   plates: readonly Plate[],
-  selectedPlateId: string | null
+  selectedPlateId: string | null,
+  t: ShellT
 ): Question[] {
   const programs = plan.programs.flatMap((program, index) => {
     // An update keeps the operation the part of the program it was.
     const split =
-      plan.target.kind === "operation" ? null : splitQuestion(program, index)
+      plan.target.kind === "operation" ? null : splitQuestion(program, index, t)
     return [
       ...(split ? [split] : []),
       ...groups
         .filter((group) => group.programs[0].index === index)
-        .map((group) => issueQuestion(plan, group)),
+        .map((group) => issueQuestion(plan, group, t)),
     ]
   })
   // An update's programs replace an operation's NC: they go to no plate of the user's choosing.
   return plates.length && plan.programs.length && plan.target.kind === "plate"
-    ? [plateQuestion(plan, plates, selectedPlateId), ...programs]
+    ? [plateQuestion(plan, plates, selectedPlateId, t), ...programs]
     : programs
 }
 
@@ -250,22 +272,26 @@ function answersOf(
  * them.
  */
 export function ImportDialog({ plan }: { plan: ImportPlan }) {
+  const { t } = useTranslation("shell")
   const plates = useWorkspace((state) => state.plates)
   const selectedPlateId = useWorkspace((state) => state.selectedPlateId)
   const applyImport = useApplyImport()
   const groups = issueGroups(plan)
-  const questions = questionsOf(plan, groups, plates, selectedPlateId)
+  const questions = questionsOf(plan, groups, plates, selectedPlateId, t)
   const items = questions.map((question) => ({
     name: question.name,
     required: true,
     choices: question.choices.map(({ value }) => ({ value })),
   }))
   // An update asks only about issues its program has that the operation's import did not.
-  const verb = plan.target.kind === "operation" ? "Update" : "Import"
+  const verb =
+    plan.target.kind === "operation"
+      ? t("import.verbUpdate")
+      : t("import.verbImport")
   const title =
     plan.programs.length === 1
-      ? `${verb} ${plan.programs[0].fileName}`
-      : `${verb} ${plural(plan.programs.length, "program")}`
+      ? t("import.titleFile", { verb, file: plan.programs[0].fileName })
+      : t("import.titlePrograms", { verb, count: plan.programs.length })
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const answers = answersOf(
@@ -312,8 +338,10 @@ export function ImportDialog({ plan }: { plan: ImportPlan }) {
           </QuestionnaireItem>
         ))}
         <QuestionnaireActions>
-          <QuestionnairePrevious />
-          <QuestionnaireNext />
+          <QuestionnairePrevious>
+            {t("questionnaire.previous")}
+          </QuestionnairePrevious>
+          <QuestionnaireNext>{t("questionnaire.next")}</QuestionnaireNext>
           <QuestionnaireSubmit>{verb}</QuestionnaireSubmit>
         </QuestionnaireActions>
       </Questionnaire>

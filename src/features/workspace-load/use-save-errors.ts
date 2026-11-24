@@ -1,4 +1,5 @@
 import { useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import type { PersistedDocument } from "@/persistence/document"
 import { useDocumentState, usePersistence } from "@/persistence/persistence"
@@ -19,15 +20,16 @@ function useSaveErrorToast<TValue>(
 
 /** Stored data that stops saving (a failed write, or a refused save) is reported, never lost silently. */
 export function useSaveErrors() {
+  const { t } = useTranslation("shell")
   const persistence = usePersistence()
   useSaveErrorToast(
     persistence.library,
     "save-library",
-    "Tool and stock library changes are not being saved"
+    t("storage.libraryNotSaved")
   )
   useSaveErrorToast(
     persistence.fixtures,
     "save-fixtures",
-    "Fixture library changes are not being saved"
+    t("storage.fixturesNotSaved")
   )
 }

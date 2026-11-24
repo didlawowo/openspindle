@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useMutation } from "@tanstack/react-query"
 import { TriangleAlert } from "lucide-react"
 import { toast } from "sonner"
@@ -13,19 +14,24 @@ import {
 } from "@/components/ui/alert-dialog"
 import { FieldError } from "@/components/ui/field"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import type { TFunction } from "i18next"
 import type { PersistedDocument } from "@/persistence/document"
 import { useDocumentState, usePersistence } from "@/persistence/persistence"
 import { useHost } from "@/platform/host-context"
 
 const TITLES = {
-  library: "Tool and stock libraries",
-  fixtures: "Fixture library",
+  library: "storage.libraryTitle",
+  fixtures: "storage.fixtureTitle",
 } as const
 
-function dialogTitle(newer: boolean, unreadable: boolean) {
-  if (newer) return "Saved data is from a newer OpenSpindle"
-  if (unreadable) return "Saved data could not be restored"
-  return "Some saved data could not be restored"
+function dialogTitle(
+  t: TFunction<"shell">,
+  newer: boolean,
+  unreadable: boolean
+) {
+  if (newer) return t("storage.newerTitle")
+  if (unreadable) return t("storage.unreadableTitle")
+  return t("storage.partialTitle")
 }
 
 /**
@@ -33,6 +39,7 @@ function dialogTitle(newer: boolean, unreadable: boolean) {
  * written, so the stored data stays exactly as it was.
  */
 export function LoadIssuesDialog() {
+  const { t } = useTranslation("shell")
   const persistence = usePersistence()
   const host = useHost()
   const states = {
@@ -64,7 +71,7 @@ export function LoadIssuesDialog() {
     },
     onSuccess: (result) => {
       if (result.status !== "canceled")
-        toast.success(`Saved a copy as ${result.fileName}`)
+        toast.success(t("storage.copySaved", { file: result.fileName }))
     },
   })
   const resolve = useMutation({
@@ -80,7 +87,7 @@ export function LoadIssuesDialog() {
     },
     onSuccess: (locations) => {
       if (locations.length)
-        toast.success("The original data was backed up.", {
+        toast.success(t("storage.backedUp"), {
           description: locations.join("\n"),
         })
     },
@@ -96,17 +103,18 @@ export function LoadIssuesDialog() {
           <AlertDialogMedia>
             <TriangleAlert />
           </AlertDialogMedia>
-          <AlertDialogTitle>{dialogTitle(newer, unreadable)}</AlertDialogTitle>
+          <AlertDialogTitle>
+            {dialogTitle(t, newer, unreadable)}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            Nothing has been overwritten. Save a copy to keep the original, then
-            choose how to continue.
+            {t("storage.nothingOverwritten")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <ScrollArea className="max-h-60">
           <dl className="flex flex-col gap-3">
             {blocked.map((entry) => (
               <div key={entry.key} className="flex flex-col gap-1">
-                <dt>{TITLES[entry.key]}</dt>
+                <dt>{t(TITLES[entry.key])}</dt>
                 {entry.state.issues.map((issue, index) => (
                   <dd key={index} className="text-muted-foreground">
                     {issue.message}
@@ -124,7 +132,7 @@ export function LoadIssuesDialog() {
             disabled={busy}
             onClick={() => saveCopy.mutate()}
           >
-            Save a copy…
+            {t("storage.saveCopy")}
           </AlertDialogAction>
           {newer && (
             <AlertDialogAction
@@ -132,7 +140,7 @@ export function LoadIssuesDialog() {
               disabled={busy}
               onClick={() => window.close()}
             >
-              Quit
+              {t("storage.quit")}
             </AlertDialogAction>
           )}
           {!unreadable && (
@@ -141,7 +149,7 @@ export function LoadIssuesDialog() {
               disabled={busy}
               onClick={() => resolve.mutate("accept")}
             >
-              Continue without them
+              {t("storage.continueWithout")}
             </AlertDialogAction>
           )}
           <AlertDialogAction
@@ -149,7 +157,7 @@ export function LoadIssuesDialog() {
             disabled={busy}
             onClick={() => resolve.mutate("clear")}
           >
-            Clear and start fresh
+            {t("storage.clearFresh")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

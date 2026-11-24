@@ -1,4 +1,5 @@
 import { Component, createContext, useContext, useState } from "react"
+import { useTranslation } from "react-i18next"
 import type { ErrorInfo, ReactNode } from "react"
 import { cn } from "cn"
 import { Button } from "@/components/ui/button"
@@ -39,6 +40,7 @@ export function ErrorFallback({
   error: unknown
   reset?: () => void
 }) {
+  const { t } = useTranslation("shell")
   const report = useRenderErrorReport(error)
   const [dialogOpen, setDialogOpen] = useState(true)
   const placement = useContext(FallbackPlacement)
@@ -55,7 +57,10 @@ export function ErrorFallback({
       )}
       <Empty role="alert">
         <EmptyHeader>
-          <EmptyTitle>Something went wrong</EmptyTitle>
+          {/* The last resort stays readable even if i18next itself is what failed. */}
+          <EmptyTitle>
+            {t("error.title", { defaultValue: "Something went wrong" })}
+          </EmptyTitle>
           <EmptyDescription className="line-clamp-4 break-words">
             {message || name}
           </EmptyDescription>
@@ -63,11 +68,11 @@ export function ErrorFallback({
         <EmptyContent className="flex-row justify-center">
           {reset && (
             <Button variant="outline" onClick={reset}>
-              Try again
+              {t("error.tryAgain", { defaultValue: "Try again" })}
             </Button>
           )}
           <Button disabled={!report} onClick={() => setDialogOpen(true)}>
-            Report…
+            {t("error.report", { defaultValue: "Report…" })}
           </Button>
         </EmptyContent>
       </Empty>

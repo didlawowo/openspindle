@@ -1,4 +1,6 @@
 import { useMutation } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { toast } from "sonner"
 import { useFixtureLibraryStore } from "@/app/fixtures/fixture-context"
 import { projectPlacement } from "@/app/fixtures/plate-profile"
@@ -33,7 +35,6 @@ import {
   useWorkspaceStore,
 } from "@/app/workspace/workspace-context"
 import type { PlateSetup } from "@/domain/plate/plate"
-import { plural } from "@/domain/primitives"
 import type {
   WorkspaceCommand,
   WorkspaceState,
@@ -86,10 +87,32 @@ export function useImportContext(): () => ImportContext {
 }
 
 /** What an import added, in a sentence: "Added 2 operations." */
-function importedText(operations: number, plates: number): string {
-  if (!plates) return `Added ${plural(operations, "operation")}.`
-  if (!operations) return `Imported ${plural(plates, "plate")}.`
-  return `Added ${plural(operations, "operation")} and imported ${plural(plates, "plate")}.`
+function importedText(
+  t: TFunction<"shell">,
+  operations: number,
+  plates: number
+): string {
+  if (!plates) return t("import.addedOperations", { count: operations })
+  if (!operations) return t("import.importedPlates", { count: plates })
+  if (operations === 1 && plates === 1)
+    return t("import.combined_oneOperation_onePlate", {
+      plates,
+      operations,
+    })
+  if (operations === 1)
+    return t("import.combined_oneOperation_otherPlates", {
+      plates,
+      operations,
+    })
+  if (plates === 1)
+    return t("import.combined_manyOperations_onePlate", {
+      plates,
+      operations,
+    })
+  return t("import.combined_manyOperations_otherPlates", {
+    plates,
+    operations,
+  })
 }
 
 /** Where imported programs go, and how each is imported, in the order of the plan's programs. */
@@ -113,6 +136,7 @@ export function importKit(state: WorkspaceState): FixtureKit {
  * the program has them now, and fixtures added to the fixture library since.
  */
 function useApplyUpdate() {
+  const { t } = useTranslation("shell")
   const workspace = useWorkspaceStore()
   const context = useImportContext()
   return (
@@ -129,7 +153,7 @@ function useApplyUpdate() {
       (item) => item.id === target.operationId
     )
     if (!plate || !operation || operation.source.kind !== "file") {
-      toast.error("The operation to update no longer exists.")
+      toast.error(t("import.updateGone"))
       return
     }
     if (!program) {
@@ -187,8 +211,8 @@ function useApplyUpdate() {
       result.value.plates.find((item) => item.id === plate.id)?.setup !==
       plate.setup
     if (nc.value === operation.source.nc && !placed)
-      toast.success(`${operation.name} is up to date.`)
-    else toast.success(`Updated ${operation.name}.`)
+      toast.success(t("import.upToDate", { name: operation.name }))
+    else toast.success(t("import.updated", { name: operation.name }))
   }
 }
 
@@ -201,6 +225,7 @@ function useApplyUpdate() {
  * instead.
  */
 export function useApplyImport() {
+  const { t } = useTranslation("shell")
   const workspace = useWorkspaceStore()
   const context = useImportContext()
   const applyUpdate = useApplyUpdate()
@@ -284,7 +309,7 @@ export function useApplyImport() {
       }
     }
     if (operations.length || plan.plates.length)
-      toast.success(importedText(operations.length, plan.plates.length), {
+      toast.success(importedText(t, operations.length, plan.plates.length), {
         description: problems.length ? describeProblems(problems) : undefined,
       })
     else if (problems.length) toast.error(describeProblems(problems))

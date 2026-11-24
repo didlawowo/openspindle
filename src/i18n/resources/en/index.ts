@@ -1,5 +1,6 @@
 import { enMenu } from "./menu"
 import { enSettings } from "./settings"
+import { enShell } from "./shell"
 
 /**
  * Every string the interface shows in English, the language the app falls back to.
@@ -11,6 +12,7 @@ import { enSettings } from "./settings"
 export const enResources = {
   settings: enSettings,
   menu: enMenu,
+  shell: enShell,
 }
 
 export type UiResources = typeof enResources

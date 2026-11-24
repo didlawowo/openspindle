@@ -1,4 +1,5 @@
 import { useCallback, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import {
   useWorkspace,
   useWorkspaceStore,
@@ -20,6 +21,7 @@ export function HeightMapReviewStep({
 }: {
   view: JobViewOf<"waiting-review">
 }) {
+  const { t } = useTranslation("job")
   const { availability, connection } = useMachineSnapshot()
   const workspace = useWorkspaceStore()
   const { mutateAsync, isPending, error } = useReadHeightMap()
@@ -61,7 +63,7 @@ export function HeightMapReviewStep({
       readError={error?.message ?? null}
       onRetryRead={read}
       retryReadDisabledReason={
-        entry.deferred ? entry.reason : availabilityReason(entry)
+        entry.deferred ? entry.reason : availabilityReason(entry, t)
       }
     />
   )

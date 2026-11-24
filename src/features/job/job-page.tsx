@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useDefaultLayout } from "react-resizable-panels"
 import { FileCode } from "lucide-react"
 import {
@@ -57,6 +58,7 @@ function JobPanel({
   subject: JobSubject | null
   check: ProgramCheck
 }) {
+  const { t } = useTranslation("job")
   const actions = useJobActions()
   const runJob = useRunJob()
   const library = useWorkspace((state) => state.tools)
@@ -91,7 +93,7 @@ function JobPanel({
   return (
     <aside
       className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
-      aria-label="Job"
+      aria-label={t("jobPage.region")}
     >
       <div className="shrink-0 p-3 pb-0">
         <DeviceCard />
@@ -138,6 +140,7 @@ function ProgramPanel({
   check: ProgramCheck
   timeline: JobTimeline
 }) {
+  const { t } = useTranslation("job")
   const layout = useDefaultLayout({
     id: "openspindle-job-program",
     panelIds: ["job-code", "job-console"],
@@ -164,15 +167,15 @@ function ProgramPanel({
               <EmptyMedia variant="icon">
                 <FileCode />
               </EmptyMedia>
-              <EmptyTitle>No program</EmptyTitle>
+              <EmptyTitle>{t("listing.emptyTitle")}</EmptyTitle>
               <EmptyDescription>
-                Add a plate with operations in Prepare.
+                {t("listing.emptyDescription")}
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
         )}
       </ResizablePanel>
-      <ResizableHandle withHandle aria-label="Resize console" />
+      <ResizableHandle withHandle aria-label={t("jobPage.resizeConsole")} />
       <ResizablePanel id="job-console" defaultSize="30" minSize={96}>
         <MachineConsole />
       </ResizablePanel>
@@ -193,6 +196,7 @@ export function JobPage({
   requestedLine: number | null
   onRequestedLineShown: () => void
 }) {
+  const { t } = useTranslation("job")
   const view = useJobView()
   const selectedPlate = useSelectedPlate()
   const selectedCompiled = useCompiledPlate(selectedPlate)
@@ -238,11 +242,11 @@ export function JobPage({
       >
         <JobPanel view={view} subject={subject} check={check} />
       </ResizablePanel>
-      <ResizableHandle withHandle aria-label="Resize job panel" />
+      <ResizableHandle withHandle aria-label={t("jobPage.resizeJobPanel")} />
       <ResizablePanel id="job-viewer" minSize={320}>
         <main
           className="relative flex h-full min-h-0 min-w-0 flex-col"
-          aria-label="Job preview"
+          aria-label={t("jobPage.jobPreview")}
         >
           <JobViewer shown={subject} frames={timeline.frames} />
           <JobTimelineBar
@@ -262,7 +266,7 @@ export function JobPage({
           />
         </main>
       </ResizablePanel>
-      <ResizableHandle withHandle aria-label="Resize G-code panel" />
+      <ResizableHandle withHandle aria-label={t("jobPage.resizeGcodePanel")} />
       <ResizablePanel
         id="job-program"
         defaultSize={360}

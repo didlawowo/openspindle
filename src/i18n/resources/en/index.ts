@@ -1,3 +1,4 @@
+import { enJob } from "./job"
 import { enMenu } from "./menu"
 import { enSettings } from "./settings"
 import { enShell } from "./shell"
@@ -13,6 +14,7 @@ export const enResources = {
   settings: enSettings,
   menu: enMenu,
   shell: enShell,
+  job: enJob,
 }
 
 export type UiResources = typeof enResources

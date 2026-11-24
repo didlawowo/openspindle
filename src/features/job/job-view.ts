@@ -13,8 +13,12 @@ import type {
   MachineSnapshot,
 } from "@/machine/contract"
 import type { MotionPlan } from "@/domain/motion/types"
+import type { TFunction } from "i18next"
 import type { Tool } from "@/domain/tools/tool"
 import type { JobSession } from "./job-session"
+
+/** The job's translations, passed to the builders of badge and stage text. */
+export type JobT = TFunction<"job">
 
 export type TransferStep = Extract<
   JobPhase,
@@ -105,9 +109,9 @@ const operationById = (plate: Plate, id: string) =>
   plate.operations.find((operation) => operation.id === id) ?? null
 
 /** "Part 2 of 3" for a program sent as parts; null when it is sent whole. */
-export function partLabel(job: JobState): string | null {
+export function partLabel(job: JobState, t: JobT): string | null {
   const count = programParts(job.program).length
-  return count > 1 ? `Part ${job.part + 1} of ${count}` : null
+  return count > 1 ? t("part.of", { number: job.part + 1, count }) : null
 }
 
 function transferPercent(job: JobState): number | null {
@@ -351,20 +355,20 @@ export type JobStatus = {
   readonly attention: boolean
 }
 
-const TRANSFER_STEP_LABELS: Record<TransferStep, string> = {
-  preparing: "Preparing",
-  uploading: "Uploading",
-  verifying: "Verifying",
-  starting: "Starting",
-}
+const transferStepLabels = (t: JobT): Record<TransferStep, string> => ({
+  preparing: t("phase.preparing"),
+  uploading: t("phase.uploading"),
+  verifying: t("phase.verifying"),
+  starting: t("phase.starting"),
+})
 
-const OUTCOME_LABELS: Record<JobOutcome, string> = {
-  completed: "Completed",
-  stopped: "Stopped",
-  failed: "Failed",
-  unverified: "Unverified",
-  lost: "Connection lost",
-}
+const outcomeLabels = (t: JobT): Record<JobOutcome, string> => ({
+  completed: t("phase.completed"),
+  stopped: t("phase.stopped"),
+  failed: t("phase.failed"),
+  unverified: t("phase.unverified"),
+  lost: t("phase.lost"),
+})
 
 const OUTCOME_TONES: Record<JobOutcome, JobStatusTone> = {
   completed: "secondary",
@@ -377,17 +381,17 @@ const OUTCOME_TONES: Record<JobOutcome, JobStatusTone> = {
 const withPercent = (label: string, percent: number | null) =>
   percent === null ? label : `${label} · ${Math.floor(percent)}%`
 
-export function jobStatus(view: JobView): JobStatus {
+export function jobStatus(view: JobView, t: JobT): JobStatus {
   switch (view.kind) {
     case "idle":
-      return { label: "No job", tone: "outline", attention: false }
+      return { label: t("phase.noJob"), tone: "outline", attention: false }
     case "transferring": {
-      const part = partLabel(view.job)
-      const step = TRANSFER_STEP_LABELS[view.step]
+      const part = partLabel(view.job, t)
+      const step = transferStepLabels(t)[view.step]
       return {
         label: withPercent(
           part && view.step !== "preparing" && view.step !== "starting"
-            ? `${step} ${part.toLowerCase()}`
+            ? t("phase.stepPart", { step, part: part.toLowerCase() })
             : step,
           view.percent
         ),
@@ -397,7 +401,10 @@ export function jobStatus(view: JobView): JobStatus {
     }
     case "running":
       return {
-        label: withPercent("Running", view.job.progress?.percent ?? null),
+        label: withPercent(
+          t("phase.running"),
+          view.job.progress?.percent ?? null
+        ),
         tone: "secondary",
         attention: false,
       }
@@ -405,32 +412,40 @@ export function jobStatus(view: JobView): JobStatus {
       return {
         label:
           view.request.number === null
-            ? "Tool change"
-            : `Install T${view.request.number}`,
+            ? t("phase.toolChange")
+            : t("phase.installTool", { tool: view.request.number }),
         tone: "default",
         attention: true,
       }
     case "waiting-review":
-      return { label: "Review height map", tone: "default", attention: true }
+      return {
+        label: t("phase.reviewHeightMap"),
+        tone: "default",
+        attention: true,
+      }
     case "paused-before-operation":
       return {
-        label: "Paused before operation",
+        label: t("phase.pausedBeforeOperation"),
         tone: "default",
         attention: true,
       }
     case "paused-program":
-      return { label: "Program pause", tone: "default", attention: true }
+      return {
+        label: t("phase.programPause"),
+        tone: "default",
+        attention: true,
+      }
     case "held":
-      return { label: "Paused", tone: "default", attention: true }
+      return { label: t("phase.paused"), tone: "default", attention: true }
     case "finishing":
       return {
-        label: view.cleaning ? "Cleaning bed" : "Finishing",
+        label: view.cleaning ? t("phase.cleaningBed") : t("phase.finishing"),
         tone: "secondary",
         attention: false,
       }
     case "ended":
       return {
-        label: OUTCOME_LABELS[view.outcome],
+        label: outcomeLabels(t)[view.outcome],
         tone: OUTCOME_TONES[view.outcome],
         attention: false,
       }

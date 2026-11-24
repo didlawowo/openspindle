@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router"
+import { useTranslation } from "react-i18next"
 import {
   ChevronDown,
   CircleAlert,
@@ -30,6 +31,7 @@ import { useWorkspaceStore } from "@/app/workspace/workspace-context"
 import { checkPlateDesignRules } from "@/features/design-rules/design-rule-check"
 import { openDialog } from "@/features/shell/dialogs"
 import type { MachineAction } from "./job-hooks"
+import type { JobT } from "./job-view"
 import type {
   RunCheck,
   RunCheckStatus,
@@ -39,12 +41,12 @@ import type {
 } from "./run-checklist"
 import { MachineActionButton, StageCard } from "./stage-card"
 
-const STATUS: Record<RunCheckStatus, { icon: LucideIcon; label: string }> = {
-  pass: { icon: CircleCheck, label: "Passes" },
-  fail: { icon: CircleX, label: "Fails" },
-  pending: { icon: CircleDashed, label: "Waiting" },
+const STATUS: Record<RunCheckStatus, { icon: LucideIcon; labelKey: string }> = {
+  pass: { icon: CircleCheck, labelKey: "check.passes" },
+  fail: { icon: CircleX, labelKey: "check.fails" },
+  pending: { icon: CircleDashed, labelKey: "check.waiting" },
 }
-const WARNING = { icon: TriangleAlert, label: "Passes with a warning" }
+const WARNING = { icon: TriangleAlert, labelKey: "check.passesWithWarning" }
 
 /** Checks the plate's design rules and opens Prepare, whose 3D view shows what they find. */
 function ShowDesignRules({
@@ -76,6 +78,7 @@ function RunFixAction({
   fix: RunFix
   readAnchors: MachineAction
 }) {
+  const { t } = useTranslation("job")
   const className = buttonVariants({ variant: "outline", size: "sm" })
   switch (fix.kind) {
     case "prepare":
@@ -95,7 +98,7 @@ function RunFixAction({
         <MachineActionButton
           action={readAnchors}
           label={fix.label}
-          pendingLabel="Reading anchors…"
+          pendingLabel={t("fix.readingAnchors")}
           size="sm"
           icon={<Crosshair data-icon="inline-start" />}
         />
@@ -123,9 +126,10 @@ function RunIssues({
   label: string
   issues: readonly RunIssue[]
 }) {
+  const { t } = useTranslation("job")
   return (
     <ul
-      aria-label={`${label}: problems`}
+      aria-label={t("check.problemsAria", { label })}
       className="flex min-w-0 flex-1 flex-col gap-2 text-muted-foreground"
     >
       {issues.map((issue) => {
@@ -135,7 +139,7 @@ function RunIssues({
           <li key={issue.key} className="flex gap-1.5">
             <Icon
               role="img"
-              aria-label={error ? "Error" : "Warning"}
+              aria-label={error ? t("check.errorAria") : t("check.warningAria")}
               className="size-3.5 shrink-0 translate-y-0.5"
             />
             <ProblemText
@@ -156,12 +160,13 @@ function RunCheckItem({
   check: RunCheck
   readAnchors: MachineAction
 }) {
+  const { t } = useTranslation("job")
   const { status, reason, fix, warning, issues } = check.result
-  const { icon: Icon, label } = warning ? WARNING : STATUS[status]
+  const { icon: Icon, labelKey } = warning ? WARNING : STATUS[status]
   return (
     <Item size="xs" role="listitem">
       <ItemMedia variant="icon">
-        <Icon role="img" aria-label={label} />
+        <Icon role="img" aria-label={t(labelKey, { defaultValue: labelKey })} />
       </ItemMedia>
       <ItemContent>
         <ItemTitle>{check.label}</ItemTitle>
@@ -188,11 +193,14 @@ function RunCheckItem({
 }
 
 /** What Run sends once every check passes, or that it waits for them. */
-function preflightDescription(checklist: RunChecklist, parts: number): string {
-  if (!checklist.ready) return "Run becomes available once every check passes."
-  if (parts > 1)
-    return `Run sends the G-code listed on the right in ${parts} parts, split at its tool changes.`
-  return "Run sends exactly the G-code listed on the right."
+function preflightDescription(
+  checklist: RunChecklist,
+  parts: number,
+  t: JobT
+): string {
+  if (!checklist.ready) return t("check.preflightWaiting")
+  if (parts > 1) return t("check.preflightParts", { parts })
+  return t("check.preflightExact")
 }
 
 /**
@@ -209,6 +217,7 @@ export function RunChecklistCard({
   /** The files the checked program is sent as. */
   parts: number
 }) {
+  const { t } = useTranslation("job")
   // A check that passes with a warning stays in view.
   const folds = (check: RunCheck) =>
     check.result.status === "pass" && !check.result.warning
@@ -219,11 +228,11 @@ export function RunChecklistCard({
   )
   return (
     <StageCard
-      title={checklist.ready ? "Preflight: ready to run" : "Preflight"}
-      description={preflightDescription(checklist, parts)}
+      title={checklist.ready ? t("check.preflightReady") : t("check.preflight")}
+      description={preflightDescription(checklist, parts, t)}
     >
       {open.length > 0 && (
-        <ItemGroup aria-label="Run checks to do">{open.map(item)}</ItemGroup>
+        <ItemGroup aria-label={t("check.todoAria")}>{open.map(item)}</ItemGroup>
       )}
       {passed.length > 0 && (
         <Collapsible>
@@ -235,11 +244,11 @@ export function RunChecklistCard({
               className="transition-transform group-data-[panel-open]:rotate-180"
             />
             {passed.length === checklist.checks.length
-              ? `All ${passed.length} checks pass`
-              : `${passed.length} more ${passed.length === 1 ? "check passes" : "checks pass"}`}
+              ? t("check.allPass", { count: passed.length })
+              : t("check.morePass", { count: passed.length })}
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <ItemGroup aria-label="Run checks that pass">
+            <ItemGroup aria-label={t("check.passedAria")}>
               {passed.map(item)}
             </ItemGroup>
           </CollapsibleContent>

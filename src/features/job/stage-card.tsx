@@ -1,4 +1,5 @@
 import type { ComponentProps, ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 import { Pause, Play, Square } from "lucide-react"
 import type { Button } from "@/components/ui/button"
 import {
@@ -76,11 +77,12 @@ export function MachineActionButton({
 
 /** Stop stays available while it waits for the machine to confirm, as the Device panel's does. */
 export function StopButton({ action }: { action: MachineAction }) {
+  const { t } = useTranslation("job")
   return (
     <MachineActionButton
       action={action}
-      label="Stop"
-      pendingLabel="Stopping…"
+      label={t("controls.stop")}
+      pendingLabel={t("controls.stopping")}
       variant="destructive"
       repeatable
       icon={<Square data-icon="inline-start" fill="currentColor" />}
@@ -89,20 +91,22 @@ export function StopButton({ action }: { action: MachineAction }) {
 }
 
 export function PauseButton({ action }: { action: MachineAction }) {
+  const { t } = useTranslation("job")
   return (
     <MachineActionButton
       action={action}
-      label="Pause"
+      label={t("controls.pause")}
       icon={<Pause data-icon="inline-start" />}
     />
   )
 }
 
 export function ResumeButton({ action }: { action: MachineAction }) {
+  const { t } = useTranslation("job")
   return (
     <MachineActionButton
       action={action}
-      label="Resume"
+      label={t("controls.resume")}
       variant="default"
       icon={<Play data-icon="inline-start" />}
     />

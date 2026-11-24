@@ -1,4 +1,5 @@
 import type { ReactElement } from "react"
+import { useTranslation } from "react-i18next"
 import {
   CircleCheck,
   CirclePause,
@@ -49,7 +50,8 @@ export function JobStatusBadge({
   view: ActiveJobView
   render?: ReactElement
 }) {
-  const status = jobStatus(view)
+  const { t } = useTranslation("job")
+  const status = jobStatus(view, t)
   const Icon = statusIcon(view)
   return (
     <Badge variant={status.tone} render={render} className="font-numeric">

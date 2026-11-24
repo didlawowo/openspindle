@@ -1,4 +1,5 @@
 import { useId, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import {
   AlertDialog,
@@ -45,9 +46,6 @@ const coordinateFormat = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 3,
 })
 
-const FOLLOW_HINT =
-  "The machine keeps its other anchors as offsets from the first, and bed setups keep theirs from it too, so they move with it unless they stay where they are."
-
 /** A coordinate a save changes: from where it was, or nothing for a new anchor. */
 type Change = { key: string; label: string; from: number | null; to: number }
 
@@ -69,6 +67,7 @@ export function SaveAsAnchor({
   plate: Plate
 }) {
   const id = useId()
+  const { t } = useTranslation("job")
   const machine = useMachineSnapshot()
   const writeAnchors = useWriteAnchors()
   const fixtures = useFixtureLibraryStore()
@@ -91,7 +90,9 @@ export function SaveAsAnchor({
         ) ?? null)
       : null
   const entry = machine.availability.writeAnchors
-  const writeReason = entry.allowed ? null : (entry.reason ?? "Unavailable.")
+  const writeReason = entry.allowed
+    ? null
+    : (entry.reason ?? t("machine.unavailable"))
   const found: [number, number] = [
     toMicrometre(position[0]),
     toMicrometre(position[1]),
@@ -107,7 +108,7 @@ export function SaveAsAnchor({
   const first = chosen?.id === origin.id
   const others = [
     ...live.anchors.slice(1).map((anchor) => anchor.name),
-    ...(bedSetup?.anchors.length ? ["the bed setups' anchors"] : []),
+    ...(bedSetup?.anchors.length ? [t("anchor.bedSetups")] : []),
   ]
   // A device anchor moves where it was found; the others follow the first unless they stay.
   const next = chosen
@@ -121,7 +122,9 @@ export function SaveAsAnchor({
   const newAnchor: BedSetupAnchor | null = creating
     ? {
         id: crypto.randomUUID(),
-        name: `Anchor ${live.anchors.length + bedSetup.anchors.length + 1}`,
+        name: t("anchor.name", {
+          number: live.anchors.length + bedSetup.anchors.length + 1,
+        }),
         offset,
       }
     : null
@@ -135,7 +138,10 @@ export function SaveAsAnchor({
           : [
               {
                 key: `${anchor.id}-${axis}`,
-                label: `${anchor.name} ${axis.toUpperCase()}`,
+                label: t("anchor.changeLabel", {
+                  name: anchor.name,
+                  axis: axis.toUpperCase(),
+                }),
                 from: anchor[axis],
                 to,
               },
@@ -151,7 +157,11 @@ export function SaveAsAnchor({
         : [
             {
               key: axis,
-              label: `${name} ${axis} from ${origin.name}`,
+              label: t("anchor.fromLabel", {
+                name,
+                axis,
+                origin: origin.name,
+              }),
               from,
               to: offset[index],
             },
@@ -186,10 +196,8 @@ export function SaveAsAnchor({
               followProfile()
             }
             setOpen(false)
-            toast.success(`Saved as ${chosen.name}.`, {
-              description: afterRestart
-                ? "Reset the machine for its own moves to use it."
-                : undefined,
+            toast.success(t("anchor.savedAs", { name: chosen.name }), {
+              description: afterRestart ? t("anchor.resetNote") : undefined,
             })
           },
           onError: (error) => toast.error(error.message),
@@ -209,14 +217,17 @@ export function SaveAsAnchor({
     followProfile()
     setOpen(false)
     toast.success(
-      `Saved as ${kept?.name ?? newAnchor?.name} of ${bedSetup.name}.`
+      t("anchor.savedInBed", {
+        name: kept?.name ?? newAnchor?.name,
+        bed: bedSetup.name,
+      })
     )
   }
   const confirmReason = chosen ? writeReason : null
   return (
     <>
       <ReasonButton
-        label="Save as anchor"
+        label={t("anchor.save")}
         variant="outline"
         size="sm"
         className="self-start"
@@ -224,25 +235,30 @@ export function SaveAsAnchor({
         disabled={writeAnchors.isPending}
         onClick={() => setOpen(true)}
       >
-        Save as anchor
+        {t("anchor.save")}
       </ReasonButton>
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Save as an anchor?</AlertDialogTitle>
+            <AlertDialogTitle>{t("anchor.dialogTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
               {chosen &&
                 (first
-                  ? `The machine also places its tool setter and tool rack from ${chosen.name}, once it is reset.`
-                  : "The machine uses it once it is reset.")}
+                  ? t("anchor.toolSetterNote", { name: chosen.name })
+                  : t("anchor.resetUseNote"))}
               {!chosen &&
                 bedSetup &&
-                `${bedSetup.name} keeps it from ${origin.name}; plates on it follow.`}
+                t("anchor.bedNote", {
+                  bed: bedSetup.name,
+                  origin: origin.name,
+                })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <FieldGroup>
             <Field orientation="horizontal">
-              <FieldLabel htmlFor={`${id}-anchor`}>Anchor</FieldLabel>
+              <FieldLabel htmlFor={`${id}-anchor`}>
+                {t("anchor.anchorField")}
+              </FieldLabel>
               <OptionSelect
                 id={`${id}-anchor`}
                 className="ml-auto w-56"
@@ -259,7 +275,7 @@ export function SaveAsAnchor({
                         })),
                         {
                           value: NEW_ANCHOR,
-                          label: `New anchor in ${bedSetup.name}`,
+                          label: t("anchor.newInBed", { bed: bedSetup.name }),
                         },
                       ]
                     : []),
@@ -281,12 +297,14 @@ export function SaveAsAnchor({
                   id={`${id}-follow`}
                   checked={follow}
                   disabled={writeAnchors.isPending}
-                  aria-description={FOLLOW_HINT}
+                  aria-description={t("anchor.followHint")}
                   onCheckedChange={(checked) => setFollow(checked)}
                 />
                 <FieldLabel htmlFor={`${id}-follow`}>
-                  <Hint text={FOLLOW_HINT}>
-                    Move {others.join(" and ")} with it
+                  <Hint text={t("anchor.followHint")}>
+                    {t("anchor.moveWith", {
+                      others: others.join(t("anchor.listSeparator")),
+                    })}
                   </Hint>
                 </FieldLabel>
               </Field>
@@ -295,8 +313,10 @@ export function SaveAsAnchor({
           <Table className="font-numeric [&_td]:text-right [&_th:not(:first-child)]:text-right">
             <TableHeader>
               <TableRow>
-                <TableHead>Anchor</TableHead>
-                <TableHead>{chosen ? "Machine · mm" : "mm"}</TableHead>
+                <TableHead>{t("anchor.tableAnchor")}</TableHead>
+                <TableHead>
+                  {chosen ? t("anchor.tableMachineMm") : t("anchor.tableMm")}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -315,19 +335,19 @@ export function SaveAsAnchor({
           </Table>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={writeAnchors.isPending}>
-              Cancel
+              {t("anchor.cancel")}
             </AlertDialogCancel>
             <ReasonButton
-              label={chosen ? "Write anchors" : "Save anchor"}
+              label={chosen ? t("anchor.writeAnchors") : t("anchor.saveAnchor")}
               reason={confirmReason}
               disabled={writeAnchors.isPending || !changes.length}
               onClick={save}
             >
               {writeAnchors.isPending
-                ? "Writing…"
+                ? t("anchor.writing")
                 : chosen
-                  ? "Write anchors"
-                  : "Save anchor"}
+                  ? t("anchor.writeAnchors")
+                  : t("anchor.saveAnchor")}
             </ReasonButton>
           </AlertDialogFooter>
         </AlertDialogContent>

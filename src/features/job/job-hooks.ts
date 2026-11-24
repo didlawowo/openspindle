@@ -1,4 +1,5 @@
 import { useMemo } from "react"
+import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { limitsFor, planFor } from "@/app/job/plan-store"
 import {
@@ -36,6 +37,7 @@ import {
   useStopMachine,
 } from "@/platform/machine"
 import { createJobSession, jobSessionStore } from "./job-session"
+import type { JobT } from "./job-view"
 import type { ProgramCheck } from "./program-check"
 import { evaluateRunChecklist } from "./run-checklist"
 import type { RunChecklist } from "./run-checklist"
@@ -46,6 +48,7 @@ export function useRunChecklist(
   compiled: CompiledPlate | null,
   check: ProgramCheck
 ): RunChecklist {
+  const { t } = useTranslation("job")
   const snapshot = useMachineSnapshot()
   const diagnostics = usePlateDiagnostics(plate)
   const designRules = usePlateDesignRuleCheck(plate)
@@ -69,15 +72,18 @@ export function useRunChecklist(
       ),
     [plate, connectedDeviceId, anchors, compensation, originX, originY]
   )
-  return evaluateRunChecklist({
-    plate,
-    compiled,
-    diagnostics,
-    runFailures,
-    designRules,
-    snapshot,
-    check,
-  })
+  return evaluateRunChecklist(
+    {
+      plate,
+      compiled,
+      diagnostics,
+      runFailures,
+      designRules,
+      snapshot,
+      check,
+    },
+    t
+  )
 }
 
 /** A machine action as a control needs it. */
@@ -90,8 +96,11 @@ export type MachineAction = {
 }
 
 /** Availability is the only source of a disabled reason; a deferred action is allowed. */
-export const availabilityReason = (entry: Availability): string | null =>
-  entry.allowed ? null : (entry.reason ?? "Unavailable.")
+export const availabilityReason = (
+  entry: Availability,
+  t: JobT
+): string | null =>
+  entry.allowed ? null : (entry.reason ?? t("machine.unavailable"))
 
 const report = (error: Error) => toast.error(error.message)
 
@@ -106,6 +115,7 @@ export type JobActions = {
 
 /** Every machine action of the Job tab, enabled by availability; failures become toasts. */
 export function useJobActions(): JobActions {
+  const { t } = useTranslation("job")
   const { availability } = useMachineSnapshot()
   const command = useMachineCommand()
   const stop = useStopMachine()
@@ -113,7 +123,7 @@ export function useJobActions(): JobActions {
   const execute = (
     type: "pause" | "resume" | "confirmToolChange"
   ): MachineAction => ({
-    reason: availabilityReason(availability[type]),
+    reason: availabilityReason(availability[type], t),
     pending: command.isPending,
     run: () => command.mutate({ type }, { onError: report }),
   })
@@ -122,7 +132,7 @@ export function useJobActions(): JobActions {
     resume: execute("resume"),
     confirmToolChange: execute("confirmToolChange"),
     stop: {
-      reason: availabilityReason(availability.stop),
+      reason: availabilityReason(availability.stop, t),
       pending: stop.isPending,
       run: () => stop.mutate(undefined, { onError: report }),
     },

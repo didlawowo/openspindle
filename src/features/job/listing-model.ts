@@ -2,6 +2,7 @@ import type { CompiledPlate, PausePoint } from "@/domain/compile/compile"
 import type { SectionKind } from "@/domain/compile/sections"
 import type { Operation } from "@/domain/operations/operation"
 import type { PreparedProgram, ProgramChange } from "@/machine/contract"
+import type { JobT } from "./job-view"
 
 export type ListingHeaderKind = "part" | "operation" | "pause" | "section"
 
@@ -34,18 +35,18 @@ export type ListingModel = {
 }
 
 export const PAUSE_LABELS: Record<PausePoint["reason"], string> = {
-  "stop-before": "Stop before operation",
-  review: "Height-map review",
-  program: "Program pause",
+  "stop-before": "listing.pause.stopBefore",
+  review: "listing.pause.review",
+  program: "listing.pause.program",
 }
 
 export const CHANGE_LABELS: Record<ProgramChange["reason"], string> = {
-  "line-number": "Line number removed",
-  case: "Uppercased",
-  pause: "Program stop sent as M600",
-  "tool-number": "Tool number added",
-  "tool-change-stop": "Stop left out after a tool change",
-  "spindle-speed": "Spindle speed added",
+  "line-number": "listing.change.line-number",
+  case: "listing.change.case",
+  pause: "listing.change.pause",
+  "tool-number": "listing.change.tool-number",
+  "tool-change-stop": "listing.change.tool-change-stop",
+  "spindle-speed": "listing.change.spindle-speed",
 }
 
 /** Sections that begin a block get a header; the rest (notes, pauses, end) do not. */
@@ -83,12 +84,15 @@ export function buildListingModel({
   compiled,
   operations,
   prepared,
+  t,
 }: {
   readonly lineCount: number
   readonly compiled: CompiledPlate
   readonly operations: readonly Operation[]
   /** The dialect's view of the program, when checked: its changes, pause lines and parts. */
   readonly prepared: PreparedProgram | null
+  /** Translates the headers this model builds. */
+  readonly t: JobT
 }): ListingModel {
   const names = new Map(operations.map((item) => [item.id, item.name]))
   const parts = prepared?.parts ?? []
@@ -105,13 +109,13 @@ export function buildListingModel({
       ? parts.map((part, index): ListingHeader => ({
           kind: "part",
           line: part.startLine,
-          label: `Part ${index + 1} of ${parts.length}`,
+          label: t("listing.part", { index: index + 1, total: parts.length }),
         }))
       : []),
     ...compiled.spans.map((span): ListingHeader => ({
       kind: "operation",
       line: span.startLine,
-      label: names.get(span.operationId) ?? "Operation",
+      label: names.get(span.operationId) ?? t("listing.operation"),
       operationId: span.operationId,
     })),
     ...compiled.pausePoints
@@ -119,7 +123,9 @@ export function buildListingModel({
       .map((point): ListingHeader => ({
         kind: "pause",
         line: point.line,
-        label: PAUSE_LABELS[point.reason],
+        label: t(PAUSE_LABELS[point.reason], {
+          defaultValue: PAUSE_LABELS[point.reason],
+        }),
       })),
     // Pauses the NC writes as M600 itself have no compiled pause point.
     ...(prepared?.pauseLines ?? [])
@@ -127,7 +133,7 @@ export function buildListingModel({
       .map((line): ListingHeader => ({
         kind: "pause",
         line,
-        label: PAUSE_LABELS.program,
+        label: t("listing.pause.program"),
       })),
     ...compiled.sections
       .filter((section) => HEADED_SECTIONS.has(section.kind))

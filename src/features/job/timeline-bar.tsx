@@ -1,12 +1,18 @@
 import { useId } from "react"
 import type { ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 import { Pause, Play, SkipBack, SkipForward } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
 import { Separator } from "@/components/ui/separator"
 import { Slider } from "@/components/ui/slider"
 import { OptionSelect } from "@/components/option-select"
-import type { PreviewStep, PreviewTimeline } from "./preview-timeline"
+import type { JobT } from "./job-view"
+import type {
+  PreviewStep,
+  PreviewTick,
+  PreviewTimeline,
+} from "./preview-timeline"
 
 /** Playback runs the moves at their feeds: real time, or faster for long programs. */
 const PLAYBACK_SPEEDS = [0.25, 0.5, 1, 2, 5, 10, 20, 50, 100].map((value) => ({
@@ -17,12 +23,18 @@ const PLAYBACK_SPEEDS = [0.25, 0.5, 1, 2, 5, 10, 20, 50, 100].map((value) => ({
 /** "Line 12", with the probe point when the step probes; "Start" before the first step. */
 function stepText(
   step: PreviewStep | undefined,
-  probe: (point: number) => string
+  probe: (point: number) => string,
+  t: JobT
 ): string {
-  if (!step) return "Start"
-  if (step.probePoint === undefined) return `Line ${step.line}`
-  return `Line ${step.line}${probe(step.probePoint + 1)}`
+  if (!step) return t("timeline.start")
+  if (step.probePoint === undefined)
+    return t("timeline.line", { line: step.line })
+  return t("timeline.line", { line: step.line }) + probe(step.probePoint + 1)
 }
+
+/** A tick's label: a user's name shown as is, or an i18n key rendered with its params. */
+const tickLabel = (tick: PreviewTick, t: JobT) =>
+  t(tick.label, { defaultValue: tick.label, ...tick.params })
 
 /** Scrubbing and playback over a program's timeline, with its markers. */
 export function PreviewTimelineBar({
@@ -33,7 +45,7 @@ export function PreviewTimelineBar({
   onPlay,
   speed,
   onSpeed,
-  title = "Toolpath preview",
+  title,
   actions,
   details,
 }: {
@@ -52,20 +64,26 @@ export function PreviewTimelineBar({
   details?: ReactNode
 }) {
   const id = useId()
+  const { t } = useTranslation("job")
   const count = timeline.steps.length
   const step = cursor > 0 ? timeline.steps.at(cursor - 1) : undefined
   return (
     <>
       <Separator />
-      <section className="shrink-0 px-4 py-3" aria-label="Program timeline">
+      <section
+        className="shrink-0 px-4 py-3"
+        aria-label={t("timeline.sectionAria")}
+      >
         <div className="mb-2 flex items-center gap-3">
-          <span>{title}</span>
+          <span>{title ?? t("timeline.previewTitle")}</span>
           <FieldDescription className="flex-1 font-numeric">
-            {stepText(step, (point) => ` · Probe point ${point}`)}
+            {stepText(step, (point) => t("timeline.probePoint", { point }), t)}
           </FieldDescription>
           {actions}
           <Field orientation="horizontal" className="w-auto gap-2">
-            <FieldLabel htmlFor={`${id}-speed`}>Playback</FieldLabel>
+            <FieldLabel htmlFor={`${id}-speed`}>
+              {t("timeline.playback")}
+            </FieldLabel>
             <OptionSelect
               options={PLAYBACK_SPEEDS}
               value={speed}
@@ -73,7 +91,7 @@ export function PreviewTimelineBar({
               numeric
               id={`${id}-speed`}
               size="sm"
-              aria-label="Playback speed"
+              aria-label={t("timeline.playbackSpeedAria")}
             />
           </Field>
         </div>
@@ -81,7 +99,7 @@ export function PreviewTimelineBar({
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="Go to program start"
+            aria-label={t("timeline.startAria")}
             disabled={!count}
             onClick={() => onSeek(0)}
           >
@@ -90,7 +108,9 @@ export function PreviewTimelineBar({
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label={playing ? "Pause preview" : "Play preview"}
+            aria-label={
+              playing ? t("timeline.pauseAria") : t("timeline.playAria")
+            }
             disabled={!count}
             onClick={onPlay}
           >
@@ -99,10 +119,11 @@ export function PreviewTimelineBar({
           <div className="relative min-w-0 flex-1 pt-1 pb-3">
             <Slider
               thumbProps={{
-                "aria-label": "G-code timeline",
+                "aria-label": t("timeline.sliderAria"),
                 "aria-valuetext": stepText(
                   step,
-                  (point) => `, probe point ${point}`
+                  (point) => t("timeline.probePointShort", { point }),
+                  t
                 ),
               }}
               min={0}
@@ -122,8 +143,14 @@ export function PreviewTimelineBar({
                   key={`${tick.line}-${tick.kind}-${index}`}
                   className="absolute h-2 w-1.5 -translate-x-1/2 p-0"
                   style={{ left: `${count ? (100 * tick.step) / count : 0}%` }}
-                  title={`${tick.label} · Line ${tick.line}`}
-                  aria-label={`Jump to ${tick.label} at line ${tick.line}`}
+                  title={t("timeline.tickTitle", {
+                    label: tickLabel(tick, t),
+                    line: tick.line,
+                  })}
+                  aria-label={t("timeline.tickAria", {
+                    label: tickLabel(tick, t),
+                    line: tick.line,
+                  })}
                   onClick={() => onSeek(tick.step)}
                 />
               ))}
@@ -132,7 +159,7 @@ export function PreviewTimelineBar({
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="Go to program end"
+            aria-label={t("timeline.endAria")}
             disabled={!count}
             onClick={() => onSeek(count)}
           >

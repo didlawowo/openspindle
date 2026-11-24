@@ -32,15 +32,6 @@ import { ControlCard } from "./device-control-card"
 
 const AXES = ["X", "Y", "Z"] as const
 
-const ORIGIN_HINT_KEY = "coordinates.originHint"
-
-/** What setting an axis's work position does besides; Z takes the tool in the spindle as the reference. */
-const WORK_HINT_KEYS: Readonly<Record<Axis, string>> = {
-  X: "coordinates.workHintX",
-  Y: "coordinates.workHintY",
-  Z: "coordinates.workHintZ",
-}
-
 /**
  * An axis's work position, large in its colour, with the machine position and where work zero
  * is below; a click opens zeroing it, or setting it to a coordinate.
@@ -107,7 +98,7 @@ function AxisTile({
         </span>
         <span
           className="flex justify-between gap-2 text-xs text-muted-foreground"
-          title={t(ORIGIN_HINT_KEY, { defaultValue: ORIGIN_HINT_KEY })}
+          title={t("coordinates.originHint")}
         >
           <span>{t("coordinates.origin")}</span>
           <span className="font-numeric">
@@ -124,11 +115,7 @@ function AxisTile({
           }}
         >
           <FieldLabel htmlFor={`${id}-work`}>
-            <Hint
-              text={t(WORK_HINT_KEYS[axis], {
-                defaultValue: WORK_HINT_KEYS[axis],
-              })}
-            >
+            <Hint text={t(`coordinates.workHint${axis}`)}>
               {t("coordinates.work", { axis })}
             </Hint>
           </FieldLabel>

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { CircleAlert } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
@@ -11,7 +12,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { plural } from "@/domain/primitives"
 import { AppDialog } from "@/features/shell/app-dialog"
 import { closeDialog } from "@/features/shell/dialogs"
 import {
@@ -38,6 +38,7 @@ function SaveChangesDialog({
   confirm: string
   replace: () => void
 }) {
+  const { t } = useTranslation("shell")
   const save = useSaveProject()
   const proceed = () => {
     closeDialog()
@@ -54,8 +55,7 @@ function SaveChangesDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>
-            {description} Unsaved changes to the current project are lost
-            otherwise.
+            {description} {t("project.lostWarning")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -65,10 +65,10 @@ function SaveChangesDialog({
             disabled={save.isPending}
             onClick={proceed}
           >
-            Don’t save
+            {t("project.dontSave")}
           </AlertDialogAction>
           <AlertDialogCancel autoFocus disabled={save.isPending}>
-            Cancel
+            {t("project.cancel")}
           </AlertDialogCancel>
           <AlertDialogAction
             disabled={save.isPending}
@@ -80,7 +80,7 @@ function SaveChangesDialog({
               })
             }
           >
-            {save.isPending ? "Saving…" : confirm}
+            {save.isPending ? t("project.saving") : confirm}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -94,12 +94,16 @@ export function OpenProjectDialog({
 }: {
   candidate: ProjectCandidate
 }) {
+  const { t } = useTranslation("shell")
   const apply = useApplyProject()
   return (
     <SaveChangesDialog
-      title="Save changes before opening?"
-      description={`Open ${candidate.fileName} with ${plural(candidate.document.plates.length, "plate")}.`}
-      confirm="Save and open"
+      title={t("project.openTitle")}
+      description={t("project.openDescription", {
+        count: candidate.document.plates.length,
+        file: candidate.fileName,
+      })}
+      confirm={t("project.saveAndOpen")}
       replace={() => apply.mutate(candidate)}
     />
   )
@@ -107,12 +111,13 @@ export function OpenProjectDialog({
 
 /** Starting a new project over unsaved changes: save them first, discard them, or keep working. */
 export function NewProjectDialog() {
+  const { t } = useTranslation("shell")
   const start = useStartNewProject()
   return (
     <SaveChangesDialog
-      title="Save changes before starting a new project?"
-      description="Start a new project with an empty Plate 1."
-      confirm="Save and start new"
+      title={t("project.newTitle")}
+      description={t("project.newDescription")}
+      confirm={t("project.saveAndStart")}
       replace={() => start.mutate()}
     />
   )
@@ -123,22 +128,19 @@ const NAMED_FIELDS = 5
 
 /** The fields of the file that the opened project leaves out, which saving does not keep. */
 function LeftOutFields({ leftOut }: { leftOut: readonly string[] }) {
-  const them = leftOut.length === 1 ? "it" : "them"
+  const { t } = useTranslation("shell")
   const more = leftOut.length - NAMED_FIELDS
   return (
     <Alert>
       <CircleAlert />
-      <AlertTitle>{plural(leftOut.length, "field")} left out</AlertTitle>
+      <AlertTitle>{t("project.leftOut", { count: leftOut.length })}</AlertTitle>
       <AlertDescription>
-        <p>
-          This version of OpenSpindle does not use {them}, and saving the
-          project does not keep {them}.
-        </p>
+        <p>{t("project.leftOutExplain", { count: leftOut.length })}</p>
         <ul className="list-inside list-disc">
           {leftOut.slice(0, NAMED_FIELDS).map((path, index) => (
             <li key={`${index}:${path}`}>{path}</li>
           ))}
-          {more > 0 && <li>{more} more</li>}
+          {more > 0 && <li>{t("project.moreFields", { count: more })}</li>}
         </ul>
       </AlertDescription>
     </Alert>
@@ -147,12 +149,13 @@ function LeftOutFields({ leftOut }: { leftOut: readonly string[] }) {
 
 /** What opening a project changed or left out. */
 export function ProjectReportDialog({ report }: { report: ProjectCandidate }) {
+  const { t } = useTranslation("shell")
   return (
     <AppDialog
-      title={`Opened ${report.fileName}`}
-      description="Review what changed while opening the project."
+      title={t("project.openedTitle", { file: report.fileName })}
+      description={t("project.openedDescription")}
       onClose={closeDialog}
-      footer={<Button onClick={closeDialog}>Done</Button>}
+      footer={<Button onClick={closeDialog}>{t("project.done")}</Button>}
     >
       <div className="flex flex-col gap-3">
         {report.leftOut.length > 0 && (

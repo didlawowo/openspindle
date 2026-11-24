@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useLocation, useNavigate } from "@tanstack/react-router"
 import { Cpu, Layers3, Play } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -15,6 +16,7 @@ const isSection = (value: unknown): value is Section =>
  * Job shows that a job is under way.
  */
 export function WorkspaceTabs() {
+  const { t } = useTranslation("shell")
   const section = useLocation({
     select: (location) => location.pathname.split("/")[1],
   })
@@ -27,27 +29,31 @@ export function WorkspaceTabs() {
         if (isSection(value)) void navigate({ to: `/${value}` })
       }}
     >
-      <TabsList variant="line" className="h-12" aria-label="Workspace">
+      <TabsList
+        variant="line"
+        className="h-12"
+        aria-label={t("tabs.workspace")}
+      >
         <TabsTrigger value="prepare" className="px-4">
           <Layers3 />
-          Prepare
+          {t("tabs.prepare")}
         </TabsTrigger>
         <TabsTrigger value="job" className="px-4">
           <Play />
-          Job
+          {t("tabs.job")}
           {running && (
             <>
               <span
                 aria-hidden="true"
                 className="size-2 rounded-full bg-destructive"
               />
-              <span className="sr-only">(running)</span>
+              <span className="sr-only">{t("tabs.running")}</span>
             </>
           )}
         </TabsTrigger>
         <TabsTrigger value="device" className="px-4">
           <Cpu />
-          Device
+          {t("tabs.device")}
         </TabsTrigger>
       </TabsList>
     </Tabs>

@@ -1,0 +1,130 @@
+import type { UiResources } from "../en"
+
+export const frShell: UiResources["shell"] = {
+  tabs: {
+    workspace: "Espace de travail",
+    prepare: "Préparer",
+    job: "Travail",
+    device: "Périphérique",
+    running: "(en cours)",
+  },
+  drop: {
+    overlay: "Déposez des fichiers NC ou un projet",
+    oneProjectAtATime:
+      "Ouvrez un seul projet STEP-NC à la fois, séparément des programmes NC.",
+  },
+  dialogs: {
+    connectDevice: "Connecter un périphérique",
+  },
+  questionnaire: {
+    previous: "Précédent",
+    next: "Suivant",
+  },
+  import: {
+    verbImport: "Importer",
+    verbUpdate: "Mettre à jour",
+    titleFile: "{{verb}} {{file}}",
+    titlePrograms_one: "{{verb}} {{count}} programme",
+    titlePrograms_other: "{{verb}} {{count}} programmes",
+    plateOne: "Vers quelle plaque va {{file}} ?",
+    plateMany: "Vers quelle plaque vont les programmes ?",
+    newPlate: "Une nouvelle plaque",
+    splitTitle: "Diviser {{file}} en opérations ?",
+    byTool: "Par outil",
+    byToolpath: "Par parcours d’outil",
+    noSplitting: "Pas de division",
+    oneOperation: "Une seule opération.",
+    parts_one: "{{count}} opération : {{names}}",
+    parts_other: "{{count}} opérations : {{names}}",
+    issueInFile: "{{lines}} de {{file}}.",
+    issueInMany_one: "Dans {{file}} et {{count}} autre programme.",
+    issueInMany_other: "Dans {{file}} et {{count}} autres programmes.",
+    addedOperations_one: "Ajouté {{count}} opération.",
+    addedOperations_other: "Ajouté {{count}} opérations.",
+    importedPlates_one: "Importé {{count}} plaque.",
+    importedPlates_other: "Importé {{count}} plaques.",
+    combined_oneOperation_onePlate:
+      "Ajouté {{operations}} opération et importé {{count}} plaque.",
+    combined_oneOperation_otherPlates:
+      "Ajouté {{operations}} opération et importé {{count}} plaques.",
+    combined_manyOperations_onePlate:
+      "Ajouté {{operations}} opérations et importé {{count}} plaque.",
+    combined_manyOperations_otherPlates:
+      "Ajouté {{operations}} opérations et importé {{count}} plaques.",
+    updateGone: "L’opération à mettre à jour n’existe plus.",
+    upToDate: "{{name}} est à jour.",
+    updated: "Mise à jour de {{name}}.",
+  },
+  error: {
+    title: "Une erreur est survenue",
+    errorId: "Identifiant d’erreur",
+    copy: "Copier",
+    copied: "Copié",
+    downloadLog: "Télécharger le journal",
+    openIssue: "Ouvrir une issue GitHub",
+    send: "Envoyer le rapport",
+    sending: "Envoi…",
+    sent: "Rapport envoyé",
+    report: "Signaler…",
+    tryAgain: "Réessayer",
+    doingWhat: "Que faisiez-vous ?",
+    attachLog: "Joindre le journal",
+    attachProject: "Joindre le projet ({{name}})",
+    notSent: "Le rapport n’a pas été envoyé : {{message}}",
+    logNotSaved: "Le journal n’a pas été enregistré : {{message}}",
+  },
+  project: {
+    lostWarning:
+      "Sinon, les modifications non enregistrées du projet en cours sont perdues.",
+    dontSave: "Ne pas enregistrer",
+    cancel: "Annuler",
+    saving: "Enregistrement…",
+    openTitle: "Enregistrer avant d’ouvrir ?",
+    openDescription_one: "Ouvrir {{file}} avec {{count}} plaque.",
+    openDescription_other: "Ouvrir {{file}} avec {{count}} plaques.",
+    saveAndOpen: "Enregistrer et ouvrir",
+    newTitle: "Enregistrer avant de démarrer un nouveau projet ?",
+    newDescription: "Démarre un nouveau projet avec une Plaque 1 vide.",
+    saveAndStart: "Enregistrer et démarrer",
+    leftOut_one: "{{count}} champ ignoré",
+    leftOut_other: "{{count}} champs ignorés",
+    leftOutExplain_one:
+      "Cette version d’OpenSpindle ne l’utilise pas, et l’enregistrement du projet ne le conserve pas.",
+    leftOutExplain_other:
+      "Cette version d’OpenSpindle ne les utilise pas, et l’enregistrement du projet ne les conserve pas.",
+    moreFields: "{{count}} de plus",
+    openedTitle: "Projet ouvert : {{file}}",
+    openedDescription: "Examinez ce qui a changé à l’ouverture du projet.",
+    done: "Terminé",
+  },
+  storage: {
+    libraryTitle: "Bibliothèques d’outils et de matières",
+    fixtureTitle: "Bibliothèque de montages",
+    newerTitle:
+      "Les données enregistrées viennent d’un OpenSpindle plus récent",
+    unreadableTitle: "Les données enregistrées n’ont pas pu être restaurées",
+    partialTitle: "Certaines données enregistrées n’ont pas pu être restaurées",
+    nothingOverwritten:
+      "Rien n’a été écrasé. Enregistrez une copie pour conserver l’original, puis choisissez comment continuer.",
+    copySaved: "Copie enregistrée sous {{file}}",
+    backedUp: "Les données d’origine ont été sauvegardées.",
+    saveCopy: "Enregistrer une copie…",
+    quit: "Quitter",
+    continueWithout: "Continuer sans les restaurer",
+    clearFresh: "Effacer et repartir à zéro",
+    libraryNotSaved:
+      "Les modifications des bibliothèques d’outils et de matières ne sont pas enregistrées",
+    fixturesNotSaved:
+      "Les modifications de la bibliothèque de montages ne sont pas enregistrées",
+  },
+  linkedFile: {
+    unlinked: "N’est lié à aucun fichier sur le disque.",
+    checking: "Vérification du fichier sur le disque…",
+    current: "Dernière version du fichier sur le disque.",
+    changed: "Modifié sur le disque le {{when}}.",
+    missing: "Introuvable sur le disque.",
+    unreadable: "Lecture impossible du fichier sur le disque : {{reason}}",
+    replace: "Remplacer le fichier",
+    update: "Mettre à jour",
+  },
+}

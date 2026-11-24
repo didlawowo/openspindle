@@ -1,4 +1,5 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import type { DragEvent, ReactNode } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { Upload } from "lucide-react"
@@ -27,6 +28,7 @@ const carriesFiles = (event: DragEvent) =>
  * project opens.
  */
 function useTakeFiles() {
+  const { t } = useTranslation("shell")
   const importFiles = useImportFiles()
   const openProject = useOpenProject()
   return (files: File[]) => {
@@ -34,10 +36,7 @@ function useTakeFiles() {
     if (projects.length) {
       if (projects.length === 1 && files.length === 1)
         openProject.mutate({ file: projects[0] })
-      else
-        toast.error(
-          "Open one STEP-NC project at a time, separately from NC programs."
-        )
+      else toast.error(t("drop.oneProjectAtATime"))
       return
     }
     // Every file goes on, program or not: planning the import reports one that cannot be used
@@ -67,6 +66,7 @@ function useOpenedFiles(take: (files: File[]) => void) {
  * plate, a plate exported with its setup comes in as a plate of its own, and a project opens.
  */
 export function FileDropZone({ children }: { children: ReactNode }) {
+  const { t } = useTranslation("shell")
   const dialog = useOpenDialog()
   const take = useTakeFiles()
   const depth = useRef(0)
@@ -105,7 +105,7 @@ export function FileDropZone({ children }: { children: ReactNode }) {
               <EmptyMedia variant="icon">
                 <Upload />
               </EmptyMedia>
-              <EmptyTitle>Drop NC files or a project</EmptyTitle>
+              <EmptyTitle>{t("drop.overlay")}</EmptyTitle>
               <EmptyDescription>
                 .nc · .cnc · .gcode · .tap · .ngc · .stpnc
               </EmptyDescription>

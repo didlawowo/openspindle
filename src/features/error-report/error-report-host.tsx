@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { watchOfferedReports } from "@/app/errors/reports"
 import type { ErrorReport } from "@/app/errors/reports"
@@ -13,16 +14,17 @@ const TOAST_DURATION_MS = 10_000
  * in a toast; its Report… opens the error dialog. The same error again replaces its toast.
  */
 export function ErrorReportHost() {
+  const { t } = useTranslation("shell")
   const host = useHost()
   const [open, setOpen] = useState<ErrorReport | null>(null)
   useEffect(() => {
     const show = (report: ErrorReport) => {
       const { name, message } = report.error
-      toast.error("Something went wrong", {
+      toast.error(t("error.title"), {
         id: `error:${name}:${message}`,
         description: message || name,
         duration: TOAST_DURATION_MS,
-        action: { label: "Report…", onClick: () => setOpen(report) },
+        action: { label: t("error.report"), onClick: () => setOpen(report) },
       })
     }
     const stopOffers = watchOfferedReports(show)
@@ -31,7 +33,7 @@ export function ErrorReportHost() {
       stopOffers()
       stopMainErrors()
     }
-  }, [host])
+  }, [host, t])
   // Keyed: another error's report starts over, even while the dialog is open.
   return open ? (
     <ErrorReportDialog

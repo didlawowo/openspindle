@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { DevicePicker } from "@/features/device/device-picker"
 import { DeviceConfigurationDialog } from "@/features/device/device-configuration"
 import { FusionSource } from "@/features/fusion360/fusion-source"
@@ -29,6 +30,7 @@ import type { WorkspaceDialog } from "./dialogs"
 
 /** The open workspace dialog; opening another replaces it. */
 function OpenDialog({ dialog }: { dialog: WorkspaceDialog }) {
+  const { t } = useTranslation("shell")
   switch (dialog.kind) {
     case "fusion":
       return (
@@ -46,7 +48,7 @@ function OpenDialog({ dialog }: { dialog: WorkspaceDialog }) {
       )
     case "device":
       return (
-        <AppDialog title="Connect device" onClose={closeDialog}>
+        <AppDialog title={t("dialogs.connectDevice")} onClose={closeDialog}>
           <DevicePicker close={closeDialog} />
         </AppDialog>
       )

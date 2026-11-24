@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react"
+import { useTranslation } from "react-i18next"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { FileText, FileUp, RefreshCw } from "lucide-react"
 import {
@@ -124,6 +125,7 @@ export function LinkedFileField({
   onReplace: (file: File) => void
   onUpdate: (read: LinkedFileRead, link: FileLink) => void
 }) {
+  const { t } = useTranslation("shell")
   const host = useHost()
   const input = useRef<HTMLInputElement>(null)
   const state = useLinkState(kind, link, content)
@@ -136,22 +138,22 @@ export function LinkedFileField({
   let status: string
   switch (state.kind) {
     case "unlinked":
-      status = "Not linked to a file on disk."
+      status = t("linkedFile.unlinked")
       break
     case "checking":
-      status = "Checking the file on disk…"
+      status = t("linkedFile.checking")
       break
     case "current":
-      status = "The latest version of the file on disk."
+      status = t("linkedFile.current")
       break
     case "changed":
-      status = `Changed on disk ${dateText(state.modifiedAt)}.`
+      status = t("linkedFile.changed", { when: dateText(state.modifiedAt) })
       break
     case "missing":
-      status = "No longer found on disk."
+      status = t("linkedFile.missing")
       break
     case "unreadable":
-      status = `Cannot read the file on disk: ${state.reason}`
+      status = t("linkedFile.unreadable", { reason: state.reason })
   }
   return (
     <Field>
@@ -169,8 +171,8 @@ export function LinkedFileField({
         <AttachmentActions>
           <AttachmentAction
             type="button"
-            aria-label="Replace file"
-            title="Replace file"
+            aria-label={t("linkedFile.replace")}
+            title={t("linkedFile.replace")}
             disabled={disabled}
             onClick={() => input.current?.click()}
           >
@@ -183,7 +185,7 @@ export function LinkedFileField({
         hidden
         type="file"
         accept={accept}
-        aria-label="Replace file"
+        aria-label={t("linkedFile.replace")}
         disabled={disabled}
         onChange={(event) => {
           const file = event.target.files?.[0]
@@ -204,7 +206,7 @@ export function LinkedFileField({
             onClick={() => update.mutate(link)}
           >
             <RefreshCw data-icon="inline-start" />
-            Update
+            {t("linkedFile.update")}
           </Button>
         )}
       </div>

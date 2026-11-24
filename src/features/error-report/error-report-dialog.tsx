@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useForm } from "@tanstack/react-form"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
@@ -45,6 +46,7 @@ const REPORT_DEFAULTS: ReportFields = {
 
 /** The error's id in Sentry, to quote: the dialog shows it for screenshots too. */
 function ErrorIdField({ id, eventId }: { id: string; eventId: string }) {
+  const { t } = useTranslation("shell")
   const input = useRef<HTMLInputElement>(null)
   const [copied, setCopied] = useState(false)
   useEffect(() => {
@@ -54,7 +56,7 @@ function ErrorIdField({ id, eventId }: { id: string; eventId: string }) {
   }, [copied])
   return (
     <Field>
-      <FieldLabel htmlFor={id}>Error ID</FieldLabel>
+      <FieldLabel htmlFor={id}>{t("error.errorId")}</FieldLabel>
       <InputGroup>
         <InputGroupInput
           ref={input}
@@ -73,7 +75,7 @@ function ErrorIdField({ id, eventId }: { id: string; eventId: string }) {
               )
             }
           >
-            {copied ? "Copied" : "Copy"}
+            {copied ? t("error.copied") : t("error.copy")}
           </InputGroupButton>
         </InputGroupAddon>
       </InputGroup>
@@ -93,6 +95,7 @@ export function ErrorReportDialog({
   report: ErrorReport
   onClose: () => void
 }) {
+  const { t } = useTranslation("shell")
   const id = useId()
   const host = useHost()
   const workspace = useWorkspaceStore()
@@ -143,14 +146,14 @@ export function ErrorReportDialog({
     )
 
   const sendLabel = () => {
-    if (send.isSuccess) return "Report sent"
-    if (send.isPending) return "Sending…"
-    return "Send report"
+    if (send.isSuccess) return t("error.sent")
+    if (send.isPending) return t("error.sending")
+    return t("error.send")
   }
 
   return (
     <AppDialog
-      title="Something went wrong"
+      title={t("error.title")}
       description={
         <span className="line-clamp-4 break-words">
           {report.error.message || report.error.name}
@@ -165,10 +168,10 @@ export function ErrorReportDialog({
             disabled={exportLog.isPending}
             onClick={() => exportLog.mutate()}
           >
-            Download log
+            {t("error.downloadLog")}
           </Button>
           <Button variant="outline" onClick={openIssue}>
-            Open GitHub issue
+            {t("error.openIssue")}
           </Button>
           {reporting && (
             <Button type="submit" form={`${id}-form`} disabled={locked}>
@@ -193,7 +196,7 @@ export function ErrorReportDialog({
                 {(field) => (
                   <Field>
                     <FieldLabel htmlFor={`${id}-description`}>
-                      What were you doing?
+                      {t("error.doingWhat")}
                     </FieldLabel>
                     <Textarea
                       id={`${id}-description`}
@@ -217,7 +220,7 @@ export function ErrorReportDialog({
                       onCheckedChange={(checked) => field.handleChange(checked)}
                     />
                     <FieldLabel htmlFor={`${id}-log`}>
-                      Attach the log
+                      {t("error.attachLog")}
                     </FieldLabel>
                   </Field>
                 )}
@@ -232,7 +235,7 @@ export function ErrorReportDialog({
                       onCheckedChange={(checked) => field.handleChange(checked)}
                     />
                     <FieldLabel htmlFor={`${id}-project`}>
-                      Attach the project ({projectName})
+                      {t("error.attachProject", { name: projectName })}
                     </FieldLabel>
                   </Field>
                 )}
@@ -241,12 +244,12 @@ export function ErrorReportDialog({
           )}
           {send.error && (
             <FieldError>
-              The report was not sent: {send.error.message}
+              {t("error.notSent", { message: send.error.message })}
             </FieldError>
           )}
           {exportLog.error && (
             <FieldError>
-              The log was not saved: {exportLog.error.message}
+              {t("error.logNotSaved", { message: exportLog.error.message })}
             </FieldError>
           )}
         </FieldGroup>

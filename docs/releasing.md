@@ -18,12 +18,12 @@ The About panel credits the open-source software the app includes, with the lice
 
 ## Releases from GitHub Actions
 
-`main` is the trunk: every change reaches it as a squash-merged pull request that passed CI, and every release is cut from it. [ci.yml](../.github/workflows/ci.yml) runs `npm ci`, the typecheck, lint, Prettier check and build on every pull request and every push to `main`, and fails when the build changes the committed `build/third-party-notices.json`; [pr-title.yml](../.github/workflows/pr-title.yml) checks that a pull request's title is a Conventional Commit. On release pull requests CI also packages the app on macOS and Windows runners, so a packaging problem shows before the release is tagged, and keeps the builds for testers ([Trying the next release](#trying-the-next-release)).
+`main` is the trunk: every change reaches it as a squash-merged pull request that passed CI, and every release is cut from it. [ci.yml](../.github/workflows/ci.yml) runs `npm ci`, the typecheck, lint, Prettier check and build on every pull request and every push to `main`, and fails when the build changes the committed `build/third-party-notices.json`; [pr-title.yml](../.github/workflows/pr-title.yml) checks that a pull request's title is a Conventional Commit. On release pull requests CI also packages the app on the repository's macOS runner, so a packaging problem shows before the release is tagged, and keeps the build for testers ([Trying the next release](#trying-the-next-release)).
 
 Every push to `main` runs [release.yml](../.github/workflows/release.yml):
 
 1. release-please keeps a release pull request open, titled `chore(main): release <version>`. It raises the version and adds the release's section to CHANGELOG.md, and every merge to `main` updates it. It changes nothing else, so it can stay open until you want a release.
-2. Merging it releases. release-please tags the merge commit `v<version>` and creates a draft GitHub release whose notes are the new CHANGELOG.md section ([release-please-config.json](../release-please-config.json)). Two build jobs check out that commit and run `npm ci`. On a macOS runner, `npm run dist:mac` builds with the build number above; the job checks that the app carries its notarization ticket and the update feed, and attaches the DMG, the zip, their blockmaps and `latest-mac.yml` to the draft. On a Windows runner, `npm run dist:win` builds the installer; the job checks for the update feed and attaches the installer, its blockmap and `latest.yml`. Once both have, the publish job publishes the draft as the latest release, "OpenSpindle <version>".
+2. Merging it releases. release-please tags the merge commit `v<version>` and creates a draft GitHub release whose notes are the new CHANGELOG.md section ([release-please-config.json](../release-please-config.json)). The build job checks out that commit and runs `npm ci`. On the repository's macOS runner, `npm run dist:mac` builds with the build number above; the job checks that the app carries its notarization ticket and the update feed, and attaches the DMG, the zip, their blockmaps and `latest-mac.yml` to the draft. Once it has, the publish job publishes the draft as the latest release, "OpenSpindle <version>".
 
 Installed apps see a release only once it is published, with everything attached. When a build fails, the draft stays unpublished: if the cause lies outside the code (a secret, an Apple outage), fix it and **Re-run failed jobs**; if the code needs a change, delete the draft and its tag (`gh release delete v<version> --cleanup-tag`) and merge the fix, which the next release pull request releases under a new version. Runs of release.yml go one at a time, in push order; while one runs, only the newest waiting push is kept, and a merged release pull request whose run was dropped is released by the next run.
 
@@ -35,13 +35,7 @@ Every CI run on the release pull request builds the universal app from the pull 
 - Quit an installed OpenSpindle first: the build uses the same data folder, and only one runs at a time.
 - It does not update itself ([Updates](#updates)); install the release once it is published.
 
-The same run builds the Windows installer (`npm run package:win`) and links it beside the zip. It is not signed ([Signing on Windows](#signing-on-windows)):
-
-- Windows warns before it runs it: choose **More info**, then **Run anyway**.
-- It replaces an installed OpenSpindle and uses the same data folder.
-- It does not update to the release it becomes: install that once it is published.
-
-**Run workflow** on the CI workflow builds both for any branch.
+**Run workflow** on the CI workflow builds the Mac app for any branch.
 
 ## Setting up the repository
 
@@ -78,6 +72,8 @@ Once, when the repository is created on GitHub (`OWNER/REPO` below), with the Gi
 6. Under Settings → Actions → General, **Require actions to be pinned to a full-length commit SHA**. The workflows pin every action, and Dependabot ([dependabot.yml](../.github/dependabot.yml)) proposes new pins and npm updates monthly.
 7. Private vulnerability reporting, which [SECURITY.md](../SECURITY.md) points reporters to: `gh api -X PUT repos/OWNER/REPO/private-vulnerability-reporting`.
 
+Every job runs on the repository's own runners, never on GitHub-hosted ones: `arc-runner-openspindle`, a runner of the project's Kubernetes Actions runner controller, and `openspindle-macos`, an Apple Silicon Mac registered at repository scope. The Mac needs the GitHub CLI (`brew install gh`) and Xcode's command line tools, and must stay awake on AC power (`sudo pmset -c sleep 0`) or release runs queue; the release workflow fails fast, naming this page, when no runner carries that label.
+
 The `release` environment needs five secrets:
 
 | Secret                     | Value                                                                                            |
@@ -93,11 +89,11 @@ To make them with the GitHub CLI:
 1. In Keychain Access → login → My Certificates, right-click **Developer ID Application: …**, choose **Export**, save a `.p12` and give it a password. Then run `base64 -i DeveloperID.p12 | gh secret set MAC_CERTIFICATE_P12 --env release` and `gh secret set MAC_CERTIFICATE_PASSWORD --env release` (it asks for the password), and delete the `.p12`.
 2. In App Store Connect → Users and Access → Integrations → App Store Connect API, add a team key with Developer access and download it (Apple offers the file once). Then run `gh secret set APPLE_API_KEY_P8 --env release < AuthKey_<key id>.p8`, `gh secret set APPLE_API_KEY_ID --env release --body <key id>` and `gh secret set APPLE_API_ISSUER --env release --body <issuer id>`.
 
-Until the app and the secrets are set, the release workflow stops with an error naming this page. For private repositories, GitHub bills macOS and Windows runner minutes at higher rates than Linux ones.
+Until the app and the secrets are set, the release workflow stops with an error naming this page.
 
 ## Updates
 
-Packaged apps update themselves from this repository's GitHub releases ([updates.ts](../electron/main/updates.ts), with electron-updater), so the repository has to be public: installed apps read its releases without credentials. When it builds the DMG and zip, or the Windows installer, electron-builder writes the feed, `latest-mac.yml` or `latest.yml`, beside them, and `app-update.yml`, which names the repository in package.json, into the app. `npm run package:mac` builds have no DMG or zip and so neither file: their apps cannot update and, like a dev run, say so under **Check for Updates…**.
+Packaged apps update themselves from this repository's GitHub releases ([updates.ts](../electron/main/updates.ts), with electron-updater), so the repository has to be public: installed apps read its releases without credentials. Releases ship the Mac app only: a Windows app, installed from an earlier release or from a local build, finds no `latest.yml` here and never updates itself. When it builds the DMG and zip, or the Windows installer, electron-builder writes the feed, `latest-mac.yml` or `latest.yml`, beside them, and `app-update.yml`, which names the repository in package.json, into the app. `npm run package:mac` builds have no DMG or zip and so neither file: their apps cannot update and, like a dev run, say so under **Check for Updates…**.
 
 An app checks ten seconds after launch and every four hours, downloads a newer release's zip, or on Windows its installer, in the background and installs it when it quits. A notification says when an update is ready; clicking it, or **Restart to Install Update…** in the OpenSpindle menu (the Help menu on Windows), shows the release notes with **Restart Now**, **Later** and **Release Notes** (the release's page). **Check for Updates…** checks at once and says what it found. Restarting asks the same questions as quitting (a running job, unsaved changes), so an update never interrupts a job; when declined, it installs at the next quit.
 
@@ -105,7 +101,7 @@ The release notes are the release's section of CHANGELOG.md: the titles of the `
 
 ## Signing on Windows
 
-The Windows installer is not signed yet, so SmartScreen warns before it runs ("Windows protected your PC") until the user chooses **More info**, then **Run anyway**. It is to be signed through [SignPath Foundation](https://signpath.org), which signs open-source projects' releases for free with its own certificate: Windows then names SignPath Foundation as the publisher. The foundation signs only what a project already releases, so the first Windows releases ship unsigned. Its [terms](https://signpath.org/terms) also ask for a code signing policy on the project's site, naming who writes, reviews and approves releases ([CODE_SIGNING.md](CODE_SIGNING.md)), multi-factor sign-in for everyone on the team, and a person's approval of every signing request.
+Releases ship the Mac app only; this section is about a Windows installer built and distributed yourself. The Windows installer is not signed yet, so SmartScreen warns before it runs ("Windows protected your PC") until the user chooses **More info**, then **Run anyway**. It is to be signed through [SignPath Foundation](https://signpath.org), which signs open-source projects' releases for free with its own certificate: Windows then names SignPath Foundation as the publisher. The foundation signs only what a project already releases, so the first Windows releases ship unsigned. Its [terms](https://signpath.org/terms) also ask for a code signing policy on the project's site, naming who writes, reviews and approves releases ([CODE_SIGNING.md](CODE_SIGNING.md)), multi-factor sign-in for everyone on the team, and a person's approval of every signing request.
 
 ## Releasing from a Mac
 

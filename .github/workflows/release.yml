@@ -1,8 +1,8 @@
 # Every push to main runs release-please, which keeps a release pull request open with the next
 # version and its release notes, worked out from the titles of the pull requests merged since the
-# last release. Merging it tags the release and creates it as a draft; the build jobs then build,
-# sign and notarize the universal Mac app and build the Windows installer, attaching both to the
-# draft, and the publish job publishes it once both are there. Installed apps update to it. See
+# last release. Merging it tags the release and creates it as a draft; the build job then builds,
+# signs and notarizes the universal Mac app and attaches it to the draft, and the publish job
+# publishes it once it is there. Installed apps update to it. See
 # docs/releasing.md.
 name: Release
 
@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   release-please:
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-openspindle
     timeout-minutes: 10
     outputs:
       created: ${{ steps.release.outputs.release_created }}
@@ -54,10 +54,32 @@ jobs:
         with:
           token: ${{ steps.token.outputs.token }}
 
-  build-mac:
+  # The build waits on the repository's own Mac. A queued job would leave the draft release
+  # unpublished until someone notices, so fail fast when that runner is offline.
+  runner-online:
     needs: release-please
     if: needs.release-please.outputs.created == 'true'
-    runs-on: macos-15
+    runs-on: arc-runner-openspindle
+    timeout-minutes: 5
+    permissions:
+      actions: read
+    steps:
+      - name: Check the macOS runner is online
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          status=$(gh api repos/{owner}/{repo}/actions/runners --jq '.runners[] | select(.labels[]?.name == "openspindle-macos") | .status' | head -1)
+          if [ "$status" != online ]; then
+            echo "::error::No online runner labelled openspindle-macos: the build Mac is asleep or down. Wake it and re-run this workflow; see docs/releasing.md."
+            exit 1
+          fi
+
+  build-mac:
+    needs: [release-please, runner-online]
+    if: needs.release-please.outputs.created == 'true'
+    # The label of the repository's self-hosted Apple Silicon runner.
+    runs-on: openspindle-macos
     timeout-minutes: 60
     # The signing and notarization secrets belong to this environment, which only main deploys to.
     environment: release
@@ -68,6 +90,17 @@ jobs:
       TAG: ${{ needs.release-please.outputs.tag }}
       BUILD_NUMBER: ${{ github.run_number }}
     steps:
+      # The self-hosted runner's PATH holds only /usr/bin, /bin, /usr/sbin and /sbin: the
+      # GitHub CLI installed with Homebrew sits outside it. Put it on the PATH and check the
+      # tools this job needs before building anything.
+      - name: Check the runner's tools
+        run: |
+          echo "/opt/homebrew/bin" >> "$GITHUB_PATH"
+          export PATH="/opt/homebrew/bin:$PATH"
+          for tool in gh xcrun spctl; do
+            command -v "$tool" >/dev/null || { echo "::error::$tool is missing on the macOS runner; see docs/releasing.md."; exit 1; }
+          done
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.release-please.outputs.sha }}
@@ -125,65 +158,10 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: gh release upload "$TAG" release/*.dmg release/*.zip release/*.blockmap release/latest-mac.yml --clobber
 
-  build-windows:
-    needs: release-please
-    if: needs.release-please.outputs.created == 'true'
-    runs-on: windows-2025
-    timeout-minutes: 60
-    # Sentry's token belongs to this environment, which only main deploys to.
-    environment: release
-    # Attaches the installer to the draft release.
-    permissions:
-      contents: write
-    env:
-      TAG: ${{ needs.release-please.outputs.tag }}
-      # The installer's file version is the release's version and this build number.
-      BUILD_NUMBER: ${{ github.run_number }}
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ needs.release-please.outputs.sha }}
-          persist-credentials: false
-
-      # No dependency cache: a release installs everything from the registry.
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 24
-
-      - run: npm ci
-
-      # Not signed yet: Windows warns before it runs an installer from the internet that no
-      # certificate vouches for (docs/releasing.md).
-      - name: Build
-        env:
-          SENTRY_DSN: ${{ vars.SENTRY_DSN }}
-          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-        run: npm run dist:win -- --publish never
-
-      - name: Check that the app can update
-        run: |
-          if [ ! -f release/latest.yml ] || [ ! -f release/win-unpacked/resources/app-update.yml ]; then
-            echo "::error::No update feed: electron-builder found no repository in package.json"
-            exit 1
-          fi
-
-      # The installer installs, and installed apps update from latest.yml, the installer and its
-      # blockmap.
-      - name: Attach the installer to the draft release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: gh release upload "$TAG" release/OpenSpindle-Setup-*.exe release/OpenSpindle-Setup-*.exe.blockmap release/latest.yml --clobber
-
-  # The draft is published only once both apps are attached: published releases are immutable.
+  # The draft is published once the app is attached: published releases are immutable.
   publish:
-    needs: [release-please, build-mac, build-windows]
-    runs-on: ubuntu-latest
+    needs: [release-please, build-mac]
+    runs-on: arc-runner-openspindle
     timeout-minutes: 5
     permissions:
       contents: write

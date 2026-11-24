@@ -50,7 +50,10 @@ jobs:
 
   package:
     name: Package (macOS)
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'release-please--')
+    # Only branches of this repository, never a fork's pull request: this job runs the pull
+    # request's own code on the repository's Mac, and a fork could name its branch like a
+    # release branch. First-time contributor approval gates the other jobs.
+    if: github.event_name == 'workflow_dispatch' || (startsWith(github.head_ref, 'release-please--') && github.event.pull_request.head.repo.full_name == github.repository)
     # The label of the repository's self-hosted Apple Silicon runner.
     runs-on: openspindle-macos
     timeout-minutes: 30

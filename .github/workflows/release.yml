@@ -54,8 +54,29 @@ jobs:
         with:
           token: ${{ steps.token.outputs.token }}
 
-  build-mac:
+  # The build waits on the repository's own Mac. A queued job would leave the draft release
+  # unpublished until someone notices, so fail fast when that runner is offline.
+  runner-online:
     needs: release-please
+    if: needs.release-please.outputs.created == 'true'
+    runs-on: arc-runner-openspindle
+    timeout-minutes: 5
+    permissions:
+      actions: read
+    steps:
+      - name: Check the macOS runner is online
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          status=$(gh api repos/{owner}/{repo}/actions/runners --jq '.runners[] | select(.labels[]?.name == "openspindle-macos") | .status' | head -1)
+          if [ "$status" != online ]; then
+            echo "::error::No online runner labelled openspindle-macos: the build Mac is asleep or down. Wake it and re-run this workflow; see docs/releasing.md."
+            exit 1
+          fi
+
+  build-mac:
+    needs: [release-please, runner-online]
     if: needs.release-please.outputs.created == 'true'
     # The label of the repository's self-hosted Apple Silicon runner.
     runs-on: openspindle-macos
@@ -69,6 +90,17 @@ jobs:
       TAG: ${{ needs.release-please.outputs.tag }}
       BUILD_NUMBER: ${{ github.run_number }}
     steps:
+      # The self-hosted runner's PATH holds only /usr/bin, /bin, /usr/sbin and /sbin: the
+      # GitHub CLI installed with Homebrew sits outside it. Put it on the PATH and check the
+      # tools this job needs before building anything.
+      - name: Check the runner's tools
+        run: |
+          echo "/opt/homebrew/bin" >> "$GITHUB_PATH"
+          export PATH="/opt/homebrew/bin:$PATH"
+          for tool in gh xcrun spctl; do
+            command -v "$tool" >/dev/null || { echo "::error::$tool is missing on the macOS runner; see docs/releasing.md."; exit 1; }
+          done
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.release-please.outputs.sha }}

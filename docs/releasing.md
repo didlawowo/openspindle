@@ -18,12 +18,12 @@ The About panel credits the open-source software the app includes, with the lice
 
 ## Releases from GitHub Actions
 
-`main` is the trunk: every change reaches it as a squash-merged pull request that passed CI, and every release is cut from it. [ci.yml](../.github/workflows/ci.yml) runs `npm ci`, the typecheck, lint, Prettier check and build on every pull request and every push to `main`, and fails when the build changes the committed `build/third-party-notices.json`; [pr-title.yml](../.github/workflows/pr-title.yml) checks that a pull request's title is a Conventional Commit. On release pull requests CI also packages the app on macOS and Windows runners, so a packaging problem shows before the release is tagged, and keeps the builds for testers ([Trying the next release](#trying-the-next-release)).
+`main` is the trunk: every change reaches it as a squash-merged pull request that passed CI, and every release is cut from it. [ci.yml](../.github/workflows/ci.yml) runs `npm ci`, the typecheck, lint, Prettier check and build on every pull request and every push to `main`, and fails when the build changes the committed `build/third-party-notices.json`; [pr-title.yml](../.github/workflows/pr-title.yml) checks that a pull request's title is a Conventional Commit. On release pull requests CI also packages the app on the repository's macOS runner, so a packaging problem shows before the release is tagged, and keeps the build for testers ([Trying the next release](#trying-the-next-release)).
 
 Every push to `main` runs [release.yml](../.github/workflows/release.yml):
 
 1. release-please keeps a release pull request open, titled `chore(main): release <version>`. It raises the version and adds the release's section to CHANGELOG.md, and every merge to `main` updates it. It changes nothing else, so it can stay open until you want a release.
-2. Merging it releases. release-please tags the merge commit `v<version>` and creates a draft GitHub release whose notes are the new CHANGELOG.md section ([release-please-config.json](../release-please-config.json)). Two build jobs check out that commit and run `npm ci`. On a macOS runner, `npm run dist:mac` builds with the build number above; the job checks that the app carries its notarization ticket and the update feed, and attaches the DMG, the zip, their blockmaps and `latest-mac.yml` to the draft. On a Windows runner, `npm run dist:win` builds the installer; the job checks for the update feed and attaches the installer, its blockmap and `latest.yml`. Once both have, the publish job publishes the draft as the latest release, "OpenSpindle <version>".
+2. Merging it releases. release-please tags the merge commit `v<version>` and creates a draft GitHub release whose notes are the new CHANGELOG.md section ([release-please-config.json](../release-please-config.json)). The build job checks out that commit and runs `npm ci`. On the repository's macOS runner, `npm run dist:mac` builds with the build number above; the job checks that the app carries its notarization ticket and the update feed, and attaches the DMG, the zip, their blockmaps and `latest-mac.yml` to the draft. Once it has, the publish job publishes the draft as the latest release, "OpenSpindle <version>".
 
 Installed apps see a release only once it is published, with everything attached. When a build fails, the draft stays unpublished: if the cause lies outside the code (a secret, an Apple outage), fix it and **Re-run failed jobs**; if the code needs a change, delete the draft and its tag (`gh release delete v<version> --cleanup-tag`) and merge the fix, which the next release pull request releases under a new version. Runs of release.yml go one at a time, in push order; while one runs, only the newest waiting push is kept, and a merged release pull request whose run was dropped is released by the next run.
 
@@ -34,12 +34,6 @@ Every CI run on the release pull request builds the universal app from the pull 
 - macOS blocks its first launch: open it once, then choose **Open Anyway** in System Settings → Privacy & Security.
 - Quit an installed OpenSpindle first: the build uses the same data folder, and only one runs at a time.
 - It does not update itself ([Updates](#updates)); install the release once it is published.
-
-The same run builds the Windows installer (`npm run package:win`) and links it beside the zip. It is not signed ([Signing on Windows](#signing-on-windows)):
-
-- Windows warns before it runs it: choose **More info**, then **Run anyway**.
-- It replaces an installed OpenSpindle and uses the same data folder.
-- It does not update to the release it becomes: install that once it is published.
 
 **Run workflow** on the CI workflow builds both for any branch.
 

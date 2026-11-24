@@ -30,7 +30,7 @@ OpenSpindle is a desktop app for preparing, checking and running jobs on a Maker
 - Built-in PCB preparation from KiCad Gerber and Excellon files, using your local pcb2gcode installation
 - An interface in English or French, following your computer's language until you choose one (**Settings › General › Language**)
 - Error reports and logs under your control; no account or cloud service
-- An app for Windows, and a signed and notarized app for Apple silicon and Intel Macs, that update themselves
+- A signed and notarized app for Apple silicon and Intel Macs, that updates itself
 
 ![The Prepare tab with three plates for a double-sided PCB, each on the Z1's MDF bed with L-brackets, and the selected plate's stock placed relative to Anchor 1](docs/images/prepare.webp)
 
@@ -38,7 +38,7 @@ OpenSpindle is a desktop app for preparing, checking and running jobs on a Maker
 
 **macOS:** download `OpenSpindle-<version>-universal.dmg` from the [latest release](../../releases/latest) and drag OpenSpindle to **Applications**. Allow local network access when macOS asks, or OpenSpindle cannot reach the machine; you can turn it on later in **System Settings › Privacy & Security › Local Network**.
 
-**Windows:** download `OpenSpindle-Setup-<version>.exe` from the [latest release](../../releases/latest) and run it: it installs OpenSpindle for your user, without administrator rights, and starts it. The installer is for x64 PCs and runs on Windows on Arm too. It is not signed yet, so Windows warns before running it: choose **More info**, then **Run anyway**. Allow OpenSpindle through the firewall when Windows asks, or it does not find machines on the network; entering a machine's IP address works either way.
+**Windows:** the releases here ship the Mac app only. OpenSpindle still runs on Windows: build its installer yourself with `npm run package:win`, which runs on macOS as well as on Windows ([docs/releasing.md](docs/releasing.md)).
 
 ## Quick start
 

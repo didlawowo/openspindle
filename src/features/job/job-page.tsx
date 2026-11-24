@@ -167,9 +167,9 @@ function ProgramPanel({
               <EmptyMedia variant="icon">
                 <FileCode />
               </EmptyMedia>
-              <EmptyTitle>No program</EmptyTitle>
+              <EmptyTitle>{t("listing.emptyTitle")}</EmptyTitle>
               <EmptyDescription>
-                Add a plate with operations in Prepare.
+                {t("listing.emptyDescription")}
               </EmptyDescription>
             </EmptyHeader>
           </Empty>

@@ -323,12 +323,16 @@ export function GCodeListing({
   onSeekLine: (line: number) => void
 }) {
   const id = useId()
+  const { t } = useTranslation("job")
   const [follow, setFollow] = useState(true)
   return (
-    <section className="flex h-full min-h-0 flex-col" aria-label="G-code">
+    <section
+      className="flex h-full min-h-0 flex-col"
+      aria-label={t("listing.aria")}
+    >
       <header className="flex items-center justify-between gap-3 px-3 py-2">
         <div className="flex min-w-0 flex-col">
-          <span>G-code</span>
+          <span>{t("listing.title")}</span>
         </div>
         <Field orientation="horizontal" className="w-auto gap-2">
           <Switch
@@ -337,7 +341,9 @@ export function GCodeListing({
             checked={follow}
             onCheckedChange={setFollow}
           />
-          <FieldLabel htmlFor={`${id}-follow`}>Follow</FieldLabel>
+          <FieldLabel htmlFor={`${id}-follow`}>
+            {t("listing.follow")}
+          </FieldLabel>
         </Field>
       </header>
       {check.status === "rejected" && (
@@ -355,7 +361,7 @@ export function GCodeListing({
         line={line}
         onSeekLine={onSeekLine}
         follow={follow}
-        label="G-code to run"
+        label={t("listing.runLabel")}
       />
     </section>
   )

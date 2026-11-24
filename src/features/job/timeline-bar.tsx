@@ -34,12 +34,7 @@ function stepText(
 
 /** A tick's label: a user's name shown as is, or an i18n key rendered with its params. */
 const tickLabel = (tick: PreviewTick, t: JobT) =>
-  tick.params
-    ? t(tick.label, {
-        defaultValue: tick.label,
-        ...tick.params,
-      })
-    : tick.label
+  t(tick.label, { defaultValue: tick.label, ...tick.params })
 
 /** Scrubbing and playback over a program's timeline, with its markers. */
 export function PreviewTimelineBar({

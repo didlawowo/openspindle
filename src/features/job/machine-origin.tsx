@@ -40,8 +40,8 @@ export function MachineOriginCard({
   /** The plate's work origin on its bed. */
   workOrigin: Point3 | null
 }) {
-  if (!telemetry) return null
   const { t } = useTranslation("job")
+  if (!telemetry) return null
   const from = (axis: 0 | 1 | 2) =>
     origin && workOrigin ? origin.position[axis] - workOrigin[axis] : null
   return (

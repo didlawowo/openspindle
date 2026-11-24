@@ -2,6 +2,7 @@ import type { UiResources } from "../en"
 import { frDevice } from "./device"
 import { frJob } from "./job"
 import { frMenu } from "./menu"
+import { frPcb } from "./pcb"
 import { frPrepare } from "./prepare"
 import { frSettings } from "./settings"
 import { frShell } from "./shell"
@@ -14,4 +15,5 @@ export const frResources: UiResources = {
   job: frJob,
   prepare: frPrepare,
   device: frDevice,
+  pcb: frPcb,
 }

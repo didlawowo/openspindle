@@ -1,4 +1,5 @@
 import { useId, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -32,6 +33,7 @@ function PresetStep({
   onChoose: (presetId: string | null) => void
   onCancel: () => void
 }) {
+  const { t } = useTranslation("pcb")
   const id = useId()
   const [presetId, setPresetId] = useState(suggested)
   return (
@@ -43,20 +45,19 @@ function PresetStep({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Apply a cutting preset?</DialogTitle>
+          <DialogTitle>{t("toolChoice.presetTitle")}</DialogTitle>
           <DialogDescription>
-            The PCB operation can take the preset's spindle speed, feeds and
-            depths, or keep the operation's current cutting values.
+            {t("toolChoice.presetDescription")}
           </DialogDescription>
         </DialogHeader>
         <ToolCard tool={tool} />
         <Field>
-          <FieldLabel htmlFor={id}>Cutting preset</FieldLabel>
+          <FieldLabel htmlFor={id}>{t("toolChoice.presetLabel")}</FieldLabel>
           <OptionSelect
             id={id}
             className="w-full"
             options={[
-              { value: NO_PRESET, label: "Choose a preset…" },
+              { value: NO_PRESET, label: t("toolChoice.presetPlaceholder") },
               ...tool.presets.map((preset) => ({
                 value: preset.id,
                 label: preset.name,
@@ -68,13 +69,13 @@ function PresetStep({
         </Field>
         <DialogFooter>
           <Button variant="outline" onClick={() => onChoose(null)}>
-            Keep current values
+            {t("toolChoice.keepValues")}
           </Button>
           <Button
             disabled={presetId === NO_PRESET}
             onClick={() => onChoose(presetId)}
           >
-            Apply preset
+            {t("toolChoice.applyPreset")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -96,6 +97,7 @@ export function ToolChoiceDialog({
   onChoose: (tool: Tool, presetId: string | null) => void
   onCancel: () => void
 }) {
+  const { t } = useTranslation("pcb")
   const workspace = useWorkspaceStore()
   const library = useWorkspaceLibrary()
   const picked = useRef<string | null>(null)
@@ -111,7 +113,7 @@ export function ToolChoiceDialog({
     )
   return (
     <ToolLibraryDialog
-      title="Choose a tool"
+      title={t("toolChoice.title")}
       tools={library.tools}
       selectedId={selectedToolId}
       selectionOnly

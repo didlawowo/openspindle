@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react"
 import type { ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 import { RpcError } from "@openspindle/rpc"
 import { toast } from "sonner"
 import { CircleAlert } from "lucide-react"
@@ -39,11 +40,7 @@ import type {
   ParameterDefinition,
   SelectParameter,
 } from "@/domain/pcb/manifest.mjs"
-import {
-  generatedToolSlots,
-  multipleToolsMessage,
-  operationWarnings,
-} from "@/domain/pcb/generation"
+import { generatedToolSlots, operationWarnings } from "@/domain/pcb/generation"
 import { ACCEPT, hasAcceptedExtension, matchInputs } from "@/domain/pcb/inputs"
 import {
   syncOperationAssignments,
@@ -241,10 +238,6 @@ function generatedRecipe(operation: Operation): string | null {
   return recipeKey(data, data.generatedValues ?? data.values)
 }
 
-/** The editor's labels where they differ from the conversion core's. */
-const parameterLabel = (parameter: ParameterDefinition) =>
-  parameter.id === "cutSide" ? "Machine from" : parameter.label
-
 /** The drill method: the Operation field chooses it (Drill or Mill drill), not a field of its own. */
 const methodParameter = parameters.find(
   (parameter): parameter is SelectParameter =>
@@ -296,12 +289,32 @@ export function OperationEditor({
   save: PcbSaveMutation
   disabled: boolean
 }) {
+  const { t } = useTranslation("pcb")
   const host = useHost()
   const { drafts, updates } = session
   const library = useWorkspace((state) => state.tools)
   const pcb = usePcb()
   const id = useId()
   const observed = `${operation.revision}:${stableJson(toolAssignments(plate, operation))}`
+
+  /** The conversion core's English labels, shown in the interface's language. */
+  const parameterLabel = (parameter: ParameterDefinition) =>
+    t(`parameters.${parameter.id}`, { defaultValue: parameter.label })
+  const optionLabel = (
+    parameterId: string,
+    option: { value: string; label: string }
+  ) =>
+    t(`parameterOptions.${parameterId}.${option.value}`, {
+      defaultValue: option.label,
+    })
+  const kindLabel = (value: string) =>
+    t(`operationKinds.${value}`, { defaultValue: operationKindLabel(value) })
+  const multipleTools = (slots: readonly string[], role: string) => {
+    const list = slots.map((slot) => `T${slot}`).join(", ")
+    return role === "drill"
+      ? t("generation.multipleToolsDrill", { slots: list })
+      : t("generation.multipleTools", { slots: list })
+  }
 
   const [state, setState] = useState(() => {
     const stored = drafts.get(operation.id)
@@ -329,10 +342,7 @@ export function OperationEditor({
   let draft = state.draft
   if (state.seen !== observed || state.source !== operation.source) {
     const next = rebase(draft, operation, saved, ownSave.current, plate)
-    if (next.replaced)
-      setNotice(
-        "This operation was changed elsewhere; its saved settings replaced your unsaved changes."
-      )
+    if (next.replaced) setNotice(t("editor.replacedElsewhere"))
     draft = next.draft
     setState({ draft: next.draft, seen: observed, source: operation.source })
   }
@@ -491,7 +501,9 @@ export function OperationEditor({
     } catch (problem) {
       if (!isConflict(problem))
         setError(
-          `Could not block this operation: ${errorText(problem, "saving failed.")}`
+          t("editor.blockFailed", {
+            detail: errorText(problem, t("editor.savingFailed")),
+          })
         )
     }
   }
@@ -503,7 +515,9 @@ export function OperationEditor({
     } catch (problem) {
       if (!isConflict(problem))
         setError(
-          `Could not save this operation: ${errorText(problem, "saving failed.")}`
+          t("editor.saveFailed", {
+            detail: errorText(problem, t("editor.savingFailed")),
+          })
         )
     }
   }
@@ -519,7 +533,7 @@ export function OperationEditor({
       .filter(Boolean)
       .join(" ")
     if (!text) return
-    toast.warning(clip(`${name} updated. ${text}`, 500))
+    toast.warning(clip(t("editor.updatedToast", { name, text }), 500))
   }
 
   const update = useRef<(controller: AbortController) => Promise<void>>(
@@ -533,9 +547,7 @@ export function OperationEditor({
     try {
       controller.signal.throwIfAborted()
       if ((role === "outline" || role === "drill") && !stock)
-        throw new Error(
-          "Assign stock to this plate in the workspace before generating this operation."
-        )
+        throw new Error(t("editor.needsStock"))
       const settings: Record<string, number | boolean | string> = {}
       for (const parameter of parameters) {
         if (parameter.group !== group && parameter.group !== "board") continue
@@ -544,10 +556,16 @@ export function OperationEditor({
         if (parameter.type === "number") {
           const number = Number(value)
           if (String(value).trim() === "" || !Number.isFinite(number))
-            throw new Error(`${parameterLabel(parameter)} is required.`)
+            throw new Error(
+              t("editor.parameterRequired", {
+                label: parameterLabel(parameter),
+              })
+            )
           if (number < parameter.min || number > parameter.max)
             throw new Error(
-              `${parameterLabel(parameter)} is outside its supported range.`
+              t("editor.parameterOutOfRange", {
+                label: parameterLabel(parameter),
+              })
             )
           settings[parameter.id] = number
         } else if (value !== undefined) settings[parameter.id] = value
@@ -562,7 +580,7 @@ export function OperationEditor({
         role !== "outline" &&
         role !== "drill"
       )
-        throw new Error("Choose an operation before generating its toolpath.")
+        throw new Error(t("editor.chooseOperationFirst"))
       const generated = await host.pcb.generate(
         {
           schemaVersion: 1,
@@ -580,11 +598,11 @@ export function OperationEditor({
       )
       controller.signal.throwIfAborted()
       if (generated.programs.length !== 1)
-        throw new Error("This source must produce exactly one operation.")
+        throw new Error(t("editor.oneOperationOnly"))
       const source = generated.programs[0].source
       const emitted = generatedToolSlots(source)
       if (emitted.length > 1) {
-        await reject(startedFrom, multipleToolsMessage(emitted, role))
+        await reject(startedFrom, multipleTools(emitted, role))
         return
       }
       const sent: PCBOperationData = {
@@ -612,7 +630,7 @@ export function OperationEditor({
       )
     } catch (problem) {
       if (controller.signal.aborted || isConflict(problem)) return
-      const message = errorText(problem, "Could not update this toolpath.")
+      const message = errorText(problem, t("editor.updateFailed"))
       if (refusedToolSlots(problem)) await reject(startedFrom, message)
       else setError(message)
     } finally {
@@ -629,8 +647,8 @@ export function OperationEditor({
     if (!invalidSavedSource || disabled || operation.source.nc === null) return
     if (rejectedSource.current === operation.source.nc) return
     rejectedSource.current = operation.source.nc
-    void reject(data, multipleToolsMessage(savedSlots, role))
-  }, [invalidSavedSource, disabled, operation.source.nc, retry])
+    void reject(data, multipleTools(savedSlots, role))
+  }, [invalidSavedSource, disabled, operation.source.nc, retry, t])
 
   useEffect(() => {
     updates.get(operation.id)?.abort()
@@ -684,9 +702,7 @@ export function OperationEditor({
       presetId !== null &&
       !selected.presets.some((item) => item.id === presetId)
     ) {
-      setError(
-        "This tool or preset has changed. Choose it again from the library."
-      )
+      setError(t("editor.toolOrPresetChanged"))
       return
     }
     const overrides: Values = { ...data.values }
@@ -767,7 +783,7 @@ export function OperationEditor({
         file: { name, content, role: detected, ...(link && { link }) },
       })
     } catch (problem) {
-      setError(errorText(problem, "Could not read this file."))
+      setError(errorText(problem, t("editor.readFailed")))
     } finally {
       readLock.current = false
       setReadingSource(false)
@@ -788,9 +804,13 @@ export function OperationEditor({
         />
       )
     } else if (parameter.type === "select") {
+      const options = parameter.options.map((option) => ({
+        value: option.value,
+        label: optionLabel(parameter.id, option),
+      }))
       control = (
         <Select
-          items={parameter.options}
+          items={options}
           value={String(value)}
           disabled={inactive}
           onValueChange={(next) => {
@@ -802,7 +822,7 @@ export function OperationEditor({
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              {parameter.options.map((option) => (
+              {options.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -852,7 +872,7 @@ export function OperationEditor({
   const mirrorAxis = parameters.find(
     (parameter) => parameter.id === "mirrorAxis"
   )
-  const toolLabel = "Choose tool from library…"
+  const toolLabel = t("editor.chooseTool")
   const converterProblem =
     pcb.status.error?.message ??
     (converterStatus?.status !== "ready" ? converterStatus?.message : null)
@@ -889,7 +909,7 @@ export function OperationEditor({
                 disabled={pcb.choose.isPending}
                 onClick={() => pcb.choose.mutate()}
               >
-                Choose pcb2gcode
+                {t("editor.chooseConverter")}
               </Button>
               <Button
                 type="button"
@@ -898,7 +918,9 @@ export function OperationEditor({
                 disabled={pcb.check.isPending}
                 onClick={() => pcb.check.mutate()}
               >
-                {pcb.check.isPending ? "Checking…" : "Check again"}
+                {pcb.check.isPending
+                  ? t("editor.checking")
+                  : t("editor.checkAgain")}
               </Button>
             </AlertAction>
           )}
@@ -921,7 +943,7 @@ export function OperationEditor({
                 setRetry((current) => current + 1)
               }}
             >
-              Retry
+              {t("editor.retry")}
             </Button>
           </AlertAction>
         </Alert>
@@ -942,9 +964,9 @@ export function OperationEditor({
           onReplace={(file) =>
             void replace(async () => {
               if (!hasAcceptedExtension(file.name))
-                throw new Error("Choose a Gerber or drill file.")
+                throw new Error(t("editor.chooseGerberOrDrill"))
               if (file.size > LIMITS.inputFile)
-                throw new Error("Choose a source file smaller than 8 MiB.")
+                throw new Error(t("editor.chooseSmallerFile"))
               return {
                 name: file.name,
                 content: await file.text(),
@@ -964,14 +986,13 @@ export function OperationEditor({
         />
         <FieldGroup>
           <Field>
-            <FieldLabel htmlFor={`${id}-kind`}>Operation</FieldLabel>
+            <FieldLabel htmlFor={`${id}-kind`}>
+              {t("editor.operationField")}
+            </FieldLabel>
             <Select
               items={[
-                { value: "", label: "Choose operation…" },
-                ...kinds.map((value) => ({
-                  value,
-                  label: operationKindLabel(value),
-                })),
+                { value: "", label: t("editor.chooseOperation") },
+                ...kinds.map((value) => ({ value, label: kindLabel(value) })),
               ]}
               value={kind}
               disabled={inactive}
@@ -984,10 +1005,12 @@ export function OperationEditor({
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectItem value="">Choose operation…</SelectItem>
+                  <SelectItem value="">
+                    {t("editor.chooseOperation")}
+                  </SelectItem>
                   {kinds.map((value) => (
                     <SelectItem key={value} value={value}>
-                      {operationKindLabel(value)}
+                      {kindLabel(value)}
                     </SelectItem>
                   ))}
                 </SelectGroup>
@@ -997,11 +1020,13 @@ export function OperationEditor({
           {group && (
             <>
               <Field>
-                <FieldLabel htmlFor={`${id}-tool`}>Tool</FieldLabel>
+                <FieldLabel htmlFor={`${id}-tool`}>
+                  {t("editor.toolField")}
+                </FieldLabel>
                 <ToolCard
                   id={`${id}-tool`}
                   tool={tool}
-                  aria-label="Choose tool from library"
+                  aria-label={t("editor.chooseToolAria")}
                   emptyLabel={toolLabel}
                   disabled={inactive}
                   onClick={() => void selectTool()}
@@ -1009,16 +1034,16 @@ export function OperationEditor({
               </Field>
               {tool && missingCuttingValues.length > 0 && (
                 <FieldDescription>
-                  Enter the missing cutting values:{" "}
-                  {missingCuttingValues
-                    .map((key) => {
-                      const parameter = parameters.find(
-                        (item) => item.id === key
-                      )
-                      return parameter ? parameterLabel(parameter) : key
-                    })
-                    .join(", ")}
-                  .
+                  {t("editor.missingCuttingValues", {
+                    values: missingCuttingValues
+                      .map((key) => {
+                        const parameter = parameters.find(
+                          (item) => item.id === key
+                        )
+                        return parameter ? parameterLabel(parameter) : key
+                      })
+                      .join(", "),
+                  })}
                 </FieldDescription>
               )}
               <FieldGroup className="gap-3">
@@ -1039,7 +1064,9 @@ export function OperationEditor({
         </FieldGroup>
       </form>
       {updating && (
-        <FieldDescription role="status">Updating toolpath…</FieldDescription>
+        <FieldDescription role="status">
+          {t("editor.updating")}
+        </FieldDescription>
       )}
       {notice && <FieldDescription role="status">{notice}</FieldDescription>}
     </div>

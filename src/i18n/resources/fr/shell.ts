@@ -44,13 +44,13 @@ export const frShell: UiResources["shell"] = {
     importedPlates_one: "Importé {{count}} plaque.",
     importedPlates_other: "Importé {{count}} plaques.",
     combined_oneOperation_onePlate:
-      "Ajouté {{operations}} opération et importé {{count}} plaque.",
+      "Ajouté {{operations}} opération et importé {{plates}} plaque.",
     combined_oneOperation_otherPlates:
-      "Ajouté {{operations}} opération et importé {{count}} plaques.",
+      "Ajouté {{operations}} opération et importé {{plates}} plaques.",
     combined_manyOperations_onePlate:
-      "Ajouté {{operations}} opérations et importé {{count}} plaque.",
+      "Ajouté {{operations}} opérations et importé {{plates}} plaque.",
     combined_manyOperations_otherPlates:
-      "Ajouté {{operations}} opérations et importé {{count}} plaques.",
+      "Ajouté {{operations}} opérations et importé {{plates}} plaques.",
     updateGone: "L’opération à mettre à jour n’existe plus.",
     upToDate: "{{name}} est à jour.",
     updated: "Mise à jour de {{name}}.",

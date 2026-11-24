@@ -57,7 +57,10 @@ export function ErrorFallback({
       )}
       <Empty role="alert">
         <EmptyHeader>
-          <EmptyTitle>{t("error.title")}</EmptyTitle>
+          {/* The last resort stays readable even if i18next itself is what failed. */}
+          <EmptyTitle>
+            {t("error.title", { defaultValue: "Something went wrong" })}
+          </EmptyTitle>
           <EmptyDescription className="line-clamp-4 break-words">
             {message || name}
           </EmptyDescription>
@@ -65,11 +68,11 @@ export function ErrorFallback({
         <EmptyContent className="flex-row justify-center">
           {reset && (
             <Button variant="outline" onClick={reset}>
-              {t("error.tryAgain")}
+              {t("error.tryAgain", { defaultValue: "Try again" })}
             </Button>
           )}
           <Button disabled={!report} onClick={() => setDialogOpen(true)}>
-            {t("error.report")}
+            {t("error.report", { defaultValue: "Report…" })}
           </Button>
         </EmptyContent>
       </Empty>

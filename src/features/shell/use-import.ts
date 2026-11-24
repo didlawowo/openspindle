@@ -96,21 +96,21 @@ function importedText(
   if (!operations) return t("import.importedPlates", { count: plates })
   if (operations === 1 && plates === 1)
     return t("import.combined_oneOperation_onePlate", {
-      count: plates,
+      plates,
       operations,
     })
   if (operations === 1)
     return t("import.combined_oneOperation_otherPlates", {
-      count: plates,
+      plates,
       operations,
     })
   if (plates === 1)
     return t("import.combined_manyOperations_onePlate", {
-      count: plates,
+      plates,
       operations,
     })
   return t("import.combined_manyOperations_otherPlates", {
-    count: plates,
+    plates,
     operations,
   })
 }

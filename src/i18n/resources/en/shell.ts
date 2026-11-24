@@ -42,13 +42,13 @@ export const enShell = {
     importedPlates_one: "Imported {{count}} plate.",
     importedPlates_other: "Imported {{count}} plates.",
     combined_oneOperation_onePlate:
-      "Added {{operations}} operation and imported {{count}} plate.",
+      "Added {{operations}} operation and imported {{plates}} plate.",
     combined_oneOperation_otherPlates:
-      "Added {{operations}} operation and imported {{count}} plates.",
+      "Added {{operations}} operation and imported {{plates}} plates.",
     combined_manyOperations_onePlate:
-      "Added {{operations}} operations and imported {{count}} plate.",
+      "Added {{operations}} operations and imported {{plates}} plate.",
     combined_manyOperations_otherPlates:
-      "Added {{operations}} operations and imported {{count}} plates.",
+      "Added {{operations}} operations and imported {{plates}} plates.",
     updateGone: "The operation to update no longer exists.",
     upToDate: "{{name}} is up to date.",
     updated: "Updated {{name}}.",

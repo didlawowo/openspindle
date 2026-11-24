@@ -1,4 +1,6 @@
 import { useId } from "react"
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { toast } from "sonner"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { OptionSelect } from "@/components/option-select"
@@ -50,10 +52,12 @@ const ROW = "grid grid-cols-2 items-center gap-3"
 type ProbeOption = Option<string> & { replaces?: string }
 
 /** A probe's ball, its diameter, as 3D probing takes it: "Ø 3 mm ball". */
-const ballText = ({ diameter }: Tool) =>
+const ballText = (t: TFunction<"prepare">, { diameter }: Tool) =>
   diameter === null
-    ? "No ball diameter"
-    : `Ø ${formatToolNumber(diameter, "millimeters")} mm ball`
+    ? t("probing.noBallDiameter")
+    : t("probing.ball", {
+        diameter: formatToolNumber(diameter, "millimeters"),
+      })
 
 /**
  * A probing operation's strategy, then its probe: the strategies of its task the machine
@@ -76,6 +80,7 @@ export function ProbingChoiceFields({
   machine: MachineProbing
   strategy: ProbingStrategy
 }) {
+  const { t } = useTranslation("prepare")
   const id = useId()
   const workspace = useWorkspaceStore()
   const library = useWorkspace((state) => state.tools)
@@ -97,7 +102,8 @@ export function ProbingChoiceFields({
           {
             value: toolId ?? "",
             label:
-              tool?.name ?? (toolId ? "Missing from the library" : "No probe"),
+              tool?.name ??
+              (toolId ? t("tools.missingFromLibrary") : t("probing.noProbe")),
             disabled: true,
           },
         ]),
@@ -134,7 +140,7 @@ export function ProbingChoiceFields({
   const probeHint = [
     `T${source.probe}`,
     ...(profile ? [profileText(profile)] : []),
-    ...(tool && source.task === "origin" ? [ballText(tool)] : []),
+    ...(tool && source.task === "origin" ? [ballText(t, tool)] : []),
   ].join(" · ")
 
   const dispatch = (commands: WorkspaceCommand[]) => {
@@ -188,7 +194,7 @@ export function ProbingChoiceFields({
       {strategies.length > 1 && (
         <Field orientation="horizontal" className={ROW}>
           <FieldLabel htmlFor={`${id}-strategy`}>
-            <Hint text={strategy.description}>Strategy</Hint>
+            <Hint text={strategy.description}>{t("probing.strategy")}</Hint>
           </FieldLabel>
           <OptionSelect
             id={`${id}-strategy`}
@@ -202,7 +208,7 @@ export function ProbingChoiceFields({
       )}
       <Field orientation="horizontal" className={ROW}>
         <FieldLabel htmlFor={`${id}-probe`}>
-          <Hint text={probeHint}>Probe</Hint>
+          <Hint text={probeHint}>{t("probing.probe")}</Hint>
         </FieldLabel>
         {/* OptionSelect's options carry no note of what choosing them changes. */}
         <Select

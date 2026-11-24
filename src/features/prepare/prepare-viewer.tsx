@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { BedViewer } from "@/components/workspace/bed-viewer"
 import type {
   ArrangeMenuRequest,
@@ -230,6 +232,7 @@ function useHiddenFixtureIds(): Readonly<Record<string, string[]>> {
 function usePickableParts(
   picking: OperationPicking | null
 ): readonly PickablePart[] {
+  const { t, i18n } = useTranslation("prepare")
   const parts = picking?.kind === "parts" ? picking : null
   const plate = useWorkspace(
     (state) =>
@@ -238,20 +241,25 @@ function usePickableParts(
   const operation =
     (parts && plate?.operations.find(({ id }) => id === parts.operationId)) ??
     null
-  return plate && operation ? pickablePaths(plate, operation) : NO_PARTS
+  return plate && operation
+    ? pickablePaths(t, i18n.language, plate, operation)
+    : NO_PARTS
 }
 
 /** The paths of the selected plate's operations a click selects, but for hidden operations'. */
 function useSelectableParts(): readonly PickablePart[] {
+  const { t, i18n } = useTranslation("prepare")
   const plate = useSelectedPlate()
   const hidden = useHiddenOperations()
   return useMemo(() => {
     if (!plate) return NO_PARTS
     const parts = plate.operations.flatMap((operation) =>
-      hidden.has(operation.id) ? [] : pickablePaths(plate, operation)
+      hidden.has(operation.id)
+        ? []
+        : pickablePaths(t, i18n.language, plate, operation)
     )
     return parts.length ? parts : NO_PARTS
-  }, [plate, hidden])
+  }, [plate, hidden, t, i18n.language])
 }
 
 /** Each operation's paths as the 3D view picks them, with the work origin they are placed at. */
@@ -259,30 +267,33 @@ const pickable = new WeakMap<
   Operation,
   {
     readonly origin: Plate["setup"]["workOrigin"]
+    readonly lang: string
     readonly parts: readonly PickablePart[]
   }
 >()
 
 /** An operation's paths where they cut on its plate's bed; none for one without paths. */
 function pickablePaths(
+  t: TFunction<"prepare">,
+  lang: string,
   plate: Plate,
   operation: Operation
 ): readonly PickablePart[] {
   const origin = plate.setup.workOrigin
   const saved = pickable.get(operation)
-  if (saved?.origin === origin) return saved.parts
+  if (saved?.origin === origin && saved.lang === lang) return saved.parts
   const found = suppressedParts(operation)
   const [x, y, z] = origin
   const parts = (found?.parts ?? []).map((part): PickablePart => ({
     operationId: operation.id,
     index: part.index,
-    label: `Path ${part.index + 1}${isSuppressed(operation) || found?.matched.has(part.index) ? " (suppressed)" : ""}`,
+    label: `${t("tree.path", { number: part.index + 1 })}${isSuppressed(operation) || found?.matched.has(part.index) ? t("tree.suppressedSuffix") : ""}`,
     min: [x + part.min[0], y + part.min[1], z],
     max: [x + part.max[0], y + part.max[1], z],
     cuts: part.cuts,
     origin: [x, y],
   }))
-  pickable.set(operation, { origin, parts })
+  pickable.set(operation, { origin, lang, parts })
   return parts
 }
 

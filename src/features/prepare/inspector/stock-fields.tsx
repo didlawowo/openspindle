@@ -1,4 +1,5 @@
 import { Pencil, Trash2 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import {
   Field,
@@ -25,9 +26,9 @@ import { StockSwatch } from "../stock/stock-swatch"
 
 /** The stock's size, each at most the machine's work area along its axis. */
 const DIMENSIONS = [
-  { key: "width", label: "Width", axis: 0 },
-  { key: "depth", label: "Depth", axis: 1 },
-  { key: "height", label: "Height", axis: 2 },
+  { key: "width", labelKey: "stock.width", axis: 0 },
+  { key: "depth", labelKey: "stock.depth", axis: 1 },
+  { key: "height", labelKey: "stock.height", axis: 2 },
 ] as const
 
 /** A colour as the colour picker takes it: #rrggbb, a three-digit colour spelt out. */
@@ -49,6 +50,7 @@ function StockMaterial({
   disabled?: boolean
   onChange: (stock: Stock) => void
 }) {
+  const { t } = useTranslation("prepare")
   const known = STOCK_MATERIALS.some((material) => material === stock.material)
   const options = [
     ...(known ? [] : [{ value: stock.material, label: stock.material }]),
@@ -65,8 +67,8 @@ function StockMaterial({
           <button
             type="button"
             className="flex shrink-0 rounded-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
-            aria-label="Stock material and colour"
-            title="Material and colour"
+            aria-label={t("stock.materialColour")}
+            title={t("stock.materialColour")}
           />
         }
       >
@@ -75,10 +77,12 @@ function StockMaterial({
       <PopoverContent align="start" className="w-64">
         <FieldGroup className="gap-4">
           <Field>
-            <FieldLabel htmlFor="stock-swatch-material">Material</FieldLabel>
+            <FieldLabel htmlFor="stock-swatch-material">
+              {t("stock.material")}
+            </FieldLabel>
             <OptionSelect
               id="stock-swatch-material"
-              aria-label="Stock material"
+              aria-label={t("stock.materialField")}
               options={options}
               value={stock.material}
               onValueChange={(material) =>
@@ -96,7 +100,7 @@ function StockMaterial({
           </Field>
           <ColorField
             id="stock-swatch-color"
-            label="Colour"
+            label={t("stock.colour")}
             value={fullHex(stock.color)}
             onChange={(color) => onChange({ ...stock, color })}
           />
@@ -118,10 +122,11 @@ export function StockFields({
   disabled?: boolean
   onChange: (patch: Partial<PlateSetup>) => void
 }) {
+  const { t } = useTranslation("prepare")
   const stock = setup.stock
   const { workArea } = kitForSetup(setup)
   return (
-    <FieldSet aria-label="Stock">
+    <FieldSet aria-label={t("inspector.tabStock")}>
       <FieldLegend className="w-full">
         <div className="flex items-center gap-3">
           {stock ? (
@@ -136,13 +141,13 @@ export function StockFields({
             <StockSwatch />
           )}
           <span className="min-w-0 flex-1 truncate">
-            {stock?.name ?? "No stock"}
+            {stock?.name ?? t("stock.none")}
           </span>
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Choose stock"
-            title="Choose stock"
+            aria-label={t("stock.choose")}
+            title={t("stock.choose")}
             disabled={disabled}
             onClick={() => openDialog({ kind: "stock", plateId })}
           >
@@ -152,8 +157,8 @@ export function StockFields({
             <Button
               variant="ghost"
               size="icon"
-              aria-label="Remove stock"
-              title="Remove stock"
+              aria-label={t("stock.remove")}
+              title={t("stock.remove")}
               disabled={disabled}
               onClick={() =>
                 onChange({ stock: null, stockSource: "unspecified" })
@@ -166,16 +171,16 @@ export function StockFields({
       </FieldLegend>
       {stock && (
         <FieldGroup>
-          {DIMENSIONS.map(({ key, label, axis }) => (
+          {DIMENSIONS.map(({ key, labelKey, axis }) => (
             <Field key={key} orientation="horizontal">
               <FieldLabel htmlFor={`stock-${key}`} className="w-20 shrink-0">
-                {label}
+                {t(labelKey)}
               </FieldLabel>
               <BoundedMeasurementInput
                 id={`stock-${key}`}
                 axis={DIMENSION_AXES[key]}
                 unit="mm"
-                label={`Stock ${key}`}
+                label={t("stock.dimensionAria", { dimension: t(labelKey) })}
                 min={0.01}
                 max={workArea[axis]}
                 disabled={disabled}

@@ -15,6 +15,7 @@ import type { Row } from "@tanstack/react-table"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "cn"
 import { Layers3, Plus, Search } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { CardTitle } from "@/components/ui/card"
@@ -84,6 +85,7 @@ function selectableOf(row: TreeRow) {
  * hide, add, reorder, group and search.
  */
 export function PlateTree({ className }: { className?: string }) {
+  const { t } = useTranslation("prepare")
   const plates = useWorkspace((state) => state.plates)
   const tools = useWorkspace((state) => state.tools)
   const selectedPlateId = useWorkspace((state) => state.selectedPlateId)
@@ -107,8 +109,8 @@ export function PlateTree({ className }: { className?: string }) {
     {}
   )
   const data = useMemo(
-    () => buildTreeRows(plates, tools, diagnosticsOf),
-    [plates, tools, diagnosticsOf]
+    () => buildTreeRows(t, plates, tools, diagnosticsOf),
+    [t, plates, tools, diagnosticsOf]
   )
   const searching = query.trim() !== ""
   // The row model reads the expanded state itself, so every expanded row is listed explicitly.
@@ -196,20 +198,20 @@ export function PlateTree({ className }: { className?: string }) {
   return (
     <section
       className={cn("flex min-h-0 flex-col border-t", className)}
-      aria-label="Plates"
+      aria-label={t("tree.ariaPlates")}
     >
       <header className="flex shrink-0 items-center gap-2 px-4 py-3">
         <Layers3 className="size-4" />
         <CardTitle role="heading" aria-level={2}>
-          Plates
+          {t("tree.title")}
         </CardTitle>
         <InputGroup className="flex-1">
           <InputGroupAddon>
             <Search />
           </InputGroupAddon>
           <InputGroupInput
-            aria-label="Search plates, fixtures, operations and sections"
-            placeholder="Search"
+            aria-label={t("tree.searchAria")}
+            placeholder={t("tree.searchPlaceholder")}
             value={query}
             onChange={(event) => {
               setQuery(event.target.value)
@@ -220,15 +222,15 @@ export function PlateTree({ className }: { className?: string }) {
         <Badge
           variant="secondary"
           className="font-numeric"
-          aria-label={`${plates.length} plates`}
+          aria-label={t("tree.plateCount", { count: plates.length })}
         >
           {plates.length}
         </Badge>
         <Button
           variant="ghost"
           size="icon-sm"
-          title="Add plate"
-          aria-label="Add plate"
+          title={t("tree.addPlate")}
+          aria-label={t("tree.addPlate")}
           onClick={addPlate}
         >
           <Plus />
@@ -238,7 +240,7 @@ export function PlateTree({ className }: { className?: string }) {
         ref={scroller}
         className="min-h-0 flex-1 overflow-y-auto px-2 pb-3"
         role="tree"
-        aria-label="Plates, fixtures and operations"
+        aria-label={t("tree.ariaTree")}
       >
         <div
           className="relative w-full"
@@ -291,7 +293,7 @@ export function PlateTree({ className }: { className?: string }) {
             onClick={() => openDialog({ kind: "add-operation" })}
           >
             <Plus />
-            Add program
+            {t("tree.addProgram")}
           </Button>
         )}
       </div>

@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next"
 import { isProgramFileName } from "@/app/workspace/import-files"
 import { compilePlate } from "@/domain/compile/compile"
 import type { CompiledPlate, CompiledSection } from "@/domain/compile/compile"
@@ -74,11 +75,11 @@ export type TreeRow =
       readonly suppressed: boolean
     })
 
-export const PHASE_LABELS: Record<Phase, string> = {
-  setup: "Setup",
-  machining: "Machining",
-  finish: "Finish",
-}
+const phaseLabels = (t: TFunction<"prepare">): Record<Phase, string> => ({
+  setup: t("tree.phase.setup"),
+  machining: t("tree.phase.machining"),
+  finish: t("tree.phase.finish"),
+})
 
 /** Names from files end in their extension (".nc", ".ngc", …); the tree shows them without it. */
 const treeLabel = (name: string) =>
@@ -166,13 +167,14 @@ function operationChildren(
 
 /** The paths of an operation's toolpath, with which it suppresses; none for an operation without parts. */
 function pathRows(
+  t: TFunction<"prepare">,
   plate: Plate,
   operation: Operation,
   parent: string
 ): TreeRow[] {
   const parts = suppressedParts(operation)
   if (!parts?.parts.length) return []
-  const label = "Paths"
+  const label = t("tree.paths")
   const search = `${parent} ${label}`
   return [
     {
@@ -185,7 +187,7 @@ function pathRows(
       label,
       search,
       subRows: parts.parts.map((part) => {
-        const name = `Path ${part.index + 1}`
+        const name = t("tree.path", { number: part.index + 1 })
         return {
           kind: "path",
           id: pathRowId(plate.id, operation.id, part.index),
@@ -204,11 +206,12 @@ function pathRows(
 
 /** The plate's fixtures on its bed, named as the Fixtures panel lists them. */
 function fixturesRow(
+  t: TFunction<"prepare">,
   plate: Plate,
   owner: string,
   plateSearch: string
 ): TreeRow {
-  const label = "Fixtures"
+  const label = t("tree.fixtures")
   const search = `${plateSearch} ${label}`
   const placed = namedFixtures(
     plate.setup.fixtures.filter((instance) => instance.enabled)
@@ -238,6 +241,7 @@ function fixturesRow(
  * rows of the plate tree; `tools` is the library the plates' tables refer to.
  */
 export function buildTreeRows(
+  t: TFunction<"prepare">,
   plates: readonly Plate[],
   tools: readonly Tool[],
   diagnosticsOf: (plate: Plate) => readonly Diagnostic[]
@@ -252,11 +256,11 @@ export function buildTreeRows(
     const label = plateLabel(plate, index)
     // A named plate is still found by its number.
     const plateSearch = `${numberedPlate(index)} ${plate.name}`
-    const operationsSearch = `${plateSearch} Operations`
+    const operationsSearch = `${plateSearch} ${t("tree.operations")}`
     const operations = plate.operations.map((operation, position): TreeRow => {
       const phase = operationPhase(operation)
       const operationLabel = treeLabel(operation.name)
-      const search = `${operationsSearch} ${operationLabel} ${PHASE_LABELS[phase]}`
+      const search = `${operationsSearch} ${operationLabel} ${phaseLabels(t)[phase]}`
       return {
         kind: "operation",
         id: `operation:${operation.id}`,
@@ -278,7 +282,7 @@ export function buildTreeRows(
             byId,
             search
           ),
-          ...pathRows(plate, operation, search),
+          ...pathRows(t, plate, operation, search),
         ],
       }
     })
@@ -296,18 +300,18 @@ export function buildTreeRows(
           id: `stock:${plate.id}`,
           plate,
           owner: label,
-          label: "Stock",
-          search: `${plateSearch} Stock ${plate.setup.stock?.name ?? ""}`,
+          label: t("tree.stock"),
+          search: `${plateSearch} ${t("tree.stock")} ${plate.setup.stock?.name ?? ""}`,
           subRows: [],
         },
-        fixturesRow(plate, label, plateSearch),
+        fixturesRow(t, plate, label, plateSearch),
         {
           kind: "operations",
           id: `operations:${plate.id}`,
           plate,
           owner: label,
           count: plate.operations.length,
-          label: "Operations",
+          label: t("tree.operations"),
           search: operationsSearch,
           subRows: operations,
         },

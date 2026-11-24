@@ -30,6 +30,8 @@ import {
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { cn } from "cn"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -146,13 +148,18 @@ function ExpandButton({
   row: TreeTableRow
   onToggle: () => void
 }) {
+  const { t } = useTranslation("prepare")
   if (!row.getCanExpand()) return <span className="size-7 shrink-0" />
   const expanded = row.getIsExpanded()
   return (
     <Button
       variant="ghost"
       size="icon-sm"
-      aria-label={`${expanded ? "Collapse" : "Expand"} ${row.original.label}`}
+      aria-label={
+        expanded
+          ? t("tree.collapse", { label: row.original.label })
+          : t("tree.expand", { label: row.original.label })
+      }
       onClick={onToggle}
     >
       {expanded ? <ChevronDown /> : <ChevronRight />}
@@ -217,12 +224,13 @@ function IconAction({
 }
 
 function ErrorCount({ count }: { count: number }) {
+  const { t } = useTranslation("prepare")
   if (!count) return null
   return (
     <Badge
       variant="destructive"
       className="font-numeric"
-      title={`${count} problems block Run`}
+      title={t("tree.problemsBlock", { count })}
     >
       {count}
     </Badge>
@@ -236,6 +244,7 @@ function ErrorCount({ count }: { count: number }) {
  * change back (`WorkspaceStore.undo` does not move the selection itself).
  */
 function toastUndoable(
+  t: TFunction<"prepare">,
   workspace: WorkspaceStore,
   previous: StepId | null,
   message: string,
@@ -249,13 +258,11 @@ function toastUndoable(
   }
   toast(message, {
     action: {
-      label: "Undo",
+      label: t("tree.undo"),
       onClick: () => {
         if (workspace.undo(step)) onUndo?.()
         else if (workspace.history.holds(step))
-          toast.info(
-            "Newer changes follow this one. Undo them first with Edit › Undo."
-          )
+          toast.info(t("tree.newerChanges"))
       },
     },
   })
@@ -264,6 +271,7 @@ function toastUndoable(
 function PlateRow(
   props: RowProps & { node: Extract<TreeRow, { kind: "plate" }> }
 ) {
+  const { t } = useTranslation("prepare")
   const workspace = useWorkspaceStore()
   const { node, row } = props
   // A fixture of the plate selected in the viewer is what is selected, not the plate.
@@ -285,7 +293,12 @@ function PlateRow(
   const remove = () => {
     const previous = workspace.history.latestStep
     if (workspace.dispatch({ type: "plate.remove", plateId: node.plate.id }).ok)
-      toastUndoable(workspace, previous, `Removed ${node.label}.`)
+      toastUndoable(
+        t,
+        workspace,
+        previous,
+        t("tree.removed", { label: node.label })
+      )
   }
   return (
     <RowFrame row={row} selected={active}>
@@ -300,20 +313,23 @@ function PlateRow(
       </RowButton>
       <ErrorCount count={node.errors} />
       <IconAction
-        label={`Move ${node.label} up`}
+        label={t("tree.moveUp", { label: node.label })}
         disabled={node.index === 0}
         onClick={() => move(-1)}
       >
         <ArrowUp />
       </IconAction>
       <IconAction
-        label={`Move ${node.label} down`}
+        label={t("tree.moveDown", { label: node.label })}
         disabled={!neighbor(1)}
         onClick={() => move(1)}
       >
         <ArrowDown />
       </IconAction>
-      <IconAction label={`Remove ${node.label}`} onClick={remove}>
+      <IconAction
+        label={t("tree.remove", { label: node.label })}
+        onClick={remove}
+      >
         <X />
       </IconAction>
     </RowFrame>
@@ -334,10 +350,13 @@ function GroupEye({
   count: number
   onChange: (hidden: boolean) => void
 }) {
+  const { t } = useTranslation("prepare")
   const shown = count === 0 || hidden < count
   return (
     <IconAction
-      label={`${shown ? "Hide" : "Show"} ${label} in the 3D view`}
+      label={
+        shown ? t("tree.hideIn3d", { label }) : t("tree.showIn3d", { label })
+      }
       disabled={count === 0}
       onClick={() => onChange(shown)}
     >
@@ -351,6 +370,7 @@ function GroupEye({
 function StockRow(
   props: RowProps & { node: Extract<TreeRow, { kind: "stock" }> }
 ) {
+  const { t } = useTranslation("prepare")
   const { node, row } = props
   const { plate } = node
   const active = props.selectedStockPlateId === plate.id
@@ -361,13 +381,13 @@ function StockRow(
       <span className="size-6 shrink-0" />
       <RowButton
         active={active}
-        title={`Stock of ${node.owner}`}
+        title={t("tree.stockOf", { owner: node.owner })}
         onClick={() => props.onSelectStock(plate.id)}
       >
         <Cylinder />
         <span className="truncate">{node.label}</span>
         <span className="truncate text-muted-foreground">
-          {plate.setup.stock?.name ?? "None"}
+          {plate.setup.stock?.name ?? t("tree.none")}
         </span>
       </RowButton>
     </RowFrame>
@@ -377,6 +397,7 @@ function StockRow(
 function FixturesRow(
   props: RowProps & { node: Extract<TreeRow, { kind: "fixtures" }> }
 ) {
+  const { t } = useTranslation("prepare")
   const { node, row } = props
   const { plate } = node
   const hidden = useHiddenFixtures()
@@ -399,14 +420,14 @@ function FixturesRow(
       >
         <ExpandButton row={row} onToggle={props.onToggle} />
         <GroupEye
-          label={`fixtures of ${node.owner}`}
+          label={t("tree.fixturesOf", { owner: node.owner })}
           hidden={hiddenCount}
           count={ids.length}
           onChange={(hide) => setFixturesHidden(plate.id, ids, hide)}
         />
         <RowButton
           active={false}
-          title={`Fixtures of ${node.owner}`}
+          title={t("tree.fixturesOfTitle", { owner: node.owner })}
           onClick={() => props.onShowFixtures(plate.id)}
         >
           <Boxes />
@@ -415,22 +436,25 @@ function FixturesRow(
         <Badge
           variant="secondary"
           className="font-numeric"
-          aria-label={`${node.count} fixtures`}
+          aria-label={t("tree.fixtureCount", { count: node.count })}
         >
           {node.count}
         </Badge>
-        <IconAction label={`Add fixture to ${node.owner}`} onClick={add}>
+        <IconAction
+          label={t("tree.addFixtureTo", { owner: node.owner })}
+          onClick={add}
+        >
           <Plus />
         </IconAction>
       </ContextMenuTrigger>
       <ContextMenuContent>
-        <ContextMenuItem onClick={add}>Add fixture…</ContextMenuItem>
+        <ContextMenuItem onClick={add}>{t("tree.addFixture")}</ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem
           disabled={!ids.length}
           onClick={() => setFixturesHidden(plate.id, ids, !allHidden)}
         >
-          {allHidden ? "Show all" : "Hide all"}
+          {allHidden ? t("tree.showAll") : t("tree.hideAll")}
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
@@ -444,6 +468,7 @@ function FixturesRow(
 function FixtureRow(
   props: RowProps & { node: Extract<TreeRow, { kind: "fixture" }> }
 ) {
+  const { t } = useTranslation("prepare")
   const workspace = useWorkspaceStore()
   const { node, row } = props
   const { plate, instance } = node
@@ -455,7 +480,7 @@ function FixtureRow(
   const Icon = FIXTURE_ICONS[kind]
   const bed = isBedKind(kind)
   const locked = isLocked(instance)
-  const lock = lockToggleCopy(locked)
+  const lock = lockToggleCopy(t, locked)
   const toggleHidden = () => setFixturesHidden(plate.id, [instance.id], !hidden)
   const toggleLocked = () =>
     toggleLock(workspace, {
@@ -469,7 +494,13 @@ function FixtureRow(
       plateId: plate.id,
       fixtureId: instance.id,
     })
-    if (removed.ok) toastUndoable(workspace, previous, `Removed ${node.label}.`)
+    if (removed.ok)
+      toastUndoable(
+        t,
+        workspace,
+        previous,
+        t("tree.removed", { label: node.label })
+      )
     else toast.error(removed.error)
   }
   return (
@@ -482,7 +513,11 @@ function FixtureRow(
         {/* A fixture without a model is not drawn, so there is nothing to hide. */}
         {model ? (
           <IconAction
-            label={`${hidden ? "Show" : "Hide"} ${node.label} in the 3D view`}
+            label={
+              hidden
+                ? t("tree.showIn3d", { label: node.label })
+                : t("tree.hideIn3d", { label: node.label })
+            }
             onClick={toggleHidden}
           >
             {hidden ? <EyeOff /> : <Eye />}
@@ -500,7 +535,10 @@ function FixtureRow(
         </RowButton>
         {!bed && (
           <IconAction
-            label={`${lock.label} ${node.label}`}
+            label={t("tree.lockItem", {
+              action: lock.label,
+              label: node.label,
+            })}
             title={lock.description}
             pressed={locked}
             onClick={toggleLocked}
@@ -509,10 +547,10 @@ function FixtureRow(
           </IconAction>
         )}
         <IconAction
-          label={`Remove ${node.label}`}
+          label={t("tree.remove", { label: node.label })}
           title={
             locked
-              ? `${node.label} is locked. Unlock it to remove it.`
+              ? t("tree.lockedCantRemove", { label: node.label })
               : undefined
           }
           onClick={remove}
@@ -523,7 +561,7 @@ function FixtureRow(
       <ContextMenuContent>
         {model && (
           <ContextMenuItem onClick={toggleHidden}>
-            {hidden ? "Show" : "Hide"}
+            {hidden ? t("tree.show") : t("tree.hide")}
           </ContextMenuItem>
         )}
         {!bed && (
@@ -531,17 +569,19 @@ function FixtureRow(
             checked={locked}
             onCheckedChange={toggleLocked}
           >
-            Locked
+            {t("tree.lockedMenu")}
           </ContextMenuCheckboxItem>
         )}
         {(model || !bed) && <ContextMenuSeparator />}
         <ContextMenuItem
           onClick={() => openDialog({ kind: "add-fixture", plateId: plate.id })}
         >
-          Add fixture…
+          {t("tree.addFixture")}
         </ContextMenuItem>
         <ContextMenuSeparator />
-        <ContextMenuItem onClick={remove}>Remove</ContextMenuItem>
+        <ContextMenuItem onClick={remove}>
+          {t("tree.removePlain")}
+        </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
   )
@@ -551,6 +591,7 @@ function FixtureRow(
 function OperationsRow(
   props: RowProps & { node: Extract<TreeRow, { kind: "operations" }> }
 ) {
+  const { t } = useTranslation("prepare")
   const { node, row } = props
   const { plate } = node
   const hidden = useHiddenOperations()
@@ -569,14 +610,14 @@ function OperationsRow(
       >
         <ExpandButton row={row} onToggle={props.onToggle} />
         <GroupEye
-          label={`operations of ${node.owner}`}
+          label={t("tree.operationsOf", { owner: node.owner })}
           hidden={hiddenCount}
           count={ids.length}
           onChange={(hide) => setOperationsHidden(ids, hide)}
         />
         <RowButton
           active={false}
-          title={`Operations of ${node.owner}`}
+          title={t("tree.operationsOfTitle", { owner: node.owner })}
           onClick={() => props.onSelectPlate(plate.id)}
         >
           <ListOrdered />
@@ -585,22 +626,27 @@ function OperationsRow(
         <Badge
           variant="secondary"
           className="font-numeric"
-          aria-label={`${node.count} operations`}
+          aria-label={t("tree.operationCount", { count: node.count })}
         >
           {node.count}
         </Badge>
-        <IconAction label={`Add operation to ${node.owner}`} onClick={add}>
+        <IconAction
+          label={t("tree.addOperationTo", { owner: node.owner })}
+          onClick={add}
+        >
           <Plus />
         </IconAction>
       </ContextMenuTrigger>
       <ContextMenuContent>
-        <ContextMenuItem onClick={add}>Add operation…</ContextMenuItem>
+        <ContextMenuItem onClick={add}>
+          {t("tree.addOperation")}
+        </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem
           disabled={!ids.length}
           onClick={() => setOperationsHidden(ids, !allHidden)}
         >
-          {allHidden ? "Show all" : "Hide all"}
+          {allHidden ? t("tree.showAll") : t("tree.hideAll")}
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
@@ -637,16 +683,17 @@ function transferCommand(
 }
 
 /** A copy's name: "copy" after the name, before a program file's extension. */
-const copyName = (name: string) =>
+const copyName = (t: TFunction<"prepare">, name: string) =>
   isProgramFileName(name)
-    ? name.replace(/(\.[a-z0-9]+)$/i, " copy$1")
-    : `${name} copy`
+    ? name.replace(/(\.[a-z0-9]+)$/i, ` ${t("tree.copySuffix")}$1`)
+    : `${name} ${t("tree.copySuffix")}`
 
 /**
  * Adds a copy of an operation right after it, with its tools, as a new operation of its own:
  * editing either leaves the other as it is.
  */
 function duplicateCommand(
+  t: TFunction<"prepare">,
   plate: Plate,
   operation: Operation
 ): Extract<WorkspaceCommand, { type: "operation.add" }> {
@@ -656,7 +703,7 @@ function duplicateCommand(
     operation: {
       ...structuredClone(operation),
       id: newId(),
-      name: copyName(operation.name),
+      name: copyName(t, operation.name),
       revision: 0,
       tools: [],
     },
@@ -677,6 +724,7 @@ function UpdateItems({
   plate: Plate
   operation: Operation
 }) {
+  const { t } = useTranslation("prepare")
   const fusionUpdate = useFusionUpdate()
   const { source } = operation
   const fromFusion = source.kind === "file" && source.origin !== undefined
@@ -692,7 +740,7 @@ function UpdateItems({
           })
         }
       >
-        Update from Fusion 360
+        {t("tree.updateFusion")}
       </ContextMenuItem>
       <ContextMenuSeparator />
     </>
@@ -718,24 +766,25 @@ function OperationMenu({
   onMove: (plateId: string) => void
   onRemove: () => void
 }) {
+  const { t } = useTranslation("prepare")
   const plates = useWorkspace((state) => state.plates)
   const plateId = plate.id
   const suppressed = isSuppressed(operation)
   return (
     <>
       <ContextMenuItem onClick={() => onSuppress(!suppressed)}>
-        {suppressed ? "Unsuppress" : "Suppress"}
+        {suppressed ? t("tree.unsuppress") : t("tree.suppress")}
       </ContextMenuItem>
       <UpdateItems plate={plate} operation={operation} />
       <ContextMenuItem
         disabled={plate.operations.length >= 100}
         onClick={onDuplicate}
       >
-        Duplicate
+        {t("tree.duplicate")}
       </ContextMenuItem>
       <ContextMenuSub>
         <ContextMenuSubTrigger disabled={plates.length < 2}>
-          Move to
+          {t("tree.moveTo")}
         </ContextMenuSubTrigger>
         <ContextMenuSubContent>
           {plates.map((target, index) => (
@@ -750,7 +799,9 @@ function OperationMenu({
         </ContextMenuSubContent>
       </ContextMenuSub>
       <ContextMenuSeparator />
-      <ContextMenuItem onClick={onRemove}>Remove</ContextMenuItem>
+      <ContextMenuItem onClick={onRemove}>
+        {t("tree.removePlain")}
+      </ContextMenuItem>
     </>
   )
 }
@@ -758,6 +809,7 @@ function OperationMenu({
 function OperationRow(
   props: RowProps & { node: Extract<TreeRow, { kind: "operation" }> }
 ) {
+  const { t } = useTranslation("prepare")
   const workspace = useWorkspaceStore()
   const { node, row } = props
   const { plate, operation } = node
@@ -787,11 +839,17 @@ function OperationRow(
       plateId: plate.id,
       operationId: operation.id,
     })
-    if (removed.ok) toastUndoable(workspace, previous, `Removed ${node.label}.`)
+    if (removed.ok)
+      toastUndoable(
+        t,
+        workspace,
+        previous,
+        t("tree.removed", { label: node.label })
+      )
   }
   // The copy is selected, as an operation just added is.
   const duplicate = () => {
-    const command = duplicateCommand(plate, operation)
+    const command = duplicateCommand(t, plate, operation)
     const added = workspace.dispatch(command)
     if (!added.ok) {
       toast.error(added.error)
@@ -813,9 +871,13 @@ function OperationRow(
     // The inspector shows operations of the selected plate: a selected operation is followed.
     if (active) props.onSelectOperation(targetId, operation.id)
     toastUndoable(
+      t,
       workspace,
       previous,
-      `Moved ${node.label} to ${plateLabel(plates[target], target)}.`,
+      t("tree.moved", {
+        label: node.label,
+        plate: plateLabel(plates[target], target),
+      }),
       () => {
         // Undo puts the operation back on its own plate: follow it there too.
         if (active && workspace.state.selectedPlateId === targetId)
@@ -831,14 +893,22 @@ function OperationRow(
       >
         <ExpandButton row={row} onToggle={props.onToggle} />
         <IconAction
-          label={`${hidden ? "Show" : "Hide"} ${node.label} in the 3D view`}
+          label={
+            hidden
+              ? t("tree.showIn3d", { label: node.label })
+              : t("tree.hideIn3d", { label: node.label })
+          }
           onClick={() => toggleOperationHidden(operation.id)}
         >
           {hidden ? <EyeOff /> : <Eye />}
         </IconAction>
         <RowButton
           active={active}
-          title={suppressed ? `${operation.name} (suppressed)` : operation.name}
+          title={
+            suppressed
+              ? t("tree.suppressedName", { name: operation.name })
+              : operation.name
+          }
           onClick={() => props.onSelectOperation(plate.id, operation.id)}
         >
           <Icon className={cn(suppressed && SUPPRESSED)} />
@@ -848,21 +918,21 @@ function OperationRow(
         </RowButton>
         <ErrorCount count={node.errors} />
         <IconAction
-          label={`Move ${node.label} up`}
+          label={t("tree.moveUp", { label: node.label })}
           disabled={node.index === 0}
           onClick={() => move(node.index - 1)}
         >
           <ArrowUp />
         </IconAction>
         <IconAction
-          label={`Move ${node.label} down`}
+          label={t("tree.moveDown", { label: node.label })}
           disabled={node.index === node.count - 1}
           onClick={() => move(node.index + 1)}
         >
           <ArrowDown />
         </IconAction>
         <IconAction
-          label={`View source of ${node.label}`}
+          label={t("tree.viewSource", { label: node.label })}
           onClick={() =>
             openDialog({
               kind: "source",
@@ -873,7 +943,10 @@ function OperationRow(
         >
           <FileCode2 />
         </IconAction>
-        <IconAction label={`Remove ${node.label}`} onClick={remove}>
+        <IconAction
+          label={t("tree.remove", { label: node.label })}
+          onClick={remove}
+        >
           <X />
         </IconAction>
       </ContextMenuTrigger>
@@ -894,6 +967,7 @@ function OperationRow(
 function GroupRow(
   props: RowProps & { node: Extract<TreeRow, { kind: "group" }> }
 ) {
+  const { t } = useTranslation("prepare")
   const workspace = useWorkspaceStore()
   const [editing, setEditing] = useState(false)
   const { node, row } = props
@@ -926,7 +1000,7 @@ function GroupRow(
       {editing ? (
         <InlineNameInput
           name={group.name}
-          label="Group name"
+          label={t("tree.groupNameLabel")}
           maxLength={TEXT_LIMIT}
           onSave={(name) =>
             setGroups((groups) =>
@@ -940,7 +1014,7 @@ function GroupRow(
       ) : (
         <RowButton
           active={false}
-          title="Double-click to rename"
+          title={t("tree.dblClickRename")}
           onClick={selectGroup}
         >
           <Icon />
@@ -950,13 +1024,13 @@ function GroupRow(
         </RowButton>
       )}
       <IconAction
-        label={`Rename ${group.name}`}
+        label={t("tree.rename", { name: group.name })}
         onClick={() => setEditing(true)}
       >
         <PencilLine />
       </IconAction>
       <IconAction
-        label={`Ungroup ${group.name}`}
+        label={t("tree.ungroup", { name: group.name })}
         onClick={() =>
           setGroups((groups) => groups.filter((item) => item.id !== group.id))
         }
@@ -970,6 +1044,7 @@ function GroupRow(
 function SectionRow(
   props: RowProps & { node: Extract<TreeRow, { kind: "section" }> }
 ) {
+  const { t } = useTranslation("prepare")
   const { node, row } = props
   const { section } = node
   const selected = row.getIsSelected()
@@ -979,7 +1054,11 @@ function SectionRow(
       <span className="size-7 shrink-0" />
       <RowButton
         active={selected}
-        title={`${section.name} · Lines ${section.startLine}–${section.endLine}`}
+        title={t("tree.sectionLines", {
+          name: section.name,
+          start: section.startLine,
+          end: section.endLine,
+        })}
         onClick={props.onSelectSection}
       >
         <Icon />
@@ -991,7 +1070,10 @@ function SectionRow(
         </Badge>
       )}
       <Checkbox
-        aria-label={`Select ${section.name} at line ${section.startLine}`}
+        aria-label={t("tree.selectSection", {
+          name: section.name,
+          line: section.startLine,
+        })}
         checked={selected}
         onCheckedChange={() => row.toggleSelected()}
       />
@@ -1007,17 +1089,18 @@ function PathsMenuItems({
   plate: Plate
   operation: Operation
 }) {
+  const { t } = useTranslation("prepare")
   const parts = useSuppressParts()
   return (
     <>
       <ContextMenuItem onClick={() => parts.invert(plate, operation)}>
-        Invert suppressed paths
+        {t("tree.invertPaths")}
       </ContextMenuItem>
       <ContextMenuItem
         disabled={!operation.suppressedParts?.length}
         onClick={() => parts.clear(plate, operation)}
       >
-        Unsuppress all paths
+        {t("tree.unsuppressAllPaths")}
       </ContextMenuItem>
     </>
   )
@@ -1026,6 +1109,7 @@ function PathsMenuItems({
 function PathsRow(
   props: RowProps & { node: Extract<TreeRow, { kind: "paths" }> }
 ) {
+  const { t } = useTranslation("prepare")
   const { node, row } = props
   const { plate, operation, count, suppressed } = node
   return (
@@ -1044,8 +1128,12 @@ function PathsRow(
           className="font-numeric"
           title={
             suppressed
-              ? `${count - suppressed} of ${count} paths run; ${suppressed} suppressed`
-              : `${count} paths`
+              ? t("tree.pathsRunSuppressed", {
+                  run: count - suppressed,
+                  count,
+                  suppressed,
+                })
+              : t("tree.pathsCount", { count })
           }
         >
           {suppressed ? `${count - suppressed}/${count}` : count}
@@ -1061,6 +1149,7 @@ function PathsRow(
 function PathRow(
   props: RowProps & { node: Extract<TreeRow, { kind: "path" }> }
 ) {
+  const { t } = useTranslation("prepare")
   const { node, row } = props
   const { plate, operation, part, suppressed } = node
   const parts = useSuppressParts()
@@ -1076,7 +1165,12 @@ function PathRow(
         <span className="size-7 shrink-0" />
         <RowButton
           active={selected}
-          title={`${node.label} · X ${x.toFixed(2)} Y ${y.toFixed(2)}${suppressed ? " (suppressed)" : ""}`}
+          title={t("tree.pathCenter", {
+            label: node.label,
+            x: x.toFixed(2),
+            y: y.toFixed(2),
+            suppressed: suppressed ? t("tree.suppressedSuffix") : "",
+          })}
           onClick={props.onSelectSection}
         >
           <Spline className={cn(suppressed && SUPPRESSED)} />
@@ -1087,12 +1181,12 @@ function PathRow(
       </ContextMenuTrigger>
       <ContextMenuContent>
         <ContextMenuItem onClick={toggle}>
-          {suppressed ? "Unsuppress" : "Suppress"}
+          {suppressed ? t("tree.unsuppress") : t("tree.suppress")}
         </ContextMenuItem>
         <ContextMenuItem
           onClick={() => parts.only(plate, operation, part.index)}
         >
-          Run only this path
+          {t("tree.runOnlyThisPath")}
         </ContextMenuItem>
         <ContextMenuSeparator />
         <PathsMenuItems plate={plate} operation={operation} />

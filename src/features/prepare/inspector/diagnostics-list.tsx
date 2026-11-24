@@ -1,4 +1,5 @@
 import { CircleAlert, TriangleAlert, Waypoints } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { Alert, AlertAction, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Toggle } from "@/components/ui/toggle"
@@ -11,7 +12,7 @@ import {
   isFocused,
   useProblemFocus,
 } from "@/features/viewer/problem-focus"
-import { QUICK_FIX_LABELS, useQuickFix, useReadAnchorsFix } from "../quick-fix"
+import { useQuickFix, useQuickFixLabels, useReadAnchorsFix } from "../quick-fix"
 
 /**
  * Problems and advice for a plate or operation, each with the fix it offers, and Show for those
@@ -24,12 +25,14 @@ export function DiagnosticsList({
   plate: Plate
   diagnostics: readonly KeyedDiagnostic[]
 }) {
+  const { t } = useTranslation("prepare")
   const quickFix = useQuickFix()
+  const quickFixLabels = useQuickFixLabels()
   const readAnchors = useReadAnchorsFix(plate.id)
   const focus = useProblemFocus()
   if (!diagnostics.length) return null
   return (
-    <div className="flex flex-col gap-2" aria-label="Problems">
+    <div className="flex flex-col gap-2" aria-label={t("inspector.problems")}>
       {diagnostics.map(({ key, diagnostic }) => {
         const error = diagnostic.severity === "error"
         const Icon = error ? CircleAlert : TriangleAlert
@@ -53,20 +56,20 @@ export function DiagnosticsList({
                 {placed && (
                   <Toggle
                     size="sm"
-                    aria-label="Show in the 3D view"
+                    aria-label={t("inspector.showIn3d")}
                     pressed={isFocused(focus, plate.id, key)}
                     onPressedChange={(pressed) =>
                       focusProblem(pressed ? { plateId: plate.id, key } : null)
                     }
                   >
-                    Show
+                    {t("inspector.show")}
                   </Toggle>
                 )}
                 {fix?.kind === "read-anchors" && (
                   <MachineActionButton
                     action={readAnchors}
-                    label={QUICK_FIX_LABELS[fix.kind]}
-                    pendingLabel="Reading anchors…"
+                    label={quickFixLabels[fix.kind]}
+                    pendingLabel={t("inspector.readingAnchors")}
                     variant={error ? "warning" : "outline"}
                     size="xs"
                     icon={<Waypoints data-icon="inline-start" />}
@@ -78,7 +81,7 @@ export function DiagnosticsList({
                     size="xs"
                     onClick={() => quickFix(plate, fix)}
                   >
-                    {QUICK_FIX_LABELS[fix.kind]}
+                    {quickFixLabels[fix.kind]}
                   </Button>
                 )}
               </AlertAction>

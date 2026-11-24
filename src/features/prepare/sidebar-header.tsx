@@ -1,5 +1,6 @@
 import { ChevronRight, Cpu, Plus, RotateCcw } from "lucide-react"
 import { toast } from "sonner"
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -29,6 +30,7 @@ import { useMachineSnapshot } from "@/platform/machine"
 
 /** The connected machine at a glance; opens the device picker. */
 export function DeviceCard() {
+  const { t } = useTranslation("prepare")
   const { device, restarting } = useMachineSnapshot().connection
   const imageUrl = device ? kitForDevice(device.model)?.imageUrl : undefined
   return (
@@ -48,7 +50,10 @@ export function DeviceCard() {
           </EmptyMedia>
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <CardTitle>
-              {device?.name ?? (restarting ? "Restarting…" : "Connect device")}
+              {device?.name ??
+                (restarting
+                  ? t("sidebar.restarting")
+                  : t("sidebar.connectDevice"))}
             </CardTitle>
             {device && <CardDescription>{device.host}</CardDescription>}
           </div>
@@ -59,9 +64,6 @@ export function DeviceCard() {
   )
 }
 
-const BED_SETUP_HINT =
-  "One of the plate's device's bed setups (Device → Bed setup): its bed, fixtures and anchors, which the plate follows. Choosing one sets the plate up on it."
-
 /**
  * The bed setup of its device the selected plate is set up on: choosing another sets it up on
  * that one (its fixtures, the plate's locked ones aside, and its anchors), and applying it again
@@ -69,6 +71,8 @@ const BED_SETUP_HINT =
  * as on another computer, can add it to its device's profile.
  */
 export function BedSetupField() {
+  const { t } = useTranslation("prepare")
+  const bedSetupHint = t("sidebar.bedSetupHint")
   const workspace = useWorkspaceStore()
   const fixtureLibrary = useFixtureLibraryStore()
   const plate = useSelectedPlate()
@@ -106,7 +110,7 @@ export function BedSetupField() {
       profileId,
       {
         id: setup.bedSetupId ?? newId(),
-        name: plate.name || "Plate's bed setup",
+        name: plate.name || t("sidebar.plateBedSetup"),
         fixtures: setup.fixtures.map((item) => ({
           definitionId: item.definition.id,
           enabled: item.enabled,
@@ -121,11 +125,11 @@ export function BedSetupField() {
   return (
     <Field orientation="horizontal">
       <FieldLabel htmlFor="bed-setup" className="shrink-0">
-        <Hint text={BED_SETUP_HINT}>Bed setup</Hint>
+        <Hint text={bedSetupHint}>{t("sidebar.bedSetup")}</Hint>
       </FieldLabel>
       <OptionSelect
         id="bed-setup"
-        aria-description={BED_SETUP_HINT}
+        aria-description={bedSetupHint}
         className="min-w-0 flex-1"
         options={[
           ...(profile?.bedSetups ?? []).map((item) => ({
@@ -136,7 +140,7 @@ export function BedSetupField() {
             ? [
                 {
                   value: selectedId,
-                  label: "Not on this computer",
+                  label: t("sidebar.notOnThisComputer"),
                   disabled: true,
                 },
               ]
@@ -151,8 +155,8 @@ export function BedSetupField() {
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="Apply bed setup again"
-            title="Apply bed setup again: its fixtures as they are now"
+            aria-label={t("sidebar.reapply")}
+            title={t("sidebar.reapplyTitle")}
             disabled={!plate}
             onClick={() => apply(bedSetup.id)}
           >
@@ -162,8 +166,8 @@ export function BedSetupField() {
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="Add bed setup"
-            title="Add the plate's bed setup to its device"
+            aria-label={t("sidebar.addBedSetup")}
+            title={t("sidebar.addBedSetupTitle")}
             onClick={keep}
           >
             <Plus />

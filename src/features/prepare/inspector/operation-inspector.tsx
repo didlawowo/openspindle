@@ -1,4 +1,5 @@
 import { useEffect, useId } from "react"
+import { useTranslation } from "react-i18next"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
@@ -27,9 +28,6 @@ import { NameField } from "@/components/name-field"
 import { OperationEditor } from "./operation-editors"
 import { OperationToolsPanel } from "./operation-tools-panel"
 
-const SUPPRESS_HINT =
-  "Kept on the plate, but left out of its program: Run, NC export and their checks skip it."
-
 /** Name, Stop before and Suppress: what every operation has, whatever its kind. */
 function OperationBasics({
   plate,
@@ -38,6 +36,7 @@ function OperationBasics({
   plate: Plate
   operation: Operation
 }) {
+  const { t } = useTranslation("prepare")
   const workspace = useWorkspaceStore()
   const id = useId()
   const target = { plateId: plate.id, operationId: operation.id }
@@ -61,15 +60,13 @@ function OperationBasics({
             })
           }
         />
-        <FieldLabel htmlFor={`${id}-stop`}>
-          Pause before this operation
-        </FieldLabel>
+        <FieldLabel htmlFor={`${id}-stop`}>{t("op.pauseBefore")}</FieldLabel>
       </Field>
       <Field orientation="horizontal">
         <Switch
           id={`${id}-suppress`}
           checked={isSuppressed(operation)}
-          aria-description={SUPPRESS_HINT}
+          aria-description={t("op.suppressHint")}
           onCheckedChange={(value) =>
             workspace.dispatch({
               type: "operation.suppress",
@@ -79,15 +76,12 @@ function OperationBasics({
           }
         />
         <FieldLabel htmlFor={`${id}-suppress`}>
-          <Hint text={SUPPRESS_HINT}>Suppress this operation</Hint>
+          <Hint text={t("op.suppressHint")}>{t("op.suppress")}</Hint>
         </FieldLabel>
       </Field>
     </FieldGroup>
   )
 }
-
-const PATHS_HINT =
-  "Each path is one part of the toolpath, such as a mask opening or a hole. A suppressed path is left out of the program and stays suppressed where it is when the toolpath is generated again."
 
 /**
  * The paths of an operation's toolpath that can be suppressed one by one: how many run, picking
@@ -101,6 +95,7 @@ function OperationPaths({
   plate: Plate
   operation: Operation
 }) {
+  const { t } = useTranslation("prepare")
   const parts = useSuppressParts()
   const picking = usePicking()
   useEffect(
@@ -120,18 +115,18 @@ function OperationPaths({
   return (
     <Field>
       <FieldLabel>
-        <Hint text={PATHS_HINT}>Paths</Hint>
+        <Hint text={t("op.pathsHint")}>{t("op.paths")}</Hint>
       </FieldLabel>
       <span className="font-numeric text-sm">
         {isSuppressed(operation)
-          ? `None of ${count} run while the operation is suppressed`
+          ? t("op.pathsNone", { total: count })
           : running === count
-            ? `All ${count} run`
-            : `${running} of ${count} run`}
+            ? t("op.pathsAll", { total: count })
+            : t("op.pathsRunning", { running, total: count })}
       </span>
       <div className="flex flex-wrap gap-2">
         <PickButton
-          label="Pick paths"
+          label={t("op.pickPaths")}
           pick={{
             picking: active,
             reason: null,
@@ -152,7 +147,7 @@ function OperationPaths({
           size="sm"
           onClick={() => parts.invert(plate, operation)}
         >
-          Invert
+          {t("op.invert")}
         </Button>
         <Button
           variant="outline"
@@ -160,7 +155,7 @@ function OperationPaths({
           disabled={!operation.suppressedParts?.length}
           onClick={() => parts.clear(plate, operation)}
         >
-          Run all
+          {t("op.runAll")}
         </Button>
       </div>
     </Field>
@@ -200,6 +195,7 @@ export function OperationInspector({
   panel: PrepareSearch["panel"]
   onPanel: (panel: PrepareSearch["panel"]) => void
 }) {
+  const { t } = useTranslation("prepare")
   const diagnostics = inspectorDiagnostics(
     useKeyedDiagnostics(plate),
     operation.id
@@ -216,11 +212,11 @@ export function OperationInspector({
       <TabsList
         variant="line"
         className="w-full shrink-0 border-b px-2"
-        aria-label="Operation settings"
+        aria-label={t("op.settingsAria")}
       >
         <TabsTrigger value="operation">{kindLabel}</TabsTrigger>
         <TabsTrigger value="tools">
-          Tools
+          {t("inspector.tabTools")}
           <Badge variant="secondary" className="font-numeric">
             {operation.tools.length}
           </Badge>

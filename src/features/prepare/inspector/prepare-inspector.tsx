@@ -1,4 +1,5 @@
 import { Layers3 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import {
   Empty,
   EmptyDescription,
@@ -13,6 +14,7 @@ import { PlateInspector } from "./plate-inspector"
 
 /** Settings of what is selected in the tree: an operation, or else its plate. */
 export function PrepareInspector() {
+  const { t } = useTranslation("prepare")
   const plate = useSelectedPlate()
   const selection = usePrepareSelection()
   if (!plate)
@@ -22,10 +24,8 @@ export function PrepareInspector() {
           <EmptyMedia variant="icon">
             <Layers3 />
           </EmptyMedia>
-          <EmptyTitle>No plate</EmptyTitle>
-          <EmptyDescription>
-            Import an NC program to start a plate.
-          </EmptyDescription>
+          <EmptyTitle>{t("inspector.noPlate")}</EmptyTitle>
+          <EmptyDescription>{t("inspector.noPlateHint")}</EmptyDescription>
         </EmptyHeader>
       </Empty>
     )

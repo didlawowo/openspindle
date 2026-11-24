@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import type { ReactNode } from "react"
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import {
   ChevronDown,
   Copy,
@@ -51,18 +53,15 @@ import { lockToggleCopy, toggleLock } from "../arrange/use-arrange-events"
 import { addFixtureToPlate, usePlateBedSetup } from "../fixtures/plate-fixtures"
 import { AnchorPlacementFields } from "./anchor-placement-fields"
 
-const FIXTURE_ANCHOR_HINT =
-  "Where the fixture sits: its origin, the point of its model chosen beside this, in bed coordinates from Anchor 1 or relative to another stored anchor."
-
 /** What the panel says about a fixture's model, if anything (nothing while the library loads). */
 function modelNote(
+  t: TFunction<"prepare">,
   definition: FixtureDefinition,
   library: ReadonlySet<ModelId> | null
 ) {
-  if (!definition.model) return "No model attached"
+  if (!definition.model) return t("fixtures.noModel")
   const id = libraryModelId(definition)
-  if (id && library && !library.has(id))
-    return "Its model is not in your Models library, so it shows as a box."
+  if (id && library && !library.has(id)) return t("fixtures.modelMissing")
   return null
 }
 
@@ -73,7 +72,8 @@ function ModelNote({
   definition: FixtureDefinition
   library: ReadonlySet<ModelId> | null
 }) {
-  const note = modelNote(definition, library)
+  const { t } = useTranslation("prepare")
+  const note = modelNote(t, definition, library)
   return note ? <FieldDescription>{note}</FieldDescription> : null
 }
 
@@ -97,11 +97,12 @@ function FixturePlacementFields({
   disabled?: boolean
   onPlace: (patch: FixturePatch) => void
 }) {
+  const { t } = useTranslation("prepare")
   const { model } = instance.definition
   return (
     <AnchorPlacementFields
       name={name}
-      hint={FIXTURE_ANCHOR_HINT}
+      hint={t("fixtures.anchorHint")}
       point={
         model && (
           <FixtureOriginSelect
@@ -141,6 +142,7 @@ function BedRow({
   tools?: ReactNode
   children: ReactNode
 }) {
+  const { t } = useTranslation("prepare")
   return (
     <Collapsible id={id} open={open} onOpenChange={onOpenChange}>
       <Field orientation="horizontal">
@@ -160,8 +162,8 @@ function BedRow({
           <Button
             variant="ghost"
             size="icon-sm"
-            title="Remove from plate"
-            aria-label={`Remove ${name} from plate`}
+            title={t("fixtures.removeTitle")}
+            aria-label={t("fixtures.removeAria", { name })}
             onClick={onRemove}
           >
             <Trash2 />
@@ -185,8 +187,9 @@ function AddFixture({
   disabled: boolean
   onAdd: (value: string) => void
 }) {
+  const { t } = useTranslation("prepare")
   const items = [
-    { value: "", label: "Add fixture…" },
+    { value: "", label: t("fixtures.addPlaceholder") },
     ...definitions.map((definition) => ({
       value: definition.id,
       label: definition.name,
@@ -194,7 +197,7 @@ function AddFixture({
   ]
   return (
     <OptionSelect
-      aria-label="Add fixture"
+      aria-label={t("fixtures.addAria")}
       className="w-full"
       options={items}
       value=""
@@ -208,6 +211,7 @@ function AddFixture({
 
 /** The fixtures on the plate's bed, a wasteboard among them: each added and removed. */
 export function PlateFixturesPanel({ plate }: { plate: Plate }) {
+  const { t } = useTranslation("prepare")
   const workspace = useWorkspaceStore()
   const setup = plate.setup
   const { definitions } = usePlateBedSetup(plate)
@@ -254,12 +258,16 @@ export function PlateFixturesPanel({ plate }: { plate: Plate }) {
     if (definition) addFixtureToPlate(workspace, plate.id, definition)
   }
   return (
-    <FieldGroup className="min-w-0 p-4" role="tabpanel" aria-label="Fixtures">
+    <FieldGroup
+      className="min-w-0 p-4"
+      role="tabpanel"
+      aria-label={t("inspector.tabFixtures")}
+    >
       {placed.map(({ instance, name }) => {
         const locked = isLocked(instance)
         const bed = isBedKind(instance.definition.kind)
         const item = { kind: "fixture", id: instance.id } as const
-        const lock = lockToggleCopy(locked)
+        const lock = lockToggleCopy(t, locked)
         return (
           <BedRow
             key={instance.id}
@@ -281,7 +289,10 @@ export function PlateFixturesPanel({ plate }: { plate: Plate }) {
               !bed && (
                 <Toggle
                   size="sm"
-                  aria-label={`${lock.label} ${name}`}
+                  aria-label={t("lock.toggleAria", {
+                    label: lock.label,
+                    name,
+                  })}
                   title={lock.description}
                   pressed={locked}
                   onPressedChange={() =>
@@ -306,9 +317,9 @@ export function PlateFixturesPanel({ plate }: { plate: Plate }) {
                 onPlace={(patch) => update(instance.id, patch)}
               />
               <FieldSet>
-                <FieldLegend>Rotation</FieldLegend>
+                <FieldLegend>{t("fixtures.rotation")}</FieldLegend>
                 <PointFields
-                  label={`${name} rotation`}
+                  label={t("fixtures.rotationAria", { name })}
                   unit="°"
                   value={instance.rotation}
                   disabled={locked}
@@ -319,8 +330,8 @@ export function PlateFixturesPanel({ plate }: { plate: Plate }) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  title="Reset placement"
-                  aria-label={`Reset ${name} placement`}
+                  title={t("fixtures.resetTitle")}
+                  aria-label={t("fixtures.resetAria", { name })}
                   disabled={locked}
                   onClick={() =>
                     update(instance.id, {
@@ -331,14 +342,14 @@ export function PlateFixturesPanel({ plate }: { plate: Plate }) {
                   }
                 >
                   <RotateCcw data-icon="inline-start" />
-                  Reset
+                  {t("fixtures.reset")}
                 </Button>
                 {!bed && (
                   <Button
                     variant="ghost"
                     size="sm"
-                    title="Duplicate fixture"
-                    aria-label={`Duplicate ${name}`}
+                    title={t("fixtures.duplicateTitle")}
+                    aria-label={t("fixtures.duplicateAria", { name })}
                     disabled={full}
                     onClick={() =>
                       run({
@@ -349,7 +360,7 @@ export function PlateFixturesPanel({ plate }: { plate: Plate }) {
                     }
                   >
                     <Copy data-icon="inline-start" />
-                    Duplicate
+                    {t("fixtures.duplicate")}
                   </Button>
                 )}
               </div>
@@ -358,7 +369,7 @@ export function PlateFixturesPanel({ plate }: { plate: Plate }) {
         )
       })}
       {!placed.length && (
-        <FieldDescription>Nothing on this plate's bed yet.</FieldDescription>
+        <FieldDescription>{t("fixtures.noneOnBed")}</FieldDescription>
       )}
       <AddFixture definitions={definitions} disabled={full} onAdd={add} />
     </FieldGroup>

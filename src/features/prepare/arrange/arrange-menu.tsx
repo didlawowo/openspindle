@@ -1,5 +1,6 @@
 import { useMemo } from "react"
 import { toast } from "sonner"
+import { useTranslation } from "react-i18next"
 import {
   ContextMenu,
   ContextMenuCheckboxItem,
@@ -85,6 +86,7 @@ export function ArrangeMenu({
   target: ArrangeTarget | null
   onClose: () => void
 }) {
+  const { t } = useTranslation("prepare")
   const workspace = useWorkspaceStore()
   const { moving, axes, snap } = useArrange()
   const library = useFixtureLibrary((state) => state)
@@ -125,7 +127,7 @@ export function ArrangeMenu({
                 disabled={!!target.item.fixed}
                 onCheckedChange={setMoving}
               >
-                Move
+                {t("arrange.menu.move")}
                 <ContextMenuShortcut>M</ContextMenuShortcut>
               </ContextMenuCheckboxItem>
               {target.item.locked !== null && (
@@ -133,13 +135,13 @@ export function ArrangeMenu({
                   checked={target.item.locked}
                   onCheckedChange={() => toggleLock(workspace, target)}
                 >
-                  Locked
+                  {t("arrange.menu.locked")}
                   <ContextMenuShortcut>L</ContextMenuShortcut>
                 </ContextMenuCheckboxItem>
               )}
               {editing && (
                 <ContextMenuItem onClick={() => openDialog(editing)}>
-                  Edit fixture…
+                  {t("arrange.menu.editFixture")}
                 </ContextMenuItem>
               )}
             </ContextMenuGroup>
@@ -150,7 +152,10 @@ export function ArrangeMenu({
           <>
             <ContextMenuGroup>
               <ContextMenuLabel>
-                Align {offered.from.label} to {offered.to.label}, along
+                {t("arrange.menu.align", {
+                  from: offered.from.label,
+                  to: offered.to.label,
+                })}
               </ContextMenuLabel>
               {MOVE_AXES.map((along) => (
                 <ContextMenuItem key={along} onClick={() => align(along)}>
@@ -162,7 +167,7 @@ export function ArrangeMenu({
           </>
         )}
         <ContextMenuGroup>
-          <ContextMenuLabel>Move along</ContextMenuLabel>
+          <ContextMenuLabel>{t("arrange.menu.moveAlong")}</ContextMenuLabel>
           <ContextMenuRadioGroup
             value={axes}
             onValueChange={(value) => {
@@ -183,7 +188,7 @@ export function ArrangeMenu({
         </ContextMenuGroup>
         <ContextMenuSeparator />
         <ContextMenuCheckboxItem checked={snap} onCheckedChange={setSnap}>
-          Snap to points
+          {t("arrange.menu.snapToPoints")}
         </ContextMenuCheckboxItem>
       </ContextMenuContent>
     </ContextMenu>

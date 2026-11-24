@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { useMutation } from "@tanstack/react-query"
 import { BookOpen, Download } from "lucide-react"
 import { toast } from "sonner"
@@ -22,24 +24,25 @@ import { useHost } from "@/platform/host-context"
 type View = "nc" | "setup"
 
 /** The source as it is written: the machine's dialect is not asked what it would change. */
-const AS_WRITTEN: ProgramCheck = {
+const asWritten = (t: TFunction<"prepare">): ProgramCheck => ({
   status: "unavailable",
-  reason: "The source is shown as it is written.",
-}
+  reason: t("source.asWritten"),
+})
 
 /** The plate's setup as it is embedded in exported NC; models are shortened for reading. */
-const setupText = (plate: Plate) =>
+const setupText = (t: TFunction<"prepare">, plate: Plate) =>
   JSON.stringify(
     { name: plate.name, setup: plate.setup, tools: plate.tools },
     (key, value: unknown) =>
       key === "url" && typeof value === "string" && value.startsWith("data:")
-        ? `${value.slice(0, 35)}… (embedded GLB)`
+        ? t("source.embeddedGlb", { preview: value.slice(0, 35) })
         : value,
     2
   )
 
 /** Exports the plate unless what blocks Run (the Prepare inspector's diagnostics) blocks it. */
 function useExportProgram(plate: Plate) {
+  const { t } = useTranslation("prepare")
   const host = useHost()
   const tools = useWorkspace((state) => state.tools)
   const diagnostics = usePlateDiagnostics(plate)
@@ -56,7 +59,7 @@ function useExportProgram(plate: Plate) {
     },
     onSuccess: (result) => {
       if (result.status === "canceled") return
-      toast.success("Saved with the plate's setup.")
+      toast.success(t("source.saved"))
     },
   })
 }
@@ -74,6 +77,7 @@ export function ProgramSourceDialog({
   operationId: string | null
   onClose: () => void
 }) {
+  const { t } = useTranslation("prepare")
   const plate = useWorkspace((state) =>
     state.plates.find((item) => item.id === plateId)
   )
@@ -89,7 +93,7 @@ export function ProgramSourceDialog({
       ? compileOperation(plate, operation, tools)
       : compilePlate(plate, tools)
   }, [plate, operation, tools])
-  const setup = useMemo(() => (plate ? setupText(plate) : ""), [plate])
+  const setup = useMemo(() => (plate ? setupText(t, plate) : ""), [plate, t])
   if (!plate || !compiled) return null
   return (
     <AppDialog
@@ -112,27 +116,26 @@ export function ProgramSourceDialog({
         value={view}
         onValueChange={(value) => setView(value === "setup" ? "setup" : "nc")}
       >
-        <TabsList aria-label="Source view">
-          <TabsTrigger value="nc">NC source</TabsTrigger>
-          <TabsTrigger value="setup">Plate setup</TabsTrigger>
+        <TabsList aria-label={t("source.viewTabs")}>
+          <TabsTrigger value="nc">{t("source.ncSource")}</TabsTrigger>
+          <TabsTrigger value="setup">{t("source.plateSetup")}</TabsTrigger>
         </TabsList>
         <TabsContent value="nc">
           {compiled.mode === "empty" ? (
             <Alert>
               <AlertDescription>
-                {compiled.diagnostics.at(0)?.message ??
-                  "There is no program yet."}
+                {compiled.diagnostics.at(0)?.message ?? t("source.noProgram")}
               </AlertDescription>
             </Alert>
           ) : (
             <GCodeLines
               compiled={compiled}
               operations={plate.operations}
-              check={AS_WRITTEN}
+              check={asWritten(t)}
               line={line}
               onSeekLine={setLine}
               follow={false}
-              label="NC source"
+              label={t("source.ncSource")}
               className="h-[50vh] rounded-md border"
             />
           )}
@@ -140,7 +143,7 @@ export function ProgramSourceDialog({
         <TabsContent value="setup">
           <Textarea
             className="h-[50vh] resize-none"
-            aria-label="Plate setup"
+            aria-label={t("source.plateSetup")}
             readOnly
             spellCheck={false}
             value={setup}
@@ -158,6 +161,7 @@ function SourceActions({
   plate: Plate
   onGlossary: () => void
 }) {
+  const { t } = useTranslation("prepare")
   const exporting = useExportProgram(plate)
   return (
     <div className="flex w-full items-center justify-end gap-2">
@@ -168,11 +172,11 @@ function SourceActions({
       )}
       <Button variant="outline" onClick={onGlossary}>
         <BookOpen />
-        G-code glossary
+        {t("source.glossary")}
       </Button>
       <Button disabled={exporting.isPending} onClick={() => exporting.mutate()}>
         <Download />
-        {exporting.isPending ? "Saving…" : "Export NC with setup"}
+        {exporting.isPending ? t("source.saving") : t("source.export")}
       </Button>
     </div>
   )

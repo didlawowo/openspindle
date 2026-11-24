@@ -1,4 +1,5 @@
 import { X } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { Alert, AlertAction, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -22,10 +23,11 @@ const isPanel = (value: unknown): value is Panel =>
 
 /** What an import changed on a plate, until the user dismisses it. */
 function PlateNotices({ plate }: { plate: Plate }) {
+  const { t } = useTranslation("prepare")
   const workspace = useWorkspaceStore()
   if (!plate.notices.length) return null
   return (
-    <div className="flex flex-col gap-2" aria-label="Plate notices">
+    <div className="flex flex-col gap-2" aria-label={t("inspector.notices")}>
       {plate.notices.map((notice) => (
         <Alert key={notice.id}>
           <AlertDescription>{notice.message}</AlertDescription>
@@ -33,7 +35,7 @@ function PlateNotices({ plate }: { plate: Plate }) {
             <Button
               variant="secondary"
               size="icon-xs"
-              aria-label="Dismiss notice"
+              aria-label={t("inspector.dismissNotice")}
               onClick={() =>
                 workspace.dispatch({
                   type: "plate.dismissNotice",
@@ -61,6 +63,7 @@ export function PlateInspector({
   panel: PrepareSearch["panel"]
   onPanel: (panel: Panel) => void
 }) {
+  const { t } = useTranslation("prepare")
   const diagnostics = useKeyedDiagnostics(plate).filter(
     ({ diagnostic }) => diagnosticOperation(diagnostic) === null
   )
@@ -83,17 +86,19 @@ export function PlateInspector({
         <TabsList
           variant="line"
           className="w-full shrink-0 border-b px-2"
-          aria-label="Plate settings"
+          aria-label={t("inspector.plateSettings")}
         >
-          <TabsTrigger value="setup">Setup</TabsTrigger>
-          <TabsTrigger value="stock">Stock</TabsTrigger>
+          <TabsTrigger value="setup">{t("inspector.tabSetup")}</TabsTrigger>
+          <TabsTrigger value="stock">{t("inspector.tabStock")}</TabsTrigger>
           <TabsTrigger value="tools">
-            Tools
+            {t("inspector.tabTools")}
             <Badge variant="secondary" className="font-numeric">
               {plate.tools.length}
             </Badge>
           </TabsTrigger>
-          <TabsTrigger value="fixtures">Fixtures</TabsTrigger>
+          <TabsTrigger value="fixtures">
+            {t("inspector.tabFixtures")}
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="setup" className="min-h-0 overflow-y-auto">
           <PlateSetupPanel plate={plate} />

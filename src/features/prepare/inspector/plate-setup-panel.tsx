@@ -1,4 +1,5 @@
 import { useRef } from "react"
+import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { FieldGroup } from "@/components/ui/field"
 import {
@@ -31,24 +32,21 @@ function useReadDeviceOrigin(
   plateId: string,
   onChange: (patch: Partial<PlateSetup>) => void
 ): MachineAction {
+  const { t } = useTranslation("prepare")
   const origin = useFreshTelemetry()?.workOrigin ?? null
   const asked = useRef<AnchorXY | null>(null)
   const readAnchors = useReadAnchorsFix(plateId, (plate) => {
     const workOrigin =
       asked.current && workOriginFromMachine(plate.setup, asked.current)
     if (!workOrigin) {
-      toast.error(
-        "The plate's anchors are not the connected device's, so its work origin was not changed."
-      )
+      toast.error(t("setup.anchorsNotDevice"))
       return
     }
     onChange({ workOrigin })
-    toast.success("Origin read from the device.")
+    toast.success(t("setup.originRead"))
   })
   return {
-    reason:
-      readAnchors.reason ??
-      (origin ? null : "The device has not reported its work zero."),
+    reason: readAnchors.reason ?? (origin ? null : t("setup.noWorkZero")),
     pending: readAnchors.pending,
     run: () => {
       asked.current = origin && [origin.x, origin.y]
@@ -68,10 +66,11 @@ function useSetupChange(plateId: string) {
 
 /** The plate's stock and where it sits on the bed. */
 export function PlateStockPanel({ plate }: { plate: Plate }) {
+  const { t } = useTranslation("prepare")
   const onChange = useSetupChange(plate.id)
   const props = { setup: plate.setup, onChange }
   return (
-    <FieldGroup className="p-4" aria-label="Stock">
+    <FieldGroup className="p-4" aria-label={t("inspector.tabStock")}>
       <StockFields plateId={plate.id} {...props} />
       <StockPlacementFields {...props} />
     </FieldGroup>
@@ -80,6 +79,7 @@ export function PlateStockPanel({ plate }: { plate: Plate }) {
 
 /** The plate's own settings: its name, origin and assists; its stock has a panel of its own. */
 export function PlateSetupPanel({ plate }: { plate: Plate }) {
+  const { t } = useTranslation("prepare")
   const workspace = useWorkspaceStore()
   const index = usePlateIndex(plate.id)
   const onChange = useSetupChange(plate.id)
@@ -88,10 +88,10 @@ export function PlateSetupPanel({ plate }: { plate: Plate }) {
   // The touch-off sets work Z0 on the stock top, where the work origin then stays.
   const zLock =
     plate.setup.stock && touchesOffWorkZ(plate)
-      ? "Touch-off sets work Z0 on the stock top."
+      ? t("setup.touchOffLock")
       : undefined
   return (
-    <FieldGroup className="p-4" aria-label="Setup">
+    <FieldGroup className="p-4" aria-label={t("inspector.tabSetup")}>
       <NameField
         key={plate.id}
         name={plate.name}

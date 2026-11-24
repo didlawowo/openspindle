@@ -1,4 +1,6 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { Check, Plus } from "lucide-react"
 import { useForm } from "@tanstack/react-form"
 import { toast } from "sonner"
@@ -35,12 +37,13 @@ const MATERIAL_OPTIONS = STOCK_MATERIALS.map((material) => ({
   label: material,
 }))
 
-const CustomStockSchema = StockSchema.pick({
-  name: true,
-  material: true,
-}).extend({
-  name: StockSchema.shape.name.max(45, "Use at most 45 characters."),
-})
+const customStockSchema = (t: TFunction<"prepare">) =>
+  StockSchema.pick({
+    name: true,
+    material: true,
+  }).extend({
+    name: StockSchema.shape.name.max(45, t("stock.nameTooLong")),
+  })
 
 const dimensions = (stock: Stock) =>
   [stock.width, stock.depth, stock.height]
@@ -55,9 +58,10 @@ const dimensions = (stock: Stock) =>
 
 /** Adds a stock to the library; it starts at a common size, edited on the plate. */
 function CustomStockForm({ onAdd }: { onAdd: (stock: Stock) => void }) {
+  const { t } = useTranslation("prepare")
   const form = useForm({
     defaultValues: { name: "", material: "Wood" },
-    validators: { onSubmit: CustomStockSchema },
+    validators: { onSubmit: customStockSchema(t) },
     onSubmit: ({ value, formApi }) => {
       onAdd({
         id: newId(),
@@ -80,16 +84,16 @@ function CustomStockForm({ onAdd }: { onAdd: (stock: Stock) => void }) {
       }}
     >
       <FieldSet>
-        <FieldLegend>Add custom stock</FieldLegend>
+        <FieldLegend>{t("stock.addCustom")}</FieldLegend>
         <FieldGroup className="grid grid-cols-1 sm:grid-cols-2">
           <form.Field name="name">
             {(field) => (
               <Field data-invalid={field.state.meta.errors.length > 0}>
-                <FieldLabel htmlFor="stock-name">Name</FieldLabel>
+                <FieldLabel htmlFor="stock-name">{t("stock.name")}</FieldLabel>
                 <Input
                   id="stock-name"
                   maxLength={45}
-                  placeholder="e.g. Walnut offcut"
+                  placeholder={t("stock.namePlaceholder")}
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(event) => field.handleChange(event.target.value)}
@@ -101,7 +105,9 @@ function CustomStockForm({ onAdd }: { onAdd: (stock: Stock) => void }) {
           <form.Field name="material">
             {(field) => (
               <Field>
-                <FieldLabel htmlFor="stock-material">Material</FieldLabel>
+                <FieldLabel htmlFor="stock-material">
+                  {t("stock.material")}
+                </FieldLabel>
                 <OptionSelect
                   id="stock-material"
                   className="w-full"
@@ -117,7 +123,7 @@ function CustomStockForm({ onAdd }: { onAdd: (stock: Stock) => void }) {
         </FieldGroup>
         <Button variant="outline" type="submit">
           <Plus />
-          Add stock
+          {t("stock.add")}
         </Button>
       </FieldSet>
     </form>
@@ -137,6 +143,7 @@ export function StockDialog({
   plateId: string
   onClose: () => void
 }) {
+  const { t } = useTranslation("prepare")
   const workspace = useWorkspaceStore()
   const stocks = useWorkspace((state) => state.stocks)
   const current = useWorkspace(
@@ -192,7 +199,7 @@ export function StockDialog({
     chosen.color === current.color
   return (
     <AppDialog
-      title="Stock"
+      title={t("stock.title")}
       onClose={onClose}
       footer={
         current ? (
@@ -202,15 +209,15 @@ export function StockDialog({
               disabled={!chosen || sameMaterial}
               onClick={applyMaterial}
             >
-              Apply material
+              {t("stock.applyMaterial")}
             </Button>
             <Button disabled={!chosen} onClick={use}>
-              Replace stock
+              {t("stock.replace")}
             </Button>
           </>
         ) : (
           <Button disabled={!chosen} onClick={use}>
-            Use selected stock
+            {t("stock.useSelected")}
           </Button>
         )
       }
@@ -219,7 +226,7 @@ export function StockDialog({
         <div
           className="flex flex-col gap-1"
           role="list"
-          aria-label="Stock library"
+          aria-label={t("stock.library")}
         >
           {stocks.map((stock) => {
             const selected = stock.id === chosenId

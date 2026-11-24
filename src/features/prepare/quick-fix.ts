@@ -1,4 +1,5 @@
 import { toast } from "sonner"
+import { useTranslation } from "react-i18next"
 import { useFixtureLibraryStore } from "@/app/fixtures/fixture-context"
 import { profileAnchors } from "@/app/fixtures/fixture-library-store"
 import { selectProjectProfile } from "@/app/fixtures/plate-profile"
@@ -13,12 +14,28 @@ import { openDialog } from "@/features/shell/dialogs"
 import { useMachineSnapshot, useReadAnchors } from "@/platform/machine"
 import { usePrepareSelection } from "./plate-tree/use-prepare-selection"
 
+/**
+ * The English labels, kept only for the Run checklist, which builds them outside a component;
+ * the Job tab's own translation pass replaces this with `useQuickFixLabels`.
+ */
 export const QUICK_FIX_LABELS: Record<QuickFix["kind"], string> = {
   "assign-tool": "Assign tool",
   "read-anchors": "Read anchors",
   "show-height-map": "Show height map",
   "edit-operation": "Edit",
   "resolve-rule": "Apply",
+}
+
+/** What each kind of quick fix is called, wherever a fix is offered. */
+export function useQuickFixLabels(): Record<QuickFix["kind"], string> {
+  const { t } = useTranslation("prepare")
+  return {
+    "assign-tool": t("quickFix.assignTool"),
+    "read-anchors": t("quickFix.readAnchors"),
+    "show-height-map": t("quickFix.showHeightMap"),
+    "edit-operation": t("quickFix.edit"),
+    "resolve-rule": t("quickFix.apply"),
+  }
 }
 
 /**
@@ -31,6 +48,7 @@ export function useReadAnchorsFix(
   plateId: string | null,
   then?: (plate: Plate) => void
 ) {
+  const { t } = useTranslation("prepare")
   const { availability, connection } = useMachineSnapshot()
   const readAnchors = useReadAnchors()
   const fixtures = useFixtureLibraryStore()
@@ -38,7 +56,7 @@ export function useReadAnchorsFix(
   const { device } = connection
   const entry = availability.readAnchors
   return {
-    reason: entry.allowed ? null : (entry.reason ?? "Unavailable."),
+    reason: entry.allowed ? null : (entry.reason ?? t("quickFix.unavailable")),
     pending: readAnchors.isPending,
     run: () => {
       const session = workspace.session
@@ -64,7 +82,7 @@ export function useReadAnchorsFix(
           }
           const plate = workspace.state.plates.find(({ id }) => id === plateId)
           if (then && plate) then(plate)
-          else toast.success("Stored anchors updated.")
+          else toast.success(t("quickFix.anchorsUpdated"))
         },
         onError: (error) => toast.error(error.message),
       })

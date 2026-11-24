@@ -1,5 +1,6 @@
 import { useId } from "react"
 import type { ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import {
   Item,
@@ -29,6 +30,7 @@ export function Unavailable({
   children: ReactNode
 }) {
   const id = useId()
+  const { t } = useTranslation("prepare")
   if (reason === null) return children
   return (
     <Tooltip>
@@ -38,7 +40,7 @@ export function Unavailable({
         render={
           <div
             role="group"
-            aria-label={`${label} unavailable`}
+            aria-label={t("unavailable", { label })}
             aria-describedby={id}
             tabIndex={0}
           />

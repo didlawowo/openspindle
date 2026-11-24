@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 import { FieldLegend, FieldSet } from "@/components/ui/field"
 import { Hint } from "@/components/workspace/hint"
 import { ReferencePointFields } from "@/components/workspace/reference-point-fields"
@@ -61,6 +62,7 @@ export function RelativePointFields({
   onChange,
   onRelativeToChange,
 }: RelativePointFieldsProps) {
+  const { t } = useTranslation("prepare")
   const factory = anchorSetup?.source === "factory"
   const anchors = bedAnchors(anchorSetup ?? undefined)
   const origin = anchors.at(0)
@@ -68,7 +70,9 @@ export function RelativePointFields({
   const references = [
     {
       value: "",
-      label: origin ? `${origin.name} (bed origin)` : "Bed",
+      label: origin
+        ? t("placement.bedOrigin", { name: origin.name })
+        : t("placement.bed"),
       axes: AXES,
     },
     ...others.map((anchor) => ({
@@ -77,7 +81,13 @@ export function RelativePointFields({
       axes: AXES,
     })),
     ...(machineOrigin
-      ? [{ value: MACHINE_ORIGIN, label: "Machine Origin", axes: AXES }]
+      ? [
+          {
+            value: MACHINE_ORIGIN,
+            label: t("placement.machineOrigin"),
+            axes: AXES,
+          },
+        ]
       : []),
   ]
   const reference = anchorReference(anchorSetup, relativeTo)
@@ -127,13 +137,17 @@ export function AnchorPlacementFields({
   point,
   ...placement
 }: AnchorPlacementFieldsProps) {
+  const { t } = useTranslation("prepare")
   return (
-    <FieldSet aria-label={`${name} placement`}>
+    <FieldSet aria-label={t("placement.placementAria", { name })}>
       <FieldLegend className="flex w-full items-center justify-between gap-3">
-        <Hint text={hint}>Anchor</Hint>
+        <Hint text={hint}>{t("placement.anchor")}</Hint>
         {point}
       </FieldLegend>
-      <RelativePointFields label={`${name} anchor`} {...placement} />
+      <RelativePointFields
+        label={t("placement.anchorLabel", { name })}
+        {...placement}
+      />
     </FieldSet>
   )
 }

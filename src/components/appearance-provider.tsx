@@ -30,7 +30,8 @@ const AppearanceContext = createContext<{
   setAppearance: (appearance: Appearance) => void
   fonts: Fonts
   setFont: (role: FontRole, font: FontId) => void
-  saveError: string | null
+  /** Translation key of the last save failure, translated when shown. */
+  saveError: "appearance.saveFailed" | "appearance.fontSaveFailed" | null
 } | null>(null)
 
 const SAVED_KEYS = new Set([
@@ -46,7 +47,9 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     () => window.matchMedia(SYSTEM_DARK_QUERY).matches
   )
   const [fonts, setFonts] = useState<Fonts>(DEFAULT_FONTS)
-  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<
+    "appearance.saveFailed" | "appearance.fontSaveFailed" | null
+  >(null)
 
   useEffect(() => {
     const syncPreference = () => {
@@ -89,7 +92,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(APPEARANCE_STORAGE_KEY, value)
         setSaveError(null)
       } catch {
-        setSaveError(t("appearance.saveFailed"))
+        setSaveError("appearance.saveFailed")
       }
     },
     [t]
@@ -105,7 +108,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(FONT_STORAGE_KEYS[role], font)
         setSaveError(null)
       } catch {
-        setSaveError(t("appearance.fontSaveFailed"))
+        setSaveError("appearance.fontSaveFailed")
       }
     },
     [fonts, t]

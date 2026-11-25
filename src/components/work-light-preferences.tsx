@@ -56,7 +56,8 @@ const WorkLightPreferencesContext = createContext<{
   setBrightness: (mode: LightMode, percent: number) => void
   idleMinutes: number
   setIdleMinutes: (minutes: number) => void
-  saveError: string | null
+  /** Translation key of the last save failure, translated when shown. */
+  saveError: "workLight.saveFailed" | null
 } | null>(null)
 
 /** App preferences, shared by the Accessories fields and the active-theme controller. */
@@ -69,7 +70,9 @@ export function WorkLightPreferencesProvider({
   const [idleMinutes, setIdleValue] = useState(readIdleMinutes)
   const { t } = useTranslation("common")
   const current = useRef(brightness)
-  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<"workLight.saveFailed" | null>(
+    null
+  )
 
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
@@ -103,7 +106,7 @@ export function WorkLightPreferencesProvider({
         localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
         setSaveError(null)
       } catch {
-        setSaveError(t("workLight.saveFailed"))
+        setSaveError("workLight.saveFailed")
       }
     },
     [t]
@@ -118,7 +121,7 @@ export function WorkLightPreferencesProvider({
         localStorage.setItem(IDLE_STORAGE_KEY, JSON.stringify(parsed.data))
         setSaveError(null)
       } catch {
-        setSaveError(t("workLight.saveFailed"))
+        setSaveError("workLight.saveFailed")
       }
     },
     [t]

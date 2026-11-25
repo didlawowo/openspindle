@@ -53,6 +53,7 @@ const fontOptions = (role: FontRole) =>
 /** Settings › General: the language, how the app looks, and its simulated Z1. Changes apply at once. */
 export function GeneralSettings() {
   const { t } = useTranslation("settings")
+  const { t: tCommon } = useTranslation("common")
   const { appearance, setAppearance, fonts, setFont, saveError } =
     useAppearance()
   const { preference, setPreference } = useLanguage()
@@ -129,7 +130,7 @@ export function GeneralSettings() {
           </Field>
         )
       })}
-      {saveError && <FieldError>{saveError}</FieldError>}
+      {saveError && <FieldError>{tCommon(saveError)}</FieldError>}
       {simulator && (
         <Field orientation="horizontal">
           <FieldLabel htmlFor="z1-simulator">

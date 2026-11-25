@@ -1,3 +1,4 @@
+import { enCommon } from "./common"
 import { enDevice } from "./device"
 import { enJob } from "./job"
 import { enMenu } from "./menu"
@@ -21,6 +22,7 @@ export const enResources = {
   prepare: enPrepare,
   device: enDevice,
   pcb: enPcb,
+  common: enCommon,
 }
 
 export type UiResources = typeof enResources

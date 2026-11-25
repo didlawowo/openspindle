@@ -1,5 +1,6 @@
 import { useId } from "react"
 import type { ComponentProps, ReactElement } from "react"
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Toggle } from "@/components/ui/toggle"
 import {
@@ -33,6 +34,7 @@ function ToolbarTooltip({
   unavailable: boolean
   control: ReactElement
 }) {
+  const { t } = useTranslation("common")
   const trigger = unavailable ? (
     <TooltipTrigger
       delay={200}
@@ -41,7 +43,7 @@ function ToolbarTooltip({
         <span
           className="inline-flex"
           role="group"
-          aria-label={`${label} unavailable`}
+          aria-label={t("unavailable", { label })}
           aria-describedby={id}
           tabIndex={0}
         />

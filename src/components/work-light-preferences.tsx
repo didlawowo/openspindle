@@ -7,6 +7,7 @@ import {
   useState,
 } from "react"
 import type { ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 import { z } from "zod"
 
 export const WorkLightPercentSchema = z.number().int().min(1).max(100)
@@ -55,7 +56,8 @@ const WorkLightPreferencesContext = createContext<{
   setBrightness: (mode: LightMode, percent: number) => void
   idleMinutes: number
   setIdleMinutes: (minutes: number) => void
-  saveError: string | null
+  /** Translation key of the last save failure, translated when shown. */
+  saveError: "workLight.saveFailed" | null
 } | null>(null)
 
 /** App preferences, shared by the Accessories fields and the active-theme controller. */
@@ -66,8 +68,11 @@ export function WorkLightPreferencesProvider({
 }) {
   const [brightness, setValues] = useState(readBrightness)
   const [idleMinutes, setIdleValue] = useState(readIdleMinutes)
+  const { t } = useTranslation("common")
   const current = useRef(brightness)
-  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<"workLight.saveFailed" | null>(
+    null
+  )
 
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
@@ -90,35 +95,37 @@ export function WorkLightPreferencesProvider({
     return () => window.removeEventListener("storage", onStorage)
   }, [])
 
-  const setBrightness = useCallback((mode: LightMode, percent: number) => {
-    const parsed = WorkLightPercentSchema.safeParse(percent)
-    if (!parsed.success) return
-    const next = { ...current.current, [mode]: parsed.data }
-    current.current = next
-    setValues(next)
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      setSaveError(null)
-    } catch {
-      setSaveError(
-        "These work light preferences are applied, but could not be saved. Try again."
-      )
-    }
-  }, [])
+  const setBrightness = useCallback(
+    (mode: LightMode, percent: number) => {
+      const parsed = WorkLightPercentSchema.safeParse(percent)
+      if (!parsed.success) return
+      const next = { ...current.current, [mode]: parsed.data }
+      current.current = next
+      setValues(next)
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+        setSaveError(null)
+      } catch {
+        setSaveError("workLight.saveFailed")
+      }
+    },
+    [t]
+  )
 
-  const setIdleMinutes = useCallback((minutes: number) => {
-    const parsed = WorkLightIdleMinutesSchema.safeParse(minutes)
-    if (!parsed.success) return
-    setIdleValue(parsed.data)
-    try {
-      localStorage.setItem(IDLE_STORAGE_KEY, JSON.stringify(parsed.data))
-      setSaveError(null)
-    } catch {
-      setSaveError(
-        "These work light preferences are applied, but could not be saved. Try again."
-      )
-    }
-  }, [])
+  const setIdleMinutes = useCallback(
+    (minutes: number) => {
+      const parsed = WorkLightIdleMinutesSchema.safeParse(minutes)
+      if (!parsed.success) return
+      setIdleValue(parsed.data)
+      try {
+        localStorage.setItem(IDLE_STORAGE_KEY, JSON.stringify(parsed.data))
+        setSaveError(null)
+      } catch {
+        setSaveError("workLight.saveFailed")
+      }
+    },
+    [t]
+  )
 
   return (
     <WorkLightPreferencesContext.Provider

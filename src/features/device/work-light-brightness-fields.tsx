@@ -180,6 +180,7 @@ function InactivityTimerField({
 
 export function WorkLightBrightnessFields() {
   const { t } = useTranslation("device")
+  const { t: tCommon } = useTranslation("common")
   const { brightness, setBrightness, idleMinutes, setIdleMinutes, saveError } =
     useWorkLightPreferences()
   return (
@@ -199,7 +200,7 @@ export function WorkLightBrightnessFields() {
         onCommit={(percent) => setBrightness("dark", percent)}
       />
       <InactivityTimerField value={idleMinutes} onCommit={setIdleMinutes} />
-      {saveError && <FieldError>{saveError}</FieldError>}
+      {saveError && <FieldError>{tCommon(saveError)}</FieldError>}
     </>
   )
 }

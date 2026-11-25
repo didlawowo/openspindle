@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { cn } from "cn"
 import { Field, FieldLabel } from "@/components/ui/field"
@@ -14,7 +15,7 @@ import type { Result } from "@/domain/primitives"
 export function NameField({
   name,
   placeholder,
-  label = "Name",
+  label,
   hideLabel = false,
   maxLength = TEXT_LIMIT,
   onRename,
@@ -28,13 +29,15 @@ export function NameField({
   maxLength?: number
   onRename: (name: string) => Result<unknown>
 }) {
+  const { t } = useTranslation("common")
+  const shownLabel = label ?? t("name")
   const id = useId()
   const [value, setValue] = useState(name)
   useEffect(() => setValue(name), [name])
   return (
     <Field>
       <FieldLabel htmlFor={`${id}-name`} className={cn(hideLabel && "sr-only")}>
-        {label}
+        {shownLabel}
       </FieldLabel>
       <Input
         id={`${id}-name`}

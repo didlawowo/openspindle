@@ -1,4 +1,5 @@
 import { Check, Wrench } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { cn } from "cn"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -62,21 +63,25 @@ export function ToolCard({
   id,
   onClick,
   disabled = false,
-  emptyLabel = "Choose tool",
+  emptyLabel,
   className,
   slotLabel,
   details: shownDetails,
   selected,
   "aria-label": ariaLabel,
 }: ToolCardProps) {
-  const name = tool?.name ?? emptyLabel
+  const { t } = useTranslation("common")
+  const name = tool?.name ?? emptyLabel ?? t("toolCard.choose")
   // The slot badge is inside the button, but an aria-label replaces its content.
   const label = slotLabel ? `${slotLabel}: ${name}` : name
-  let details = "Open the tool library"
+  let details = t("toolCard.openLibrary")
   if (shownDetails !== undefined) details = shownDetails
-  else if (tool && isProbe(tool)) details = "Touch probe"
+  else if (tool && isProbe(tool)) details = t("toolCard.touchProbe")
   else if (tool)
-    details = `Ø ${formatToolNumber(tool.diameter, "millimeters")} mm · ${formatToolNumber(tool.flutes)} flutes`
+    details = t("toolCard.size", {
+      count: tool.flutes,
+      diameter: formatToolNumber(tool.diameter, "millimeters"),
+    })
 
   return (
     <Item
@@ -117,7 +122,7 @@ export function ToolCard({
       {(slotLabel || selected) && (
         <ItemActions className="self-start">
           {slotLabel && <Badge className="font-numeric">{slotLabel}</Badge>}
-          {selected && <Check aria-label="Selected tool" />}
+          {selected && <Check aria-label={t("toolCard.selected")} />}
         </ItemActions>
       )}
     </Item>

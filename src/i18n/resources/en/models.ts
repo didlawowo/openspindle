@@ -37,8 +37,8 @@ export const enModels = {
   },
   details: {
     fromProject: "From a project",
-    triangles_one: "{{count}} triangle",
-    triangles_other: "{{count}} triangles",
+    triangles_one: "{{formatted}} triangle",
+    triangles_other: "{{formatted}} triangles",
   },
   usage: {
     none: "Not used",

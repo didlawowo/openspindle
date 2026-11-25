@@ -39,8 +39,8 @@ export const frModels: UiResources["models"] = {
   },
   details: {
     fromProject: "Depuis un projet",
-    triangles_one: "{{count}} triangle",
-    triangles_other: "{{count}} triangles",
+    triangles_one: "{{formatted}} triangle",
+    triangles_other: "{{formatted}} triangles",
   },
   usage: {
     none: "Non utilisé",

@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+import i18next from "i18next"
 import type { TFunction } from "i18next"
 import { Box, PencilLine, Plus, Trash2 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -37,6 +38,7 @@ import { MODEL_ACCEPT } from "@/domain/models/model"
 import type { ModelRecord } from "@/domain/models/model"
 import { TEXT_LIMIT, formatBytes } from "@/domain/primitives"
 import { AppDialog } from "@/features/shell/app-dialog"
+import type { ImportStep } from "./import-model"
 import {
   useImportModels,
   useModelLibrary,
@@ -46,8 +48,8 @@ import {
 import { usageText, useModelUsage } from "./model-usage"
 import type { ModelUsage } from "./model-usage"
 
-const length = (value: number) =>
-  Number(value.toFixed(value < 10 ? 1 : 0)).toLocaleString("en-US")
+const length = (locale: string, value: number) =>
+  Number(value.toFixed(value < 10 ? 1 : 0)).toLocaleString(locale)
 
 /**
  * "STEP · 120 × 80 × 25 mm · 48,210 triangles · 3.2 MB". The size is of `bounds`: the model as
@@ -58,17 +60,35 @@ export function modelDetails(
   model: ModelRecord,
   bounds: ModelRecord["bounds"] = model.bounds
 ) {
+  const locale = i18next.language
   const { min, max } = bounds
-  const size = max.map((value, axis) => length(value - min[axis])).join(" × ")
+  const size = max
+    .map((value, axis) => length(locale, value - min[axis]))
+    .join(" × ")
   const origin = model.source
     ? model.source.format.toUpperCase()
     : t("details.fromProject")
   return [
     origin,
     `${size} mm`,
-    t("details.triangles", { count: model.mesh.triangles }),
+    t("details.triangles", {
+      count: model.mesh.triangles,
+      formatted: new Intl.NumberFormat(locale).format(model.mesh.triangles),
+    }),
     formatBytes(model.source?.bytes ?? model.mesh.bytes),
   ].join(" · ")
+}
+
+/** The running import step's label: exhaustive, so a new step fails the typecheck. */
+const stepLabel = (t: TFunction<"models">, step: ImportStep) => {
+  switch (step) {
+    case "reading":
+      return t("add.steps.reading")
+    case "tessellating":
+      return t("add.steps.tessellating")
+    case "saving":
+      return t("add.steps.saving")
+  }
 }
 
 /** Adds STEP and GLB files, one after another, with the running file's step. */
@@ -100,7 +120,7 @@ function AddModels() {
           <>
             <FieldDescription role="status" className="flex items-center gap-2">
               <Spinner />
-              {t(`add.steps.${importing.progress.step}`)}{" "}
+              {stepLabel(t, importing.progress.step)}{" "}
               {importing.progress.fileName}…
             </FieldDescription>
             <Button variant="ghost" onClick={importing.cancel}>
@@ -115,8 +135,8 @@ function AddModels() {
           <AlertTitle>{t("add.failed", { count: failures.length })}</AlertTitle>
           <AlertDescription>
             <ul className="list-inside list-disc">
-              {failures.map((failure) => (
-                <li key={failure.file}>
+              {failures.map((failure, index) => (
+                <li key={`${failure.file}:${index}`}>
                   {failure.file}: {failure.message ?? t("add.couldNotRead")}
                 </li>
               ))}

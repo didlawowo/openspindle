@@ -78,7 +78,10 @@ export function useImportModels() {
             if (cancelled()) break
             failures.push({
               file: file.name,
-              message: error instanceof Error ? error.message : null,
+              message:
+                error instanceof Error && error.message.trim()
+                  ? error.message
+                  : null,
             })
           }
         }

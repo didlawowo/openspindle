@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { useSelector } from "@tanstack/react-form"
 import { useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useWorkspaceStore } from "@/app/workspace/workspace-context"
 import type { StepId } from "@/app/workspace/history"
-import { plural } from "@/domain/primitives"
 import {
   catalogForTool,
   mergeCatalogTools,
@@ -22,7 +23,6 @@ import {
 } from "@/formats/tool-library/library-file"
 import type { ToolImportResult } from "@/formats/tool-library/library-file"
 import { FILE_KINDS } from "@/platform/contract/files"
-import type { SaveFileResult } from "@/platform/contract/files"
 import { useHost } from "@/platform/host-context"
 import type { EditorTab } from "./tool-editor"
 import { useToolForm } from "./tool-form"
@@ -62,34 +62,31 @@ interface Feedback {
 }
 const NO_FEEDBACK: Feedback = { status: "", errors: [], importNotes: [] }
 
-const EXPORT_STATUS = {
-  saved: "Library saved",
-  canceled: "Export canceled",
-} as const satisfies Record<SaveFileResult["status"], string>
-
 /** Form values while no tool is open; never shown or saved. */
 const NO_DRAFT = toToolDraft(createTool())
 
 async function readToolLibrary({
   file,
   library,
+  tooLarge,
 }: {
   file: File
   library: readonly Tool[]
+  tooLarge: string
 }) {
   const { maxBytes } = FILE_KINDS.toolLibrary
-  if (file.size > maxBytes)
-    throw new Error(
-      `Tool libraries must be ${maxBytes / 1024 / 1024} MB or smaller.`
-    )
+  if (file.size > maxBytes) throw new Error(tooLarge)
   const bytes = new Uint8Array(await file.arrayBuffer())
   return importToolLibrary(bytes, file.name, library)
 }
 
-function importStatus({ tools, skipped }: ToolImportResult) {
-  const added = `Added ${plural(tools.length, "tool")} to your library.`
+function importStatus(
+  t: TFunction<"tools">,
+  { tools, skipped }: ToolImportResult
+) {
+  const added = t("status.added", { count: tools.length })
   if (!skipped) return added
-  return `${added} Skipped ${plural(skipped, "tool")} already in the library.`
+  return added + t("status.skipped", { count: skipped })
 }
 
 /**
@@ -105,6 +102,7 @@ export function useToolLibrary({
   recommendedKinds = NO_KINDS,
   selectionOnly = false,
 }: ToolLibraryOptions) {
+  const { t } = useTranslation("tools")
   const workspace = useWorkspaceStore()
   const host = useHost()
   const catalogQuery = useToolCatalogs()
@@ -142,7 +140,11 @@ export function useToolLibrary({
       ? tools.map((tool) => (tool.id === saved.id ? saved : tool))
       : [...tools, saved]
     onChange(library)
-    setFeedback((previous) => ({ ...previous, status: "Saved", errors: [] }))
+    setFeedback((previous) => ({
+      ...previous,
+      status: t("status.savedShort"),
+      errors: [],
+    }))
     request.afterSave?.(library)
   }
   const draftDefaults = useMemo(
@@ -212,9 +214,9 @@ export function useToolLibrary({
     ]),
   ]
   let status = feedback.status
-  if (!status && dirty) status = "Unsaved changes"
-  if (importLibrary.isPending) status = "Importing library…"
-  if (exportLibrary.isPending) status = "Exporting library…"
+  if (!status && dirty) status = t("status.unsavedChanges")
+  if (importLibrary.isPending) status = t("status.importing")
+  if (exportLibrary.isPending) status = t("status.exporting")
 
   return {
     catalogs: catalogQuery,
@@ -272,15 +274,19 @@ export function useToolLibrary({
           !workspace.undo(deletedStep) &&
           workspace.history.holds(deletedStep)
         )
-          toast.info(
-            "Newer changes follow this one. Undo them first with Edit › Undo."
-          )
+          toast.info(t("status.undoBlocked"))
         setDeletedStep(null)
       }),
     importFile: (file: File) => {
       setFeedback(NO_FEEDBACK)
       importLibrary.mutate(
-        { file, library: tools },
+        {
+          file,
+          library: tools,
+          tooLarge: t("status.tooLarge", {
+            mb: FILE_KINDS.toolLibrary.maxBytes / 1024 / 1024,
+          }),
+        },
         {
           onSuccess: (result, { library }) => {
             onChange([...library, ...result.tools])
@@ -288,7 +294,7 @@ export function useToolLibrary({
             const first = result.tools.at(0)
             if (first) edit(first)
             setFeedback({
-              status: importStatus(result),
+              status: importStatus(t, result),
               errors: [],
               importNotes: result.warnings,
             })
@@ -296,7 +302,7 @@ export function useToolLibrary({
           onError: (error) =>
             setFeedback({
               ...NO_FEEDBACK,
-              errors: [errorMessage(error, "Could not import this library.")],
+              errors: [errorMessage(error, t("status.importFailed"))],
             }),
         }
       )
@@ -308,14 +314,15 @@ export function useToolLibrary({
           onSuccess: (result) =>
             setFeedback((previous) => ({
               ...previous,
-              status: EXPORT_STATUS[result.status],
+              status:
+                result.status === "saved"
+                  ? t("status.saved")
+                  : t("status.exportCanceled"),
             })),
           onError: (error) =>
             setFeedback((previous) => ({
               ...previous,
-              errors: [
-                errorMessage(error, "Could not export the tool library."),
-              ],
+              errors: [errorMessage(error, t("status.exportFailed"))],
             })),
         })
       }),

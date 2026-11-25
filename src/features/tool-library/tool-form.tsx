@@ -1,5 +1,6 @@
 import { useId } from "react"
 import type { ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 import {
   createFormHook,
   createFormHookContexts,
@@ -178,7 +179,6 @@ export interface Choice<T extends string | boolean> {
   value: T
   label: string
 }
-const UNSPECIFIED = { value: "", label: "Unspecified" }
 
 /** One of a few values, or unspecified (null) unless the choice is required. */
 function ChoiceField<T extends string | boolean>({
@@ -193,10 +193,11 @@ function ChoiceField<T extends string | boolean>({
   /** A required choice is never null, so it offers no Unspecified. */
   required?: boolean
 }) {
+  const { t } = useTranslation("tools")
   const field = useFieldContext<T | null>()
   const id = useId()
   const options = [
-    ...(required ? [] : [UNSPECIFIED]),
+    ...(required ? [] : [{ value: "", label: t("choices.unspecified") }]),
     ...choices.map((choice) => ({
       value: String(choice.value),
       label: choice.label,

@@ -9,6 +9,7 @@ import { enPrepare } from "./prepare"
 import { enProbing } from "./probing"
 import { enSettings } from "./settings"
 import { enShell } from "./shell"
+import { enTools } from "./tools"
 import { enViewer } from "./viewer"
 
 /**
@@ -30,6 +31,7 @@ export const enResources = {
   common: enCommon,
   fusion360: enFusion360,
   models: enModels,
+  tools: enTools,
   viewer: enViewer,
 }
 

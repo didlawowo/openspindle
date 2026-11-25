@@ -1,4 +1,5 @@
 import { useCallback, useId, useMemo, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { ArrowDown, ArrowUp, Check, Search } from "lucide-react"
 import {
   columnFilteringFeature,
@@ -58,6 +59,7 @@ import type { Tool } from "@/domain/tools/tool"
 import { formatShankDiameter, formatToolNumber } from "@/domain/tools/format"
 import { OptionSelect } from "@/components/option-select"
 import { THUMBNAIL, ToolPicture } from "./tool-picture"
+import type { TFunction } from "i18next"
 import { compareToolNames, toolKindLabel } from "./tool-format"
 
 /** Catalog scopes besides a packaged catalog's id. */
@@ -86,9 +88,11 @@ function typeFilterFromValue(value: string): ToolTypeFilter {
     return { by: "kind", kind: value.slice(KIND_VALUE.length) }
   return value === RECOMMENDED_TYPES.by ? RECOMMENDED_TYPES : ALL_TYPES
 }
-function typeFilterLabel(type: ToolTypeFilter) {
+function typeFilterLabel(type: ToolTypeFilter, t: TFunction<"tools">) {
   if (type.by === "kind") return toolKindLabel(type.kind)
-  return type.by === "recommended" ? "Recommended" : "All types"
+  return type.by === "recommended"
+    ? t("table.recommended")
+    : t("table.allTypes")
 }
 
 /** Whether a tool is one of the recommended types; null when there is no recommendation. */
@@ -147,6 +151,7 @@ const byName: SortFn<Features, ToolRow> = (a, b, columnId) =>
  * product photo, if any); the button makes the row keyboard-selectable.
  */
 function ToolNameCell({ row, table }: CellContext<Features, ToolRow, string>) {
+  const { t } = useTranslation("tools")
   const { tool } = row.original
   const meta = table.options.meta
   return (
@@ -156,7 +161,7 @@ function ToolNameCell({ row, table }: CellContext<Features, ToolRow, string>) {
         <Button
           variant="ghost"
           className="h-auto w-full justify-start whitespace-normal"
-          aria-label={`Edit ${tool.name}`}
+          aria-label={t("table.editAria", { name: tool.name })}
           disabled={meta?.disabled}
         />
       }
@@ -170,7 +175,9 @@ function ToolNameCell({ row, table }: CellContext<Features, ToolRow, string>) {
       </ItemMedia>
       <ItemContent className="min-w-0">
         <ItemTitle className="max-w-full truncate" title={tool.name}>
-          {tool.id === meta?.inUseId && <Check aria-label="Selected tool" />}
+          {tool.id === meta?.inUseId && (
+            <Check aria-label={t("table.selectedAria")} />
+          )}
           {tool.name}
         </ItemTitle>
         <ItemDescription>
@@ -202,42 +209,44 @@ const measurement = (
     ),
   })
 
-const columns = column.columns([
-  column.accessor((row) => row.tool.name, {
-    id: "name",
-    header: "Tool",
-    sortFn: byName,
-    cell: ToolNameCell,
-    // The name takes the width the measurements leave; its longest shown name would
-    // otherwise widen the table past the list's scrollbar.
-    meta: { cellClassName: "max-w-0" },
-  }),
-  measurement("diameter", "Ø mm", (tool) => tool.diameter, "millimeters"),
-  measurement(
-    "shank",
-    "Shank",
-    (tool) => tool.geometry.shankDiameter,
-    "millimeters"
-  ),
-  measurement("flutes", "Flutes", (tool) => tool.flutes, "count"),
-  // Filter-only columns, hidden from view. The kind is compared loosely, as toolKindKey
-  // does, so case variants of the same type ("Probe", "probe") are one filter option.
-  column.accessor((row) => toolKindKey(row.tool.kind), {
-    id: "kind",
-    filterFn: filterFn_equals,
-  }),
-  column.accessor((row) => shankKey(row.tool.geometry.shankDiameter), {
-    id: "shankSize",
-    filterFn: filterFn_equals,
-  }),
-  column.accessor("catalog", { filterFn: filterFn_equals }),
-  column.accessor("recommended", { filterFn: filterFn_equals }),
-  column.accessor(
-    ({ tool }) =>
-      `${tool.name} ${tool.kind} ${tool.vendor ?? ""} ${tool.productId ?? ""} ${tool.diameter ?? ""}`,
-    { id: "search" }
-  ),
-])
+const toolColumns = (t: TFunction<"tools">) =>
+  column.columns([
+    column.accessor((row) => row.tool.name, {
+      id: "name",
+      header: t("table.tool"),
+      sortFn: byName,
+      cell: ToolNameCell,
+      // The name takes the width the measurements leave; its longest shown name would
+      // otherwise widen the table past the list's scrollbar.
+      meta: { cellClassName: "max-w-0" },
+    }),
+    measurement("diameter", "Ø mm", (tool) => tool.diameter, "millimeters"),
+    measurement(
+      "shank",
+      t("table.shank"),
+      (tool) => tool.geometry.shankDiameter,
+      "millimeters"
+    ),
+    measurement("flutes", t("table.flutes"), (tool) => tool.flutes, "count"),
+    // Filter-only columns, hidden from view. The kind is compared loosely, as toolKindKey
+    // does, so case variants of the same type ("Probe", "probe") are one filter option.
+    column.accessor((row) => toolKindKey(row.tool.kind), {
+      id: "kind",
+      filterFn: filterFn_equals,
+    }),
+    column.accessor((row) => shankKey(row.tool.geometry.shankDiameter), {
+      id: "shankSize",
+      filterFn: filterFn_equals,
+    }),
+    column.accessor("catalog", { filterFn: filterFn_equals }),
+    column.accessor("recommended", { filterFn: filterFn_equals }),
+    column.accessor(
+      ({ tool }) =>
+        `${tool.name} ${tool.kind} ${tool.vendor ?? ""} ${tool.productId ?? ""} ${tool.diameter ?? ""}`,
+      { id: "search" }
+    ),
+  ])
+
 const FILTER_COLUMNS = {
   kind: false,
   shankSize: false,
@@ -277,6 +286,7 @@ export function useToolTable({
   disabled,
   onEditTool,
 }: ToolTableOptions) {
+  const { t } = useTranslation("tools")
   const [filter, setFilter] = useState((): ToolFilter => {
     const inUse = tools.find((tool) => tool.id === inUseId)
     const recommended =
@@ -327,7 +337,7 @@ export function useToolTable({
   )
   const table = useTable({
     features: toolTableFeatures,
-    columns,
+    columns: toolColumns(t),
     data,
     getRowId: (row) => row.tool.id,
     initialState: {
@@ -373,11 +383,12 @@ export function ToolCatalogSelect({
   catalogs: readonly LoadedToolCatalog[]
   disabled: boolean
 }) {
+  const { t } = useTranslation("tools")
   const id = useId()
   const options = [
-    { value: ALL_CATALOGS, label: "All catalogs" },
+    { value: ALL_CATALOGS, label: t("table.allCatalogs") },
     ...catalogs.map((catalog) => ({ value: catalog.id, label: catalog.name })),
-    { value: MY_TOOLS, label: "My tools" },
+    { value: MY_TOOLS, label: t("table.myTools") },
   ]
   return (
     <Field
@@ -385,10 +396,10 @@ export function ToolCatalogSelect({
       className="w-auto min-w-0 flex-wrap"
       data-disabled={disabled}
     >
-      <FieldLabel htmlFor={id}>Catalog</FieldLabel>
+      <FieldLabel htmlFor={id}>{t("table.catalog")}</FieldLabel>
       <OptionSelect
         id={id}
-        aria-label="Browse tool catalog"
+        aria-label={t("table.browseCatalogAria")}
         className="w-44 shrink-0"
         options={options}
         value={controller.filter.catalog}
@@ -404,6 +415,7 @@ export function ToolSearch({
 }: {
   controller: ToolTableController
 }) {
+  const { t } = useTranslation("tools")
   const { filter, kinds, shanks, recommends, changeFilter } = controller
   const types: ToolTypeFilter[] = [
     ...(recommends ? [RECOMMENDED_TYPES] : []),
@@ -412,10 +424,10 @@ export function ToolSearch({
   ]
   const options = types.map((type) => ({
     value: typeFilterValue(type),
-    label: typeFilterLabel(type),
+    label: typeFilterLabel(type, t),
   }))
   const shankOptions = [
-    { value: ALL_SHANKS, label: "All shanks" },
+    { value: ALL_SHANKS, label: t("table.allShanks") },
     ...shanks.map((key) => ({
       value: key,
       label: formatShankDiameter(Number(key)),
@@ -428,14 +440,14 @@ export function ToolSearch({
           <Search />
         </InputGroupAddon>
         <InputGroupInput
-          aria-label="Search tools"
-          placeholder="Name, vendor or ID"
+          aria-label={t("table.searchAria")}
+          placeholder={t("table.searchPlaceholder")}
           value={filter.query}
           onChange={(event) => changeFilter({ query: event.target.value })}
         />
       </InputGroup>
       <OptionSelect
-        aria-label="Filter tool type"
+        aria-label={t("table.typeAria")}
         className="w-full min-w-0"
         options={options}
         value={typeFilterValue(filter.type)}
@@ -445,7 +457,7 @@ export function ToolSearch({
       />
       <OptionSelect
         numeric
-        aria-label="Filter shank diameter"
+        aria-label={t("table.shankAria")}
         className="w-full min-w-0"
         options={shankOptions}
         value={filter.shank}
@@ -507,6 +519,7 @@ export function ToolTable({
   table: ToolTableInstance
   libraryEmpty: boolean
 }) {
+  const { t } = useTranslation("tools")
   const scrollRef = useRef<HTMLDivElement>(null)
   const { rows } = table.getRowModel()
   const getItemKey = useCallback((index: number) => rows[index].id, [rows])
@@ -568,7 +581,7 @@ export function ToolTable({
         <Empty>
           <EmptyHeader>
             <EmptyTitle>
-              {libraryEmpty ? "No tools in this library" : "No matching tools"}
+              {libraryEmpty ? t("table.emptyLibrary") : t("table.emptyMatch")}
             </EmptyTitle>
           </EmptyHeader>
         </Empty>

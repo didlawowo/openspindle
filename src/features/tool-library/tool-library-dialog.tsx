@@ -1,4 +1,5 @@
 import { useId } from "react"
+import { useTranslation } from "react-i18next"
 import { ArrowDownToLine, ArrowUpFromLine, Plus, X } from "lucide-react"
 import { Alert, AlertAction, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -36,6 +37,7 @@ export type ToolLibraryDialogProps = ToolLibraryOptions & {
 }
 
 function LibraryToolbar({ library }: { library: ToolLibrary }) {
+  const { t } = useTranslation("tools")
   const { busy, catalogs } = library
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5">
@@ -46,11 +48,11 @@ function LibraryToolbar({ library }: { library: ToolLibrary }) {
           onClick={library.newTool}
         >
           <Plus />
-          New tool
+          {t("dialog.newTool")}
         </Button>
         <FilePicker
           accept={LIBRARY_FILES}
-          aria-label="Import tool library"
+          aria-label={t("dialog.importAria")}
           onSelect={([file]) => library.importFile(file)}
         >
           {(open) => (
@@ -60,7 +62,7 @@ function LibraryToolbar({ library }: { library: ToolLibrary }) {
               onClick={() => library.guard(open)}
             >
               <ArrowDownToLine />
-              Import file
+              {t("dialog.importFile")}
             </Button>
           )}
         </FilePicker>
@@ -70,7 +72,7 @@ function LibraryToolbar({ library }: { library: ToolLibrary }) {
           onClick={library.exportTools}
         >
           <ArrowUpFromLine />
-          Export
+          {t("dialog.export")}
         </Button>
       </div>
       <ToolCatalogSelect
@@ -83,12 +85,13 @@ function LibraryToolbar({ library }: { library: ToolLibrary }) {
 }
 
 function CatalogStatus({ library }: { library: ToolLibrary }) {
+  const { t } = useTranslation("tools")
   const { loading, error, retry } = library.catalogs
   return (
     <>
       {loading && (
         <FieldDescription className="px-4 py-2" role="status">
-          Loading catalogs…
+          {t("dialog.loadingCatalogs")}
         </FieldDescription>
       )}
       {error && (
@@ -101,7 +104,7 @@ function CatalogStatus({ library }: { library: ToolLibrary }) {
               disabled={loading}
               onClick={retry}
             >
-              Retry
+              {t("dialog.retry")}
             </Button>
           </AlertAction>
         </Alert>
@@ -111,6 +114,7 @@ function CatalogStatus({ library }: { library: ToolLibrary }) {
 }
 
 function UnsavedChangesPrompt({ library }: { library: ToolLibrary }) {
+  const { t } = useTranslation("tools")
   const { form } = library
   return (
     <Alert className="mx-4 my-2 w-auto">
@@ -118,18 +122,20 @@ function UnsavedChangesPrompt({ library }: { library: ToolLibrary }) {
         <form.Subscribe selector={(state) => state.values.name}>
           {(name) => (
             <span className="mr-auto">
-              Save changes to {name || "this tool"}?
+              {t("dialog.saveChangesTo", {
+                name: name || t("dialog.thisTool"),
+              })}
             </span>
           )}
         </form.Subscribe>
         <Button size="sm" onClick={library.savePending}>
-          Save
+          {t("dialog.save")}
         </Button>
         <Button variant="outline" size="sm" onClick={library.discardPending}>
-          Discard
+          {t("dialog.discard")}
         </Button>
         <Button variant="ghost" size="sm" onClick={library.cancelPending}>
-          Cancel
+          {t("dialog.cancel")}
         </Button>
       </AlertDescription>
     </Alert>
@@ -137,6 +143,7 @@ function UnsavedChangesPrompt({ library }: { library: ToolLibrary }) {
 }
 
 function LibraryFeedback({ library }: { library: ToolLibrary }) {
+  const { t } = useTranslation("tools")
   const { errors, importNotes } = library
   if (!errors.length && !importNotes.length) return null
   return (
@@ -155,7 +162,7 @@ function LibraryFeedback({ library }: { library: ToolLibrary }) {
       {importNotes.length > 0 && (
         <Collapsible>
           <CollapsibleTrigger render={<Button variant="ghost" />}>
-            {importNotes.length} import notes
+            {t("dialog.importNotes", { count: importNotes.length })}
           </CollapsibleTrigger>
           <CollapsibleContent>
             <ul className="flex list-inside list-disc flex-col gap-1 pt-2">
@@ -172,9 +179,10 @@ function LibraryFeedback({ library }: { library: ToolLibrary }) {
 
 /** Browse, edit, import and export tools, and choose the tool to use. */
 export function ToolLibraryDialog({
-  title = "Tool library",
+  title,
   ...options
 }: ToolLibraryDialogProps) {
+  const { t } = useTranslation("tools")
   const library = useToolLibrary(options)
   const formId = useId()
   const { busy, catalog, dirty, editing, table } = library
@@ -194,15 +202,15 @@ export function ToolLibraryDialog({
       >
         <DialogHeader className="flex-row items-center justify-between px-5 py-3">
           <div className="flex flex-col gap-1">
-            <DialogTitle>{title}</DialogTitle>
+            <DialogTitle>{title ?? t("dialog.title")}</DialogTitle>
             <DialogDescription className="font-numeric">
-              {library.allTools.length} tools
+              {t("dialog.toolsCount", { count: library.allTools.length })}
             </DialogDescription>
           </div>
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Close tool library"
+            aria-label={t("dialog.closeAria")}
             disabled={busy}
             onClick={close}
           >
@@ -219,7 +227,7 @@ export function ToolLibraryDialog({
         <div className="grid min-h-0 flex-1 grid-cols-[42%_1px_minmax(0,1fr)] max-sm:grid-cols-1">
           <section
             className="flex min-h-0 min-w-0 flex-col max-sm:max-h-52"
-            aria-label="Tools"
+            aria-label={t("dialog.toolsRegion")}
           >
             <ToolSearch controller={table} />
             <ToolTable
@@ -229,8 +237,10 @@ export function ToolLibraryDialog({
             <Separator />
             <div className="flex items-center justify-between px-3 py-2">
               <span className="font-numeric">
-                {table.table.getRowModel().rows.length} of{" "}
-                {library.allTools.length}
+                {t("dialog.shownOf", {
+                  shown: table.table.getRowModel().rows.length,
+                  total: library.allTools.length,
+                })}
               </span>
               {library.canUndoDelete && (
                 <Button
@@ -238,7 +248,7 @@ export function ToolLibraryDialog({
                   disabled={busy}
                   onClick={library.restoreDeletedTool}
                 >
-                  Undo delete
+                  {t("dialog.undoDelete")}
                 </Button>
               )}
             </div>
@@ -247,7 +257,7 @@ export function ToolLibraryDialog({
           <Separator className="sm:hidden" />
           <section
             className="flex min-h-0 min-w-0 flex-col"
-            aria-label="Tool editor"
+            aria-label={t("dialog.editorRegion")}
           >
             {editing ? (
               <ToolEditor
@@ -268,7 +278,7 @@ export function ToolLibraryDialog({
             ) : (
               <Empty>
                 <EmptyHeader>
-                  <EmptyTitle>Select or create a tool</EmptyTitle>
+                  <EmptyTitle>{t("dialog.selectOrCreate")}</EmptyTitle>
                 </EmptyHeader>
               </Empty>
             )}
@@ -290,13 +300,13 @@ export function ToolLibraryDialog({
                 library.unsavedChangesPrompt
               }
             >
-              Save changes
+              {t("dialog.saveChanges")}
             </Button>
             <Button
               disabled={!editing || busy || library.unsavedChangesPrompt}
               onClick={library.chooseEditedTool}
             >
-              Use tool
+              {t("dialog.useTool")}
             </Button>
           </div>
         </DialogFooter>

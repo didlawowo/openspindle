@@ -1,6 +1,8 @@
 import { enCommon } from "./common"
+import { enDesignRules } from "./designRules"
 import { enDevice } from "./device"
 import { enFusion360 } from "./fusion360"
+import { enGlossary } from "./glossary"
 import { enJob } from "./job"
 import { enMenu } from "./menu"
 import { enModels } from "./models"
@@ -33,6 +35,8 @@ export const enResources = {
   models: enModels,
   tools: enTools,
   viewer: enViewer,
+  glossary: enGlossary,
+  designRules: enDesignRules,
 }
 
 export type UiResources = typeof enResources

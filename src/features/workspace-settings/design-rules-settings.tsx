@@ -1,6 +1,8 @@
 import { useId, useMemo } from "react"
 import { useForm } from "@tanstack/react-form"
 import { toast } from "sonner"
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import type { z } from "zod"
 import { Button } from "@/components/ui/button"
 import { DialogFooter } from "@/components/ui/dialog"
@@ -27,12 +29,16 @@ import { ruleLimitSchema, settingsForm } from "@/domain/rules/settings"
 import type { AnyRule } from "@/domain/rules/stages"
 import { visibleErrors } from "@/features/probing/grid-settings"
 
-const SEVERITY_OPTIONS: ReadonlyArray<{ value: RuleSeverity; label: string }> =
-  [
-    { value: "error", label: "Error" },
-    { value: "warning", label: "Warning" },
-    { value: "ignore", label: "Ignore" },
+/** Les choix de sévérité, traduits avec la ressource `designRules`. */
+function severityOptions(
+  t: TFunction<"designRules">
+): ReadonlyArray<{ value: RuleSeverity; label: string }> {
+  return [
+    { value: "error", label: t("severity.error") },
+    { value: "warning", label: t("severity.warning") },
+    { value: "ignore", label: t("severity.ignore") },
   ]
+}
 
 /** How a broken rule is reported: as an error, as a warning, or not at all. */
 function SeveritySelect({
@@ -48,13 +54,14 @@ function SeveritySelect({
   value: RuleSeverity
   onChange: (value: RuleSeverity) => void
 }) {
+  const { t } = useTranslation("designRules")
   return (
     <OptionSelect
       id={id}
       aria-label={label}
       aria-description={description}
       className="w-28 shrink-0"
-      options={SEVERITY_OPTIONS}
+      options={severityOptions(t)}
       value={value}
       onValueChange={(next) => {
         const severity = RuleSeveritySchema.safeParse(next)
@@ -88,6 +95,7 @@ const KIT_RULES = FIXTURE_KITS.map((kit) => ({
  */
 export function DesignRulesSettings({ onClose }: { onClose: () => void }) {
   const id = useId()
+  const { t } = useTranslation("designRules")
   const workspace = useWorkspaceStore()
   const settings = useWorkspace((state) => state.ruleSettings)
   const defaultValues = useMemo(() => settingsForm(settings), [settings])
@@ -108,13 +116,17 @@ export function DesignRulesSettings({ onClose }: { onClose: () => void }) {
   const fieldId = (rule: string, part: string) => `${id}-${rule}-${part}`
   // A rule's row: its limit, for a rule with one, and how breaking it is reported.
   const row = (rule: AnyRule) => {
+    const ruleLabel = t(`rules.${rule.id}.label`, { defaultValue: rule.label })
+    const ruleDescription = t(`rules.${rule.id}.description`, {
+      defaultValue: rule.description,
+    })
     const severity = (
       <form.Field name={`${rule.id}.severity`}>
         {(field) => (
           <SeveritySelect
             id={fieldId(rule.id, "severity")}
-            label={`${rule.label} severity`}
-            description={rule.description}
+            label={t("settings.severityAria", { label: ruleLabel })}
+            description={ruleDescription}
             value={field.state.value}
             onChange={field.handleChange}
           />
@@ -126,7 +138,7 @@ export function DesignRulesSettings({ onClose }: { onClose: () => void }) {
       return (
         <Field key={rule.id} orientation="horizontal">
           <FieldLabel htmlFor={fieldId(rule.id, "severity")}>
-            <Hint text={rule.description}>{rule.label}</Hint>
+            <Hint text={ruleDescription}>{ruleLabel}</Hint>
           </FieldLabel>
           {severity}
         </Field>
@@ -151,11 +163,11 @@ export function DesignRulesSettings({ onClose }: { onClose: () => void }) {
               data-invalid={invalid}
             >
               <FieldLabel htmlFor={fieldId(rule.id, "limit")}>
-                <Hint text={rule.description}>{rule.label}</Hint>
+                <Hint text={ruleDescription}>{ruleLabel}</Hint>
               </FieldLabel>
               <MeasurementInput
                 id={fieldId(rule.id, "limit")}
-                aria-description={rule.description}
+                aria-description={ruleDescription}
                 type="number"
                 unit={limit.unit}
                 min={limit.min}
@@ -209,12 +221,12 @@ export function DesignRulesSettings({ onClose }: { onClose: () => void }) {
           className="sm:mr-auto"
           onClick={() => form.reset(settingsForm({}))}
         >
-          Reset to defaults
+          {t("settings.reset")}
         </Button>
         <form.Subscribe selector={(state) => state.canSubmit}>
           {(canSubmit) => (
             <Button type="submit" disabled={!canSubmit}>
-              Save
+              {t("settings.save")}
             </Button>
           )}
         </form.Subscribe>

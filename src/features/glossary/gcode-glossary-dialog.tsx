@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react"
 import { Search } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { Badge } from "@/components/ui/badge"
 import {
   Empty,
@@ -79,20 +80,21 @@ function MachineBadge({
   entry: GlossaryRow
   machine: string
 }) {
+  const { t } = useTranslation("glossary")
   if (entry.machine === "runs") return null
   if (entry.machine === "ignored")
     return (
       <ExplainedBadge
         variant="outline"
-        label="Ignored"
-        reason={`The ${machine} accepts it and does nothing with it.`}
+        label={t("badge.ignored")}
+        reason={t("reason.ignored", { machine })}
       />
     )
   return (
     <ExplainedBadge
       variant="outline"
-      label="Unsupported"
-      reason={`The ${machine} does not run it.`}
+      label={t("badge.unsupported")}
+      reason={t("reason.unsupported", { machine })}
     />
   )
 }
@@ -104,6 +106,7 @@ function GlossaryItem({
   entry: GlossaryRow
   machine: string
 }) {
+  const { t } = useTranslation("glossary")
   return (
     <Item variant="outline" size="xs" role="listitem">
       <ItemContent>
@@ -117,10 +120,11 @@ function GlossaryItem({
         <ItemDescription>
           {entry.words && (
             <>
-              Words <code className="font-mono">{entry.words}</code> ·{" "}
+              {t("words")} <code className="font-mono">{entry.words}</code>{" "}
+              ·{" "}
             </>
           )}
-          Example <code className="font-mono">{entry.example}</code>
+          {t("example")} <code className="font-mono">{entry.example}</code>
         </ItemDescription>
       </ItemContent>
       <ItemActions>
@@ -128,13 +132,13 @@ function GlossaryItem({
         {entry.refusal === null ? (
           <ExplainedBadge
             variant="secondary"
-            label="Combines"
-            reason="Operations that use it combine into one program."
+            label={t("badge.combines")}
+            reason={t("reason.combines")}
           />
         ) : (
           <ExplainedBadge
             variant="outline"
-            label="Not combined"
+            label={t("badge.notCombined")}
             reason={entry.refusal}
           />
         )}
@@ -148,6 +152,7 @@ function GlossaryItem({
  * operations that use it combine, as combining reads the example.
  */
 export function GCodeGlossaryDialog({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation("glossary")
   const plate = useWorkspace(selectedPlate)
   const kit = plate ? kitForPlate(plate) : DEFAULT_KIT
   const [query, setQuery] = useState("")
@@ -164,7 +169,7 @@ export function GCodeGlossaryDialog({ onClose }: { onClose: () => void }) {
   const shown = rows.filter((row) => matches(row, query.trim()))
   return (
     <AppDialog
-      title="G-code glossary"
+      title={t("title")}
       description={kit.name}
       width="wide"
       onClose={onClose}
@@ -174,8 +179,8 @@ export function GCodeGlossaryDialog({ onClose }: { onClose: () => void }) {
             <Search />
           </InputGroupAddon>
           <InputGroupInput
-            aria-label="Search codes"
-            placeholder="Search codes, names and descriptions"
+            aria-label={t("searchAria")}
+            placeholder={t("searchPlaceholder")}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
@@ -187,15 +192,16 @@ export function GCodeGlossaryDialog({ onClose }: { onClose: () => void }) {
           {GROUPS.map((group) => {
             const entries = shown.filter((row) => row.group === group)
             if (!entries.length) return null
+            const groupTitle = t(`groups.${group}`, {
+              defaultValue: NC_GLOSSARY_GROUPS[group],
+            })
             return (
               <section
                 key={group}
-                aria-label={NC_GLOSSARY_GROUPS[group]}
+                aria-label={groupTitle}
                 className="flex flex-col gap-2"
               >
-                <h3 className="text-muted-foreground">
-                  {NC_GLOSSARY_GROUPS[group]}
-                </h3>
+                <h3 className="text-muted-foreground">{groupTitle}</h3>
                 <ItemGroup className="gap-2">
                   {entries.map((entry) => (
                     <GlossaryItem
@@ -212,10 +218,8 @@ export function GCodeGlossaryDialog({ onClose }: { onClose: () => void }) {
       ) : (
         <Empty>
           <EmptyHeader>
-            <EmptyTitle>No codes match</EmptyTitle>
-            <EmptyDescription>
-              Search by a code, such as G18, or by what it does.
-            </EmptyDescription>
+            <EmptyTitle>{t("emptyTitle")}</EmptyTitle>
+            <EmptyDescription>{t("emptyDescription")}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       )}

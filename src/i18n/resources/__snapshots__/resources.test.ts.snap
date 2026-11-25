@@ -81,6 +81,39 @@ exports[`translation resources > the English resources match their recorded text
       "saveFailed": "These work light preferences are applied, but could not be saved. Try again.",
     },
   },
+  "designRules": {
+    "applyAria": "Apply: {{suggestion}}",
+    "cardAria": "Design rules",
+    "checkAgain": "Check again",
+    "close": "Close",
+    "closeAria": "Close design rules",
+    "empty": "Nothing on this plate breaks a design rule.",
+    "outOfDate": "Out of date",
+    "rules": {},
+    "settings": {
+      "description": "What a plate’s program is checked against, in Prepare and before Run. They are saved with the project.",
+      "page": "Design rules",
+      "reset": "Reset to defaults",
+      "save": "Save",
+      "severityAria": "{{label}} severity",
+      "title": "Workspace settings",
+    },
+    "severity": {
+      "error": "Error",
+      "ignore": "Ignore",
+      "warning": "Warning",
+    },
+    "show": "Show",
+    "showAria": "Show {{label}} in the 3D view",
+    "summary": {
+      "error_one": "error",
+      "error_other": "errors",
+      "noProblems": "No problems",
+      "warning_one": "warning",
+      "warning_other": "warnings",
+    },
+    "title": "Design rules",
+  },
   "device": {
     "accessories": {
       "beep": "Beep",
@@ -536,6 +569,37 @@ exports[`translation resources > the English resources match their recorded text
       "connectFirst": "Connect Fusion 360 first: in Fusion, click OpenSpindle › Connect to OpenSpindle.",
       "notFromFusion": "This operation did not come from Fusion 360.",
     },
+  },
+  "glossary": {
+    "badge": {
+      "combines": "Combines",
+      "ignored": "Ignored",
+      "notCombined": "Not combined",
+      "unsupported": "Unsupported",
+    },
+    "emptyDescription": "Search by a code, such as G18, or by what it does.",
+    "emptyTitle": "No codes match",
+    "example": "Example",
+    "groups": {
+      "accessories": "Accessories",
+      "coordinates": "Coordinates and offsets",
+      "motion": "Motion",
+      "plane-units": "Planes, units and modes",
+      "probing": "Probing",
+      "program": "Program flow",
+      "settings": "Machine settings",
+      "spindle-tool": "Spindle and tools",
+      "words": "Words",
+    },
+    "reason": {
+      "combines": "Operations that use it combine into one program.",
+      "ignored": "The {{machine}} accepts it and does nothing with it.",
+      "unsupported": "The {{machine}} does not run it.",
+    },
+    "searchAria": "Search codes",
+    "searchPlaceholder": "Search codes, names and descriptions",
+    "title": "G-code glossary",
+    "words": "Words",
   },
   "job": {
     "anchor": {
@@ -2174,6 +2238,112 @@ exports[`translation resources > the French resources match their recorded text 
       "saveFailed": "Ces préférences d’éclairage de travail sont appliquées, mais n’ont pas pu être enregistrées. Réessayez.",
     },
   },
+  "designRules": {
+    "applyAria": "Appliquer : {{suggestion}}",
+    "cardAria": "Règles de conception",
+    "checkAgain": "Vérifier à nouveau",
+    "close": "Fermer",
+    "closeAria": "Fermer les règles de conception",
+    "empty": "Rien sur cette plaque ne viole une règle de conception.",
+    "outOfDate": "Obsolète",
+    "rules": {
+      "absolute-arc-centres": {
+        "description": "Le Z1 lit G90.1 comme G90 et prend toujours I, J et K comme des décalages depuis le départ de l’arc, donc les arcs qui suivent tournent autour du mauvais centre.",
+        "label": "Centres d’arc absolus (G90.1)",
+      },
+      "cutter-compensation": {
+        "description": "Le Z1 n’a pas de compensation de rayon d’outil : il usine le tracé programmé, pas un tracé décalé du rayon de l’outil.",
+        "label": "Compensation d’outil (G41, G42)",
+      },
+      "erase-stored-data": {
+        "description": "M498.2 met à zéro le numéro d’outil, les longueurs d’outil et les décalages G54 enregistrés par le Z1 : l’origine pièce et les réglages issus du palpage de référence des outils sont perdus.",
+        "label": "Effacer les outils enregistrés (M498.2)",
+      },
+      "firmware-commands": {
+        "description": "Les commandes propres au Z1 qui suppriment ou renomment des fichiers sur son stockage, modifient ses réglages ou ses réglages d’usine, lancent le mode de mise à jour du micrologiciel ou exécutent un fichier hors Exécuter.",
+        "label": "Commandes micrologicielles (rm, config-set, play)",
+      },
+      "max-cut-depth": {
+        "description": "Jusqu’où une coupe peut descendre sous le dessus de la matière, au total.",
+        "label": "Profondeur de coupe maximale",
+      },
+      "max-cutting-feed": {
+        "description": "L’avance la plus rapide à laquelle un déplacement peut couper.",
+        "label": "Avance de coupe maximale",
+      },
+      "max-depth-under-stock": {
+        "description": "Jusqu’où une coupe peut descendre sous le dessous de la matière, dans ce qui la supporte.",
+        "label": "Profondeur maximale sous la matière",
+      },
+      "max-plunge-rate": {
+        "description": "La descente la plus rapide d’un déplacement de coupe : une plongée droite à son avance, une rampe à une partie de celle-ci.",
+        "label": "Vitesse de plongée maximale",
+      },
+      "mode-cancels": {
+        "description": "G40, G49 et G80 annulent la compensation d’outil, les corrections de longueur d’outil et les cycles fixes. Le Z1 ne les connaît pas et ne fait rien avec ces codes, mais les opérations qui les contiennent ne se combinent pas.",
+        "label": "Annulations de mode (G40, G49, G80)",
+      },
+      "pcb/outside-stock": {
+        "description": "Un programme PCB conserve l’origine depuis laquelle KiCad l’a tracé. Tracé depuis l’origine de la page plutôt qu’une origine de fichier de perçage/positionnement à l’origine pièce, la carte se retrouve à côté de la matière.",
+        "label": "PCB sur la matière",
+      },
+      "pcb/plot-origin": {
+        "description": "Les fichiers Gerber et de perçage tracés depuis une origine de fichier de perçage/positionnement sur le coin inférieur gauche de la carte sont usinés depuis ce coin, que l’origine pièce représente alors, comme le coin avant gauche de la matière.",
+        "label": "PCB tracé depuis son coin inférieur gauche",
+      },
+      "radius-arcs": {
+        "description": "Le Z1 ne prend le centre d’un arc que depuis I, J et K, donc un arc donné par R n’a pas de centre.",
+        "label": "Arcs donnés par un rayon (R)",
+      },
+      "rapid-into-stock": {
+        "description": "Un déplacement rapide (G0) entre dans la matière.",
+        "label": "Déplacement rapide dans la matière",
+      },
+      "relative-arc-centres": {
+        "description": "Le Z1 lit G91.1 comme G91, donc les déplacements qui suivent sont pris comme des distances. Ses centres d’arc sont toujours des décalages depuis le départ de l’arc, ce que G91.1 demande.",
+        "label": "Centres d’arc relatifs (G91.1)",
+      },
+      "spindle-reverse": {
+        "description": "La broche du Z1 ne tourne que dans le sens horaire. Il ignore M4, donc la broche reste arrêtée pendant que le programme coupe.",
+        "label": "Inversion de broche (M4)",
+      },
+      "spindle-speed": {
+        "description": "Un programme qui démarre la broche (M3) avant d’avoir réglé une vitesse avec S tourne à la vitesse réglée avant lui, et ne se combine pas avec les autres opérations.",
+        "label": "Vitesse de broche non définie",
+      },
+      "spindle-stopped-while-cutting": {
+        "description": "Un déplacement coupe alors que la broche est arrêtée, ou tourne sans vitesse.",
+        "label": "Broche arrêtée pendant la coupe",
+      },
+      "tool-length-offsets": {
+        "description": "Le Z1 mesure chaque outil à son changement d’outil et applique sa longueur lui-même. Il ne connaît pas G43.",
+        "label": "Corrections de longueur d’outil (G43)",
+      },
+    },
+    "settings": {
+      "description": "Ce à quoi le programme d’une plaque est comparé, dans Préparer et avant Exécuter. Ces règles sont enregistrées avec le projet.",
+      "page": "Règles de conception",
+      "reset": "Réinitialiser aux valeurs par défaut",
+      "save": "Enregistrer",
+      "severityAria": "Sévérité : {{label}}",
+      "title": "Réglages de l’espace de travail",
+    },
+    "severity": {
+      "error": "Erreur",
+      "ignore": "Ignorer",
+      "warning": "Avertissement",
+    },
+    "show": "Afficher",
+    "showAria": "Afficher {{label}} dans la vue 3D",
+    "summary": {
+      "error_one": "erreur",
+      "error_other": "erreurs",
+      "noProblems": "Aucun problème",
+      "warning_one": "avertissement",
+      "warning_other": "avertissements",
+    },
+    "title": "Règles de conception",
+  },
   "device": {
     "accessories": {
       "beep": "Bip",
@@ -2629,6 +2799,37 @@ exports[`translation resources > the French resources match their recorded text 
       "connectFirst": "Connectez d’abord Fusion 360 : dans Fusion, cliquez sur OpenSpindle › Connect to OpenSpindle.",
       "notFromFusion": "Cette opération ne vient pas de Fusion 360.",
     },
+  },
+  "glossary": {
+    "badge": {
+      "combines": "Combinable",
+      "ignored": "Ignoré",
+      "notCombined": "Non combinable",
+      "unsupported": "Non pris en charge",
+    },
+    "emptyDescription": "Rechercher un code, comme G18, ou ce qu’il fait.",
+    "emptyTitle": "Aucun code ne correspond",
+    "example": "Exemple",
+    "groups": {
+      "accessories": "Accessoires",
+      "coordinates": "Coordonnées et décalages",
+      "motion": "Mouvement",
+      "plane-units": "Plans, unités et modes",
+      "probing": "Palpage",
+      "program": "Déroulement du programme",
+      "settings": "Réglages de la machine",
+      "spindle-tool": "Broche et outils",
+      "words": "Mots",
+    },
+    "reason": {
+      "combines": "Les opérations qui l’utilisent se combinent en un seul programme.",
+      "ignored": "La {{machine}} l’accepte sans effet.",
+      "unsupported": "La {{machine}} ne l’exécute pas.",
+    },
+    "searchAria": "Rechercher les codes",
+    "searchPlaceholder": "Rechercher un code, un nom ou une description",
+    "title": "Glossaire G-code",
+    "words": "Mots",
   },
   "job": {
     "anchor": {

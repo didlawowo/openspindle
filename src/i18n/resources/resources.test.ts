@@ -7,6 +7,16 @@ import { frResources } from "./fr"
  * mutation gate's string mutants of a resources change are all killed. Update the
  * snapshot with `npm test -- --update` when a translation legitimately changes.
  */
+/** Every leaf key of a namespace tree, like `toolbar.fit` or `triangles_one`. */
+function leafKeys(tree: Record<string, unknown>, prefix = ""): string[] {
+  return Object.entries(tree).flatMap(([key, value]) => {
+    const path = prefix ? `${prefix}.${key}` : key
+    return value && typeof value === "object"
+      ? leafKeys(value as Record<string, unknown>, path)
+      : [path]
+  })
+}
+
 describe("translation resources", () => {
   test("the English resources match their recorded text", () => {
     expect(enResources).toMatchSnapshot()
@@ -14,5 +24,20 @@ describe("translation resources", () => {
 
   test("the French resources match their recorded text", () => {
     expect(frResources).toMatchSnapshot()
+  })
+
+  test("both languages carry the same keys in every namespace", () => {
+    const english = enResources as Record<string, Record<string, unknown>>
+    const french = frResources as Record<string, Record<string, unknown>>
+    expect(Object.keys(french)).toEqual(Object.keys(english))
+    for (const namespace of Object.keys(english)) {
+      const en = leafKeys(english[namespace]).map((key) =>
+        key.replace(/_(one|other)$/, "")
+      )
+      const fr = leafKeys(french[namespace]).map((key) =>
+        key.replace(/_(one|other)$/, "")
+      )
+      expect([...fr].sort()).toEqual([...en].sort())
+    }
   })
 })

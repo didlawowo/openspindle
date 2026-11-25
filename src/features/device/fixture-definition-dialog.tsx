@@ -149,6 +149,7 @@ function FixtureModelField({
   if (bundled) description = t("fixture.bundledDescription")
   else if (source === "box") description = t("fixture.boxDescription")
   else if (selected)
+    // Stryker disable next-line OptionalChaining -- a selected model means the definition has one
     description = modelDetails(tModels, selected, definition.model?.bounds)
   else if (modelId) description = t("fixture.missingModelDescription")
   return (

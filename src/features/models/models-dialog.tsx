@@ -49,6 +49,7 @@ import { usageText, useModelUsage } from "./model-usage"
 import type { ModelUsage } from "./model-usage"
 
 const length = (locale: string, value: number) =>
+  // Stryker disable next-line EqualityOperator -- Number strips trailing zeros: < 10 and <= 10 give the same result
   Number(value.toFixed(value < 10 ? 1 : 0)).toLocaleString(locale)
 
 /**

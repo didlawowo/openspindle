@@ -37,3 +37,4 @@ __unconfig*
 todos.json
 
 .gitnexus
+.stryker-tmp/

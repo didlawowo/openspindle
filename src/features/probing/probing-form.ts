@@ -1,9 +1,10 @@
 import { useState } from "react"
+import i18next from "i18next"
 import type { ComponentProps, ReactNode } from "react"
 import { evaluate, useForm } from "@tanstack/react-form"
 import type { z } from "zod"
 import type { FieldError } from "@/components/ui/field"
-import { formatMillimetres } from "@/domain/geometry/millimetres"
+import { roundMillimetres } from "@/domain/geometry/millimetres"
 import type { BedAnchor } from "@/domain/anchors/stored-anchors"
 import type { BedXY, WorkAreaResult } from "@/domain/compile/toolpath-bounds"
 
@@ -19,9 +20,14 @@ export type WorkAreaFit = {
   anchors: readonly BedAnchor[]
 }
 
-/** A bed position as work coordinates, relative to the plate's work origin. */
+/** A bed position as work coordinates, relative to the plate's work origin,
+ * as the interface language writes numbers: "12,5" in French. */
 export const fromWorkOrigin = (point: BedXY, origin: BedXY) =>
-  [0, 1].map((axis) => formatMillimetres(point[axis] - origin[axis]))
+  [0, 1].map((axis) =>
+    roundMillimetres(point[axis] - origin[axis]).toLocaleString(
+      i18next.language
+    )
+  )
 
 export type FieldErrors = ComponentProps<typeof FieldError>["errors"]
 type FieldMeta = { isTouched: boolean; isValid: boolean; errors: FieldErrors }

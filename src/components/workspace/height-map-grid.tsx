@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 import { Badge } from "@/components/ui/badge"
 import { FieldDescription } from "@/components/ui/field"
 import {
@@ -75,6 +76,7 @@ export function HeightMapGrid({
   outliers?: readonly GridPosition[]
   compact?: boolean
 }) {
+  const { t } = useTranslation("common")
   const statistics = heightStatistics(map.heights)
   const scale = Math.max(
     Math.abs(statistics?.min ?? 0),
@@ -101,17 +103,13 @@ export function HeightMapGrid({
           compact && "hidden"
         )}
       >
-        <span>Relative height · mm</span>
-        <span>
-          {axes
-            ? "X / Y offsets from grid start · mm"
-            : "Row / column indices · spacing unavailable"}
-        </span>
+        <span>{t("heightMap.relativeHeight")}</span>
+        <span>{axes ? t("heightMap.offsets") : t("heightMap.indices")}</span>
       </FieldDescription>
       <div
         className="max-h-[440px] overflow-auto [&>[data-slot=table-container]]:overflow-visible"
         tabIndex={0}
-        aria-label="Height map values"
+        aria-label={t("heightMap.region")}
       >
         <Table
           className={cn(
@@ -121,7 +119,9 @@ export function HeightMapGrid({
         >
           <TableHeader>
             <TableRow>
-              <TableHead>{axes ? "Y / X" : "Row / Col"}</TableHead>
+              <TableHead>
+                {axes ? t("heightMap.axes") : t("heightMap.rowCol")}
+              </TableHead>
               {Array.from({ length: map.columns }, (_, column) => (
                 <TableHead key={column} scope="col">
                   {axes ? axisLabel(axes.x[column]) : column + 1}
@@ -138,16 +138,23 @@ export function HeightMapGrid({
                 {values.map((height, column) => {
                   const outlier = outlying.has(index({ row, column }))
                   const position = axes
-                    ? `X ${axes.x[column]} · Y ${axes.y[row]} mm`
-                    : `Row ${row + 1} · Column ${column + 1}`
+                    ? t("heightMap.positionAxes", {
+                        x: axes.x[column],
+                        y: axes.y[row],
+                      })
+                    : t("heightMap.positionIndex", {
+                        row: row + 1,
+                        column: column + 1,
+                      })
                   const text = height === null ? "—" : format(height)
-                  const value = height === null ? "Unmeasured" : `${text} mm`
+                  const value =
+                    height === null ? t("heightMap.unmeasured") : `${text} mm`
                   return (
                     <TableCell
                       key={column}
                       data-unmeasured={height === null || undefined}
                       data-outlier={outlier || undefined}
-                      title={`${position}: ${value}${outlier ? " · Outlier" : ""}`}
+                      title={`${t("heightMap.cellTitle", { position, value })}${outlier ? t("heightMap.outlierSuffix") : ""}`}
                       className={heightColor(height, scale)}
                     >
                       {outlier ? (
@@ -164,9 +171,15 @@ export function HeightMapGrid({
         </Table>
       </div>
       <FieldDescription className="flex flex-wrap justify-between gap-2 py-3">
-        <span>Blue − · Orange +{outliers.length > 0 && " · Red: outlier"}</span>
+        <span>
+          {t("heightMap.legend")}
+          {outliers.length > 0 && t("heightMap.legendOutlier")}
+        </span>
         <span className="font-numeric">
-          {statistics?.count ?? 0} / {map.columns * map.rows} measured
+          {t("heightMap.measured", {
+            measured: statistics?.count ?? 0,
+            total: map.columns * map.rows,
+          })}
         </span>
       </FieldDescription>
     </>

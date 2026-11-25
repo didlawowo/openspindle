@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Field, FieldLabel } from "@/components/ui/field"
 import {
   InputGroup,
@@ -24,6 +25,7 @@ export function ColorField({
   value: string
   onChange: (color: string) => void
 }) {
+  const { t } = useTranslation("common")
   const [typed, setTyped] = useState<string | null>(null)
   const [picking, setPicking] = useState<string | null>(null)
   const picker = useRef<HTMLInputElement>(null)
@@ -62,7 +64,7 @@ export function ColorField({
               ref={picker}
               type="color"
               className="sr-only"
-              aria-label={`Pick ${label.toLowerCase()}`}
+              aria-label={t("pickColor", { label: label.toLowerCase() })}
               value={shown}
               onChange={(event) => setPicking(event.target.value)}
             />

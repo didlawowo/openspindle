@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import type { ComponentProps, ReactNode } from "react"
 import { Camera, LoaderCircle, Maximize2, Play, Square } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { cn } from "cn"
 import {
   Card,
@@ -60,6 +61,7 @@ export function DeviceCamera({
   simulated?: ReactNode
 }) {
   const machine = useMachineHost()
+  const { t } = useTranslation("common")
   const [attempt, setAttempt] = useState(0)
   const [phase, setPhase] = useState<Phase>("idle")
   const [frameUrl, setFrameUrl] = useState<string | null>(null)
@@ -121,17 +123,26 @@ export function DeviceCamera({
         urls.current.delete(other)
       }
   }
-  let cameraAction = "Start"
-  if (phase === "error") cameraAction = "Retry"
-  if (active) cameraAction = "Stop"
-  let cameraStatus = "Camera stopped"
-  if (phase === "connecting") cameraStatus = "Connecting to camera…"
-  if (phase === "error" || !available) cameraStatus = "Camera unavailable"
-  if (!device) cameraStatus = "Camera offline"
+  const cameraAction =
+    phase === "error"
+      ? t("camera.retry")
+      : active
+        ? t("camera.stop")
+        : t("camera.start")
+  const cameraToggleAria =
+    phase === "error"
+      ? t("camera.retryAria")
+      : active
+        ? t("camera.stopAria")
+        : t("camera.startAria")
+  let cameraStatus = t("camera.stopped")
+  if (phase === "connecting") cameraStatus = t("camera.connecting")
+  if (phase === "error" || !available) cameraStatus = t("camera.unavailable")
+  if (!device) cameraStatus = t("camera.offline")
   const toggleCamera = () => setAttempt((value) => (active ? 0 : value + 1))
   const fullscreenTitle = fullscreenError
-    ? "Fullscreen unavailable"
-    : "Fullscreen"
+    ? t("camera.fullscreenUnavailable")
+    : t("camera.fullscreen")
   const enterFullscreen = () => {
     if (!panel.current?.requestFullscreen) return
     void panel.current.requestFullscreen().catch(() => setFullscreenError(true))
@@ -140,7 +151,7 @@ export function DeviceCamera({
     <img
       className="size-full object-contain"
       src={frameUrl}
-      alt="Live machine camera"
+      alt={t("camera.liveAlt")}
       draggable={false}
       onLoad={() => loaded(frameUrl)}
       onError={() => setPhase("error")}
@@ -167,7 +178,7 @@ export function DeviceCamera({
           "group/camera relative flex aspect-video items-center justify-center overflow-hidden rounded-lg bg-neutral-950 ring-1 ring-foreground/10",
           className
         )}
-        aria-label="Machine camera"
+        aria-label={t("camera.region")}
       >
         {picture}
         <div
@@ -181,7 +192,7 @@ export function DeviceCamera({
             className="size-10 rounded-full [&_svg:not([class*='size-'])]:size-5"
             disabled={!available || !device}
             onClick={toggleCamera}
-            aria-label={`${cameraAction} camera`}
+            aria-label={cameraToggleAria}
             title={cameraAction}
           >
             {phase === "connecting" && (
@@ -197,7 +208,7 @@ export function DeviceCamera({
         <div className={cn("absolute top-2 right-2 flex gap-1", reveal)}>
           <CameraFeedButton
             disabled={!fullscreenSupported}
-            aria-label="Fullscreen camera"
+            aria-label={t("camera.fullscreenAria")}
             title={fullscreenTitle}
             onClick={enterFullscreen}
           >
@@ -218,15 +229,17 @@ export function DeviceCamera({
         "fullscreen:flex fullscreen:h-screen fullscreen:flex-col fullscreen:rounded-none pb-0",
         className
       )}
-      aria-label="Machine camera"
+      aria-label={t("camera.region")}
     >
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Camera size={16} />
-          <span>Camera</span>
+          <span>{t("camera.title")}</span>
           {active && (
             <Badge variant="secondary">
-              {phase === "live" ? "Live" : "Connecting"}
+              {phase === "live"
+                ? t("camera.live")
+                : t("camera.connectingBadge")}
             </Badge>
           )}
         </CardTitle>
@@ -237,7 +250,7 @@ export function DeviceCamera({
             type="button"
             disabled={!available || !device}
             onClick={toggleCamera}
-            aria-label={`${cameraAction} camera`}
+            aria-label={cameraToggleAria}
           >
             {active ? <Square /> : <Play />}
             {cameraAction}
@@ -247,7 +260,7 @@ export function DeviceCamera({
             size="icon-sm"
             type="button"
             disabled={!fullscreenSupported}
-            aria-label="Fullscreen camera"
+            aria-label={t("camera.fullscreenAria")}
             title={fullscreenTitle}
             onClick={enterFullscreen}
           >

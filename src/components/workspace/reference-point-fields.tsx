@@ -1,4 +1,5 @@
 import { useId } from "react"
+import { useTranslation } from "react-i18next"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { OptionSelect } from "@/components/option-select"
 import { CoordinateInput } from "./coordinate-input"
@@ -45,6 +46,7 @@ export function ReferencePointFields({
   onReferenceChange: (reference: string) => void
   onPointChange: (point: ReferencePoint) => void
 }) {
+  const { t } = useTranslation("common")
   const id = useId()
   const axes = references.find((item) => item.value === reference)?.axes ?? []
   const set = (axis: MeasurementAxis, value: number | undefined) => {
@@ -61,11 +63,13 @@ export function ReferencePointFields({
           className="grid grid-cols-2 items-center gap-3"
           data-disabled={disabled}
         >
-          <FieldLabel htmlFor={`${id}-reference`}>Relative to</FieldLabel>
+          <FieldLabel htmlFor={`${id}-reference`}>
+            {t("referencePoint.relativeTo")}
+          </FieldLabel>
           <OptionSelect
             id={`${id}-reference`}
             className="w-full min-w-0"
-            aria-label={`${label} relative to`}
+            aria-label={t("referencePoint.relativeToAria", { label })}
             options={references}
             value={reference}
             disabled={disabled}

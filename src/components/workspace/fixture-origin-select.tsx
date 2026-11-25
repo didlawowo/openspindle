@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { OptionSelect } from "@/components/option-select"
 import { fixtureModelMountPoints } from "@/domain/fixtures/catalog"
 import type { FixtureModel } from "@/domain/fixtures/definitions"
@@ -35,13 +36,14 @@ export function FixtureOriginSelect({
   disabled?: boolean
   onChoose: (point: Point3) => void
 }) {
+  const { t } = useTranslation("common")
   const points = numberedPoints(fixtureModelMountPoints(model))
   if (!points.length) return null
   const origin = points.find(({ position }) =>
     position.every((value) => Math.abs(value) < 1e-6)
   )
   const items = [
-    ...(origin ? [] : [{ value: ORIGIN, label: "Origin" }]),
+    ...(origin ? [] : [{ value: ORIGIN, label: t("fixtureOrigin.origin") }]),
     ...points.map((point) => ({ value: point.id, label: point.name })),
   ]
   return (
@@ -55,7 +57,7 @@ export function FixtureOriginSelect({
       }}
       size="sm"
       aria-label={`${name} origin`}
-      title="The point it is positioned by and turns about"
+      title={t("fixtureOrigin.hint")}
       className="min-w-0 font-normal"
     />
   )

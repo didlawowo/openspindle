@@ -6,6 +6,7 @@ import {
   useRef,
 } from "react"
 import type { ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { isFresh } from "@/machine/contract"
 import {
@@ -36,6 +37,7 @@ export function WorkLightControlProvider({
   children: ReactNode
 }) {
   const { resolvedAppearance } = useAppearance()
+  const { t } = useTranslation("common")
   const { brightness } = useWorkLightPreferences()
   const inactivity = useWorkLightInactivity()
   const snapshot = useMachineSnapshot()
@@ -73,7 +75,7 @@ export function WorkLightControlProvider({
               attempted.current = null
               return
             }
-            toast.error("Work light brightness could not be applied", {
+            toast.error(t("workLight.brightnessFailed"), {
               description: failure.message,
             })
           },
@@ -83,7 +85,7 @@ export function WorkLightControlProvider({
         }
       )
     },
-    [connectionId, mutate, percent, snapshot, target]
+    [connectionId, mutate, percent, snapshot, t, target]
   )
 
   useEffect(() => {

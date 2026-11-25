@@ -1,4 +1,5 @@
 import { CircleAlert, TriangleAlert } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { cn } from "cn"
 import { Button } from "@/components/ui/button"
 import {
@@ -111,6 +112,7 @@ export function BedViewer({
   labeled = true,
 }: Props) {
   const container = useRef<HTMLDivElement>(null)
+  const { t } = useTranslation("common")
   const labels = useRef(new Map<string, HTMLButtonElement>())
   const problemMarkers = useRef(new Map<string, HTMLElement>())
   const arrangeLabel = useRef<HTMLDivElement>(null)
@@ -231,7 +233,7 @@ export function BedViewer({
     <div
       className="absolute inset-0 overflow-hidden [&>canvas]:block"
       ref={container}
-      aria-label="Interactive 3D plates and NC toolpaths"
+      aria-label={t("bedViewer.region")}
     >
       <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden">
         {labeled &&
@@ -247,7 +249,7 @@ export function BedViewer({
                   else labels.current.delete(plate.id)
                 }}
                 type="button"
-                aria-label={`Select ${label}`}
+                aria-label={t("bedViewer.selectPlate", { label })}
                 aria-pressed={plate.id === selectedPlateId}
                 title={label}
                 onClick={() => onSelectPlate(plate.id)}
@@ -286,7 +288,12 @@ export function BedViewer({
                           : "bg-amber-500 text-amber-950",
                         shown && "ring-2 ring-ring"
                       )}
-                      aria-label={`${isError ? "Error" : "Warning"}: ${problem.message}`}
+                      aria-label={t("bedViewer.problemAria", {
+                        severity: isError
+                          ? t("bedViewer.error")
+                          : t("bedViewer.warning"),
+                        message: problem.message,
+                      })}
                       aria-pressed={shown}
                       onClick={() => onSelectProblem?.(problem)}
                     />

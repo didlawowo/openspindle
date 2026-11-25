@@ -1,5 +1,6 @@
 import { useId } from "react"
 import type { ComponentProps } from "react"
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import {
   Tooltip,
@@ -21,6 +22,7 @@ export function ReasonButton({
   label: string
   reason: string | null
 }) {
+  const { t } = useTranslation("common")
   const reasonId = useId()
   const button = (
     <Button
@@ -39,7 +41,7 @@ export function ReasonButton({
           <span
             className="inline-flex"
             role="group"
-            aria-label={`${label} unavailable`}
+            aria-label={t("unavailable", { label })}
             aria-describedby={reasonId}
             tabIndex={0}
           />

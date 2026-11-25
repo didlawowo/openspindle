@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 import { cn } from "cn"
 
 /**
@@ -16,14 +17,17 @@ export function ProblemText({
   action?: ReactNode
   className?: string
 }) {
+  const { t } = useTranslation("common")
   return (
     <div className={cn("flex flex-col gap-0.5", className)}>
       <div>
-        <span className="font-medium">Problem:</span> {problem}
+        <span className="font-medium">{t("problemText.problem")}</span>{" "}
+        {problem}
       </div>
       <div className="flex items-baseline justify-between gap-2">
         <div>
-          <span className="font-medium">Suggested:</span> {suggestion}
+          <span className="font-medium">{t("problemText.suggested")}</span>{" "}
+          {suggestion}
         </div>
         {action}
       </div>

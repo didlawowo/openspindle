@@ -6,6 +6,7 @@ import {
   useState,
 } from "react"
 import type { ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 import type { Appearance } from "@/lib/appearance"
 import {
   APPEARANCE_STORAGE_KEY,
@@ -39,6 +40,7 @@ const SAVED_KEYS = new Set([
 ])
 
 export function AppearanceProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation("common")
   const [appearance, setPreference] = useState<Appearance | null>(null)
   const [systemDark, setSystemDark] = useState(
     () => window.matchMedia(SYSTEM_DARK_QUERY).matches
@@ -76,21 +78,22 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     return () => system.removeEventListener("change", update)
   }, [appearance])
 
-  const setAppearance = useCallback((value: Appearance) => {
-    if (!isAppearance(value)) return
-    setPreference(value)
-    const dark = window.matchMedia(SYSTEM_DARK_QUERY).matches
-    setSystemDark(dark)
-    applyAppearance(value, dark)
-    try {
-      localStorage.setItem(APPEARANCE_STORAGE_KEY, value)
-      setSaveError(null)
-    } catch {
-      setSaveError(
-        "This appearance is applied, but could not be saved. Try again."
-      )
-    }
-  }, [])
+  const setAppearance = useCallback(
+    (value: Appearance) => {
+      if (!isAppearance(value)) return
+      setPreference(value)
+      const dark = window.matchMedia(SYSTEM_DARK_QUERY).matches
+      setSystemDark(dark)
+      applyAppearance(value, dark)
+      try {
+        localStorage.setItem(APPEARANCE_STORAGE_KEY, value)
+        setSaveError(null)
+      } catch {
+        setSaveError(t("appearance.saveFailed"))
+      }
+    },
+    [t]
+  )
 
   const setFont = useCallback(
     (role: FontRole, font: FontId) => {
@@ -102,10 +105,10 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(FONT_STORAGE_KEYS[role], font)
         setSaveError(null)
       } catch {
-        setSaveError("This font is applied, but could not be saved. Try again.")
+        setSaveError(t("appearance.fontSaveFailed"))
       }
     },
-    [fonts]
+    [fonts, t]
   )
 
   let resolvedAppearance: "light" | "dark" | null = null

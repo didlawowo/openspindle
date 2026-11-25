@@ -24,6 +24,7 @@ export const frCommon: UiResources["common"] = {
   fixtureOrigin: {
     origin: "Origine",
     hint: "Le point par lequel il est positionné et autour duquel il tourne",
+    selectAria: "Origine de {{name}}",
   },
   referencePoint: {
     relativeTo: "Par rapport à",
@@ -72,7 +73,8 @@ export const frCommon: UiResources["common"] = {
     cellTitle: "{{position}} : {{value}}",
     legend: "Bleu − · Orange +",
     legendOutlier: " · Rouge : valeur aberrante",
-    measured: "{{measured}} / {{total}} mesurées",
+    measured_one: "{{measured}} / {{total}} mesurée",
+    measured_other: "{{measured}} / {{total}} mesurées",
   },
   bedViewer: {
     region: "Plaques 3D interactives et parcours d’outil NC",

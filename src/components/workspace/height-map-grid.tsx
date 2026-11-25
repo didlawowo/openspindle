@@ -177,6 +177,7 @@ export function HeightMapGrid({
         </span>
         <span className="font-numeric">
           {t("heightMap.measured", {
+            count: statistics?.count ?? 0,
             measured: statistics?.count ?? 0,
             total: map.columns * map.rows,
           })}

@@ -20,6 +20,7 @@ export const enCommon = {
   fixtureOrigin: {
     origin: "Origin",
     hint: "The point it is positioned by and turns about",
+    selectAria: "{{name}} origin",
   },
   referencePoint: {
     relativeTo: "Relative to",
@@ -68,7 +69,8 @@ export const enCommon = {
     cellTitle: "{{position}}: {{value}}",
     legend: "Blue − · Orange +",
     legendOutlier: " · Red: outlier",
-    measured: "{{measured}} / {{total}} measured",
+    measured_one: "{{measured}} / {{total}} measured",
+    measured_other: "{{measured}} / {{total}} measured",
   },
   bedViewer: {
     region: "Interactive 3D plates and NC toolpaths",

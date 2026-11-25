@@ -56,7 +56,7 @@ export function FixtureOriginSelect({
         if (point) onChoose(point.position)
       }}
       size="sm"
-      aria-label={`${name} origin`}
+      aria-label={t("fixtureOrigin.selectAria", { name })}
       title={t("fixtureOrigin.hint")}
       className="min-w-0 font-normal"
     />

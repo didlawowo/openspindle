@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next"
 import type { ProbingOperation } from "@/domain/operations/kinds"
 import type { Plate, PlateTool } from "@/domain/plate/plate"
 import {
@@ -10,11 +11,15 @@ import type { MachineProbing, ProbingStrategy } from "@/domain/probing/strategy"
 import { probeProfile } from "@/domain/tools/tool"
 import type { ProbeProfile, Tool } from "@/domain/tools/tool"
 import { isProbeSlot } from "@/domain/tools/tool-table"
+import { operationDisplayName } from "./strategy-copy"
 
 /** What a probe senses and carries, in a few words: "Touches Z · laser pointer". */
-export function profileText({ touch, pointer }: ProbeProfile): string {
-  const touches = touch === "xyz" ? "Touches X Y Z" : "Touches Z"
-  return pointer ? `${touches} · laser pointer` : touches
+export function profileText(
+  t: TFunction<"probing">,
+  { touch, pointer }: ProbeProfile
+): string {
+  const touches = touch === "xyz" ? t("tools.touchesXYZ") : t("tools.touchesZ")
+  return pointer ? t("tools.touchesWithPointer", { touches }) : touches
 }
 
 /**
@@ -88,13 +93,14 @@ export function replacedEntry(
 
 /** "Makera Wired Probe 2.0 in T0": the tool a table entry holds, and its number. */
 export function entryText(
+  t: TFunction<"probing">,
   entry: PlateTool & { readonly number: number },
   library: readonly Tool[]
 ): string {
   const name =
     library.find((tool) => tool.id === entry.toolId)?.name ??
-    "a tool missing from the library"
-  return `${name} in T${entry.number}`
+    t("tools.missingTool")
+  return t("tools.inNumber", { name, number: entry.number })
 }
 
 /**
@@ -103,6 +109,7 @@ export function entryText(
  * without a probe they run with.
  */
 export function strandedBy(
+  t: TFunction<"probing">,
   plate: Plate,
   number: number,
   tool: Tool,
@@ -118,13 +125,18 @@ export function strandedBy(
     if (!strategy || strategyUnsupported(strategy, machine) !== null) return []
     return profile && runsWith(strategy, profile, machine)
       ? []
-      : [operation.name]
+      : [operationDisplayName(t, operation)]
   })
 }
 
 /** "Outline trace cannot use it": the operations a replacement strands (`strandedBy`). */
-export const strandedText = (names: readonly string[]) =>
-  names.length ? `${names.join(", ")} cannot use it` : null
+export const strandedText = (
+  t: TFunction<"probing">,
+  names: readonly string[]
+) =>
+  names.length
+    ? t("tools.stranded", { names: names.join(", "), count: names.length })
+    : null
 
 /** The number a probing operation selects a probe by: where the machine needs it, else its own. */
 export const probeNumber = (
@@ -172,13 +184,15 @@ export function sharedReplacement(
  * changes for the plate's other operations (`sharedReplacement`).
  */
 export function sharedReplacementText(
+  t: TFunction<"probing">,
   {
     entry,
     others,
   }: { entry: PlateTool & { readonly number: number }; others: number },
   library: readonly Tool[]
 ): string {
-  const users =
-    others === 1 ? "1 other operation uses" : `${others} other operations use`
-  return `Replaces ${entryText(entry, library)}, which ${users}.`
+  return t("tools.replacesShared", {
+    entry: entryText(t, entry, library),
+    count: others,
+  })
 }

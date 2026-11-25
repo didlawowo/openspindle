@@ -1,4 +1,5 @@
 import { useId, useState } from "react"
+import { useTranslation } from "react-i18next"
 import {
   Field,
   FieldGroup,
@@ -51,14 +52,8 @@ export type OriginSettingsProps = {
   disabled?: boolean
 }
 
-const CORNER_OPTIONS = PROBE_3D_CORNERS.map((value) => ({
-  value,
-  label: PROBE_3D_CORNER_LABELS[value],
-}))
-const AXES_OPTIONS = PROBE_3D_AXES.map((value) => ({
-  value,
-  label: PROBE_3D_AXES_LABELS[value],
-}))
+const CORNER_VALUES = PROBE_3D_CORNERS
+const AXES_VALUES = PROBE_3D_AXES
 
 /** Where the form keeps each numeric input: a field, or one axis of the distance. */
 type NumericPath = "distance[0]" | "distance[1]" | "depth"
@@ -98,6 +93,17 @@ function OriginForm({
   pick,
   disabled,
 }: Required<OriginSettingsProps>) {
+  const { t } = useTranslation("probing")
+  const cornerOptions = CORNER_VALUES.map((corner) => ({
+    value: corner,
+    label: t(`corners.${corner}`, {
+      defaultValue: PROBE_3D_CORNER_LABELS[corner],
+    }),
+  }))
+  const axesOptions = AXES_VALUES.map((axis) => ({
+    value: axis,
+    label: t(`axes.${axis}`, { defaultValue: PROBE_3D_AXES_LABELS[axis] }),
+  }))
   const id = useId()
   const schema = originParamsSchema(parameters)
   // Switching back from the probe position restores the anchor settings.
@@ -131,7 +137,9 @@ function OriginForm({
           return (
             <FieldSet>
               <FieldLegend>
-                {PROBE_3D_ROUTINE_LABELS[values.routine]}
+                {t(`routines.${values.routine}`, {
+                  defaultValue: PROBE_3D_ROUTINE_LABELS[values.routine],
+                })}
               </FieldLegend>
               <FieldGroup className="gap-3">
                 {findsCorner(values.routine) ? (
@@ -140,7 +148,9 @@ function OriginForm({
                     className={FIELD_LAYOUT}
                     data-disabled={disabled}
                   >
-                    <FieldLabel htmlFor={`${id}-corner`}>Corner</FieldLabel>
+                    <FieldLabel htmlFor={`${id}-corner`}>
+                      {t("origin.corner")}
+                    </FieldLabel>
                     {probingField(
                       form,
                       "corner"
@@ -148,7 +158,7 @@ function OriginForm({
                       <OptionSelect
                         id={`${id}-corner`}
                         className="w-full min-w-0"
-                        options={CORNER_OPTIONS}
+                        options={cornerOptions}
                         value={field.value}
                         disabled={disabled}
                         onValueChange={field.onChange}
@@ -161,7 +171,9 @@ function OriginForm({
                     className={FIELD_LAYOUT}
                     data-disabled={disabled}
                   >
-                    <FieldLabel htmlFor={`${id}-axes`}>Axes</FieldLabel>
+                    <FieldLabel htmlFor={`${id}-axes`}>
+                      {t("origin.axes")}
+                    </FieldLabel>
                     {probingField(
                       form,
                       "axes"
@@ -169,7 +181,7 @@ function OriginForm({
                       <OptionSelect
                         id={`${id}-axes`}
                         className="w-full min-w-0"
-                        options={AXES_OPTIONS}
+                        options={axesOptions}
                         value={field.value}
                         disabled={disabled}
                         onValueChange={(axes) => {
@@ -183,6 +195,7 @@ function OriginForm({
                 {shown.distance[0] && (
                   <ParameterField
                     id={`${id}-distanceX`}
+                    paramKey="params.distanceX"
                     parameter={parameters.distance[0]}
                     field={probingField(form, "distance[0]")}
                     disabled={disabled}
@@ -191,6 +204,7 @@ function OriginForm({
                 {shown.distance[1] && (
                   <ParameterField
                     id={`${id}-distanceY`}
+                    paramKey="params.distanceY"
                     parameter={parameters.distance[1]}
                     field={probingField(form, "distance[1]")}
                     disabled={disabled}
@@ -199,6 +213,7 @@ function OriginForm({
                 {shown.depth && (
                   <ParameterField
                     id={`${id}-depth`}
+                    paramKey="params.probeDepth"
                     parameter={parameters.depth}
                     field={probingField(form, "depth")}
                     disabled={disabled}

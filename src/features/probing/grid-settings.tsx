@@ -1,5 +1,7 @@
 import { useId, useState } from "react"
 import { Scan } from "lucide-react"
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { FieldGroup, FieldLegend, FieldSet } from "@/components/ui/field"
 import { fitGrid } from "@/domain/probing/tasks/grid/fit"
 import { GridParamsSchema } from "@/domain/probing/tasks/grid/params"
@@ -40,20 +42,24 @@ export type GridSettingsProps = {
 }
 
 /** What Fit grid covers, or why there is nothing to fit to. */
-function gridFitDescription({ result, origin, anchors }: WorkAreaFit) {
+function gridFitDescription(
+  t: TFunction<"probing">,
+  { result, origin, anchors }: WorkAreaFit
+) {
   if (!result.ok) return result.reason
   const [minX, minY] = fromWorkOrigin(result.area.min, origin)
   const [maxX, maxY] = fromWorkOrigin(result.area.max, origin)
-  const span = `X ${minX} to ${maxX} and Y ${minY} to ${maxY} mm from the work origin.`
+  const span = t("grid.span", { minX, minY, maxX, maxY })
+  const action = t("grid.fit")
   const extent =
     result.covers === "cuts"
-      ? `The cuts cover ${span}`
-      : `The plate has no machining operations; its stock covers ${span}`
+      ? t("grid.cutsCover", { span })
+      : t("grid.stockCovers", { span })
   if (anchors.length)
     return result.covers === "cuts"
-      ? `${extent} Fit grid sizes the grid to them and anchors its start at their lower-left corner.`
-      : `${extent} Fit grid sizes the grid to the stock and anchors its start at the stock's lower-left corner.`
-  return `${extent} Without stored anchors Fit grid only sizes the grid: position the probe above X ${minX} Y ${minY}.`
+      ? t("grid.fitCutsAnchors", { extent, action })
+      : t("grid.fitStockAnchors", { extent, action })
+  return t("grid.fitNoAnchors", { extent, action, minX, minY })
 }
 
 /**
@@ -93,6 +99,7 @@ function GridForm({
   pick,
   disabled,
 }: Required<GridSettingsProps>) {
+  const { t } = useTranslation("probing")
   const id = useId()
   const schema = rangedSchema(GridParamsSchema, parameters)
   // Switching back from the probe position restores the anchor settings.
@@ -116,11 +123,11 @@ function GridForm({
   return (
     <FieldGroup>
       <FieldSet>
-        <FieldLegend>Probe grid</FieldLegend>
+        <FieldLegend>{t("grid.legend")}</FieldLegend>
         <FieldGroup className="gap-3">
           <WorkAreaField
-            description={gridFitDescription(workArea)}
-            action="Fit grid"
+            description={gridFitDescription(t, workArea)}
+            action={t("grid.fit")}
             icon={<Scan data-icon="inline-start" />}
             reason={workArea.result.ok ? null : workArea.result.reason}
             disabled={disabled}
@@ -128,30 +135,35 @@ function GridForm({
           />
           <ParameterField
             id={`${id}-width`}
+            paramKey="params.width"
             parameter={parameters.size[0]}
             field={probingField(form, "size[0]")}
             disabled={disabled}
           />
           <ParameterField
             id={`${id}-depth`}
+            paramKey="params.depth"
             parameter={parameters.size[1]}
             field={probingField(form, "size[1]")}
             disabled={disabled}
           />
           <ParameterField
             id={`${id}-columns`}
+            paramKey="params.xPoints"
             parameter={parameters.points[0]}
             field={probingField(form, "points[0]")}
             disabled={disabled}
           />
           <ParameterField
             id={`${id}-rows`}
+            paramKey="params.yPoints"
             parameter={parameters.points[1]}
             field={probingField(form, "points[1]")}
             disabled={disabled}
           />
           <ParameterField
             id={`${id}-clearance`}
+            paramKey="params.gridClearance"
             parameter={parameters.clearance}
             field={probingField(form, "clearance")}
             disabled={disabled}
@@ -170,8 +182,8 @@ function GridForm({
         {(field) => (
           <SwitchField
             id={`${id}-review`}
-            label="Review after probing"
-            description="Pause after probing to check the measured height map, then Resume or Stop."
+            label={t("grid.review")}
+            description={t("grid.reviewHint")}
             checked={field.state.value}
             disabled={disabled}
             onCheckedChange={(checked) => field.handleChange(checked)}

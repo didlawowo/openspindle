@@ -1,4 +1,5 @@
 import type { TFunction } from "i18next"
+import { operationDisplayName } from "@/features/probing/strategy-copy"
 import { isProgramFileName } from "@/app/workspace/import-files"
 import { compilePlate } from "@/domain/compile/compile"
 import type { CompiledPlate, CompiledSection } from "@/domain/compile/compile"
@@ -242,6 +243,7 @@ function fixturesRow(
  */
 export function buildTreeRows(
   t: TFunction<"prepare">,
+  pt: TFunction<"probing">,
   plates: readonly Plate[],
   tools: readonly Tool[],
   diagnosticsOf: (plate: Plate) => readonly Diagnostic[]
@@ -259,8 +261,10 @@ export function buildTreeRows(
     const operationsSearch = `${plateSearch} ${t("tree.operations")}`
     const operations = plate.operations.map((operation, position): TreeRow => {
       const phase = operationPhase(operation)
-      const operationLabel = treeLabel(operation.name)
-      const search = `${operationsSearch} ${operationLabel} ${phaseLabels(t)[phase]}`
+      const operationLabel = treeLabel(operationDisplayName(pt, operation))
+      // The stored name joins the search too: a French UI still finds an operation
+      // by its English default, and a renamed one by what it was saved as.
+      const search = `${operationsSearch} ${operationLabel} ${operation.name} ${phaseLabels(t)[phase]}`
       return {
         kind: "operation",
         id: `operation:${operation.id}`,

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { operationDisplayName } from "@/features/probing/strategy-copy"
 import type { TFunction } from "i18next"
 import { Pencil } from "lucide-react"
 import { toast } from "sonner"
@@ -23,13 +24,13 @@ export const toolNumberLabel = (
 const byNumber = (a: PlateTool, b: PlateTool) =>
   (a.number ?? -1) - (b.number ?? -1)
 
-/** Operations that use a table entry, by name. */
-function usersOf(plate: Plate, number: number | null) {
+/** Operations that use a table entry, named as the tree shows them. */
+function usersOf(t: TFunction<"probing">, plate: Plate, number: number | null) {
   return plate.operations
     .filter((operation) =>
       operation.tools.some((binding) => binding.plate === number)
     )
-    .map((operation) => operation.name)
+    .map((operation) => operationDisplayName(t, operation))
 }
 
 /** Moves an entry to another number; the NC of every operation using it follows. */
@@ -80,13 +81,14 @@ function RenumberField({ plate, entry }: { plate: Plate; entry: PlateTool }) {
 /** The plate's tool table: which library tool each T number holds, and who uses it. */
 export function PlateToolsPanel({ plate }: { plate: Plate }) {
   const { t } = useTranslation("prepare")
+  const { t: pt } = useTranslation("probing")
   const library = useWorkspace((state) => state.tools)
   const entries = [...plate.tools].sort(byNumber)
   return (
     <div className="flex flex-col gap-3 p-3" aria-label={t("tools.table")}>
       {entries.map((entry) => {
         const tool = library.find((item) => item.id === entry.toolId)
-        const users = usersOf(plate, entry.number)
+        const users = usersOf(pt, plate, entry.number)
         return (
           <div key={entry.number ?? "program"} className="flex flex-col gap-1">
             <div className="flex items-center gap-2">

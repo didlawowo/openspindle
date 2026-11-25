@@ -1,5 +1,7 @@
 import { useId } from "react"
 import { X } from "lucide-react"
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { Button } from "@/components/ui/button"
 import {
   Field,
@@ -59,20 +61,18 @@ const STOCK_OUTLINE: readonly ItemEdgeRef[] = EDGE_SIDES.map((side) => ({
   side,
 }))
 
-const TRACE_HINT =
-  "Toolpath bounds: the rectangle the plate's machining cuts, from the work origin. Edges: chosen edges of the stock and fixtures, where the plate's setup puts them, from the device's first anchor, with or without machining."
-
-const EDGES_DESCRIPTION =
-  "Traces the chosen edges where the plate's setup puts them, in machine coordinates from the device's first anchor, whatever work X and Y are."
-
 /** The traced rectangle in work coordinates, or why there is nothing to trace. */
-function outlineDescription(outline: ToolpathBoundsResult) {
-  if (!outline.ok) return `Nothing to trace: ${outline.reason}`
+function outlineDescription(
+  t: TFunction<"probing">,
+  outline: ToolpathBoundsResult
+) {
+  if (!outline.ok)
+    return t("outline.nothingToTrace", { reason: outline.reason })
   const { min, max } = roundOutward(outline.bounds)
   const [x0, y0, x1, y1] = [min[0], min[1], max[0], max[1]].map(
     formatMillimetres
   )
-  return `Traces X ${x0} to ${x1} and Y ${y0} to ${y1} mm from the work origin: where the plate's machining cuts, outlined in the 3D view.`
+  return t("outline.tracesSpan", { x0, y0, x1, y1 })
 }
 
 /**
@@ -115,12 +115,15 @@ function OutlineForm({
   onChange,
   disabled,
 }: Required<OutlineSettingsProps>) {
+  const { t } = useTranslation("probing")
+  const traceHint = t("outline.traceHint")
+  const edgesDescription = t("outline.edgesDescription")
   const id = useId()
   const schema = rangedSchema(OutlineParamsSchema, parameters)
   const form = useProbingForm(value, schema, onChange)
   const labelOf = (ref: ItemEdgeRef) =>
     edges.find((edge) => sameEdge(edge.ref, ref))?.label ??
-    `Missing edge · ${ref.side}`
+    t("outline.missingEdge", { side: ref.side })
 
   return (
     <FieldGroup>
@@ -136,25 +139,25 @@ function OutlineForm({
                 <Hint
                   text={
                     target.kind === "edges"
-                      ? EDGES_DESCRIPTION
-                      : outlineDescription(outline)
+                      ? edgesDescription
+                      : outlineDescription(t, outline)
                   }
                 >
-                  Outline
+                  {t("outline.legend")}
                 </Hint>
               </FieldLegend>
               <FieldGroup className="gap-3">
                 <Field orientation="horizontal">
                   <FieldLabel htmlFor={`${id}-target`} className="shrink-0">
-                    <Hint text={TRACE_HINT}>Trace</Hint>
+                    <Hint text={traceHint}>{t("outline.trace")}</Hint>
                   </FieldLabel>
                   <OptionSelect
                     id={`${id}-target`}
-                    aria-description={TRACE_HINT}
+                    aria-description={traceHint}
                     className="min-w-0 flex-1"
                     options={[
-                      { value: "toolpath", label: "Toolpath bounds" },
-                      { value: "edges", label: "Edges" },
+                      { value: "toolpath", label: t("outline.targetToolpath") },
+                      { value: "edges", label: t("outline.targetEdges") },
                     ]}
                     value={target.kind}
                     disabled={disabled}
@@ -170,7 +173,10 @@ function OutlineForm({
                 {target.kind === "edges" && (
                   <>
                     {traced.length > 0 && (
-                      <ul className="flex flex-col" aria-label="Traced edges">
+                      <ul
+                        className="flex flex-col"
+                        aria-label={t("outline.tracedEdges")}
+                      >
                         {traced.map((ref) => (
                           <li
                             key={edgeKey(ref)}
@@ -180,8 +186,12 @@ function OutlineForm({
                             <Button
                               variant="ghost"
                               size="icon-sm"
-                              aria-label={`Remove ${labelOf(ref)}`}
-                              title={`Remove ${labelOf(ref)}`}
+                              aria-label={t("outline.remove", {
+                                label: labelOf(ref),
+                              })}
+                              title={t("outline.remove", {
+                                label: labelOf(ref),
+                              })}
                               disabled={disabled}
                               onClick={() =>
                                 trace(
@@ -199,7 +209,7 @@ function OutlineForm({
                       {pick && (
                         <PickButton
                           pick={pick}
-                          label="Pick edges"
+                          label={t("outline.pickEdges")}
                           disabled={disabled}
                         />
                       )}
@@ -207,22 +217,24 @@ function OutlineForm({
                         variant="outline"
                         size="sm"
                         disabled={disabled || !hasStock}
-                        title={hasStock ? undefined : "The plate has no stock."}
+                        title={hasStock ? undefined : t("outline.noStock")}
                         onClick={() => trace(STOCK_OUTLINE)}
                       >
-                        Stock outline
+                        {t("outline.stockOutline")}
                       </Button>
                     </div>
                   </>
                 )}
                 <ParameterField
                   id={`${id}-travelZ`}
+                  paramKey="params.machineZ"
                   parameter={parameters.travelZ}
                   field={probingField(form, "travelZ")}
                   disabled={disabled}
                 />
                 <ParameterField
                   id={`${id}-feed`}
+                  paramKey="params.traceFeed"
                   parameter={parameters.feed}
                   field={probingField(form, "feed")}
                   disabled={disabled}
@@ -236,8 +248,8 @@ function OutlineForm({
         {(field) => (
           <SwitchField
             id={`${id}-pause`}
-            label="Pause after tracing"
-            description="Pause after the trace to check the outline against the stock and fixtures, then Resume or Stop."
+            label={t("outline.pause")}
+            description={t("outline.pauseHint")}
             checked={field.state.value}
             disabled={disabled}
             onCheckedChange={(checked) => field.handleChange(checked)}

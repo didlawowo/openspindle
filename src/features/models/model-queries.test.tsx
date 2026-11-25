@@ -3,18 +3,8 @@ import { QueryClient } from "@tanstack/react-query"
 import { describe, expect, test, vi } from "vitest"
 import { Providers, fakeHost } from "@/test/harness"
 import type { ModelRecord } from "@/domain/models/model"
+import { webCryptoSha256 } from "@/lib/sha256"
 import { modelKeys, useImportModels, useModelLibrary } from "./model-queries"
-
-/** The hex SHA-256 a test file's contents hash to, as the importer computes it. */
-async function sha256Of(text: string) {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(text)
-  )
-  return [...new Uint8Array(digest)]
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("")
-}
 
 const record = {
   id: "m1",
@@ -79,7 +69,10 @@ describe("useImportModels", () => {
 
   test("the import checks new files against the cached library", async () => {
     const host = fakeHost()
-    const known = { ...record, source: { sha256: await sha256Of("x") } }
+    const known = {
+      ...record,
+      source: { sha256: await webCryptoSha256(new TextEncoder().encode("x")) },
+    }
     const queryClient = new QueryClient()
     queryClient.setQueryData(modelKeys.library, [known])
     const { result } = renderHook(() => useImportModels(), {

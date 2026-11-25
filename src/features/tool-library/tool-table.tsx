@@ -335,9 +335,10 @@ export function useToolTable({
     () => (editingId === null ? {} : { [editingId]: true }),
     [editingId]
   )
+  const columns = useMemo(() => toolColumns(t), [t])
   const table = useTable({
     features: toolTableFeatures,
-    columns: toolColumns(t),
+    columns,
     data,
     getRowId: (row) => row.tool.id,
     initialState: {

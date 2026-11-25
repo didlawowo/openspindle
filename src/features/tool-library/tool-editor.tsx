@@ -631,7 +631,7 @@ function PresetsSection({ form }: SectionProps) {
                   presets.pushValue({
                     ...structuredClone(preset),
                     id: crypto.randomUUID(),
-                    name: `${preset.name} copy`,
+                    name: t("presets.copyName", { name: preset.name }),
                   })
                   setSelected(list.length)
                 }}
@@ -719,10 +719,12 @@ function Segments({
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label={t("segments.removeSegmentAria", {
-                  part: t(`segments.${part}`),
-                  n: index + 1,
-                })}
+                aria-label={t(
+                  part === "holder"
+                    ? "segments.removeSegmentAriaHolder"
+                    : "segments.removeSegmentAriaShaft",
+                  { n: index + 1 }
+                )}
                 onClick={() => segments.removeValue(index)}
               >
                 <X />

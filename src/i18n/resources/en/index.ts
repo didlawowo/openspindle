@@ -1,12 +1,15 @@
 import { enCommon } from "./common"
 import { enDevice } from "./device"
+import { enFusion360 } from "./fusion360"
 import { enJob } from "./job"
 import { enMenu } from "./menu"
+import { enModels } from "./models"
 import { enPcb } from "./pcb"
 import { enPrepare } from "./prepare"
 import { enProbing } from "./probing"
 import { enSettings } from "./settings"
 import { enShell } from "./shell"
+import { enViewer } from "./viewer"
 
 /**
  * Every string the interface shows in English, the language the app falls back to.
@@ -25,6 +28,9 @@ export const enResources = {
   device: enDevice,
   pcb: enPcb,
   common: enCommon,
+  fusion360: enFusion360,
+  models: enModels,
+  viewer: enViewer,
 }
 
 export type UiResources = typeof enResources

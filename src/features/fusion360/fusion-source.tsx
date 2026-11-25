@@ -1,4 +1,5 @@
 import { useId, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { planFusionImport } from "@/app/workspace/import-fusion-program"
 import { useWorkspaceStore } from "@/app/workspace/workspace-context"
@@ -43,6 +44,7 @@ import { ArrowUpRightIcon, Link2 } from "lucide-react"
  * do about what it found, which takes this dialog's place.
  */
 export function FusionSource({ onDone }: { onDone: () => void }) {
+  const { t } = useTranslation("fusion360")
   const fusion = useHost().fusion
   const workspace = useWorkspaceStore()
   const context = useImportContext()
@@ -106,11 +108,8 @@ export function FusionSource({ onDone }: { onDone: () => void }) {
             <EmptyMedia variant="icon">
               <Link2 />
             </EmptyMedia>
-            <EmptyTitle>Set up connection with Fusion 360</EmptyTitle>
-            <EmptyDescription>
-              In Autodesk Fusion, click OpenSpindle › Connect to OpenSpindle. A
-              dialog will appear here to enter the six-digit code.
-            </EmptyDescription>
+            <EmptyTitle>{t("source.setupTitle")}</EmptyTitle>
+            <EmptyDescription>{t("source.setupDescription")}</EmptyDescription>
           </EmptyHeader>
           <Button
             variant="link"
@@ -119,7 +118,7 @@ export function FusionSource({ onDone }: { onDone: () => void }) {
             nativeButton={false}
             render={
               <a href="https://github.com/openspindle/openspindle/blob/main/docs/fusion360.md">
-                Learn More <ArrowUpRightIcon />
+                {t("source.learnMore")} <ArrowUpRightIcon />
               </a>
             }
           />
@@ -145,19 +144,19 @@ export function FusionSource({ onDone }: { onDone: () => void }) {
             void programs.refetch()
           }}
         >
-          {programs.isFetching ? "Refreshing…" : "Refresh"}
+          {programs.isFetching ? t("source.refreshing") : t("source.refresh")}
         </Button>
         <Button
           variant="ghost"
           disabled={busy}
           onClick={() => disconnect.mutate()}
         >
-          Disconnect
+          {t("source.disconnect")}
         </Button>
       </div>
       {options.length > 0 ? (
         <Field>
-          <FieldLabel htmlFor={id}>NC program</FieldLabel>
+          <FieldLabel htmlFor={id}>{t("source.programLabel")}</FieldLabel>
           <Select
             items={options}
             value={selected?.id ?? null}
@@ -168,7 +167,7 @@ export function FusionSource({ onDone }: { onDone: () => void }) {
             disabled={busy}
           >
             <SelectTrigger id={id} className="w-full">
-              <SelectValue placeholder="Choose a program" />
+              <SelectValue placeholder={t("source.chooseProgram")} />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
@@ -180,19 +179,18 @@ export function FusionSource({ onDone }: { onDone: () => void }) {
               </SelectGroup>
             </SelectContent>
           </Select>
-          <FieldDescription>
-            Import posts the program with its Fusion post processor.
-          </FieldDescription>
+          <FieldDescription>{t("source.importNote")}</FieldDescription>
         </Field>
       ) : (
         <Empty>
           <EmptyHeader>
             <EmptyTitle>
-              {programs.isFetching ? "Reading NC programs…" : "No NC programs"}
+              {programs.isFetching
+                ? t("source.readingPrograms")
+                : t("source.noPrograms")}
             </EmptyTitle>
             <EmptyDescription>
-              Open a Fusion document and configure an NC program in Manufacture,
-              then refresh.
+              {t("source.noProgramsDescription")}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -209,7 +207,7 @@ export function FusionSource({ onDone }: { onDone: () => void }) {
           if (selected) importing.mutate(selected.id)
         }}
       >
-        {importing.isPending ? "Posting…" : "Import"}
+        {importing.isPending ? t("source.posting") : t("source.import")}
       </Button>
     </FieldGroup>
   )

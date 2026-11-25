@@ -123,6 +123,7 @@ function FixtureModelField({
   onModels: () => void
 }) {
   const { t } = useTranslation("device")
+  const { t: tModels } = useTranslation("models")
   const models = useModelLibrary().data ?? []
   const id = `fixture-model-${definition.id}`
   const source = definition.model?.source.kind
@@ -148,7 +149,7 @@ function FixtureModelField({
   if (bundled) description = t("fixture.bundledDescription")
   else if (source === "box") description = t("fixture.boxDescription")
   else if (selected)
-    description = modelDetails(selected, definition.model?.bounds)
+    description = modelDetails(tModels, selected, definition.model?.bounds)
   else if (modelId) description = t("fixture.missingModelDescription")
   return (
     <Field>

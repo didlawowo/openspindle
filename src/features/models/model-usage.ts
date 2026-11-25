@@ -1,9 +1,9 @@
 import { useMemo } from "react"
+import type { TFunction } from "i18next"
 import { useFixtureLibrary } from "@/app/fixtures/fixture-context"
 import { useWorkspace } from "@/app/workspace/workspace-context"
 import type { ModelId } from "@/domain/models/model"
 import type { Plate } from "@/domain/plate/plate"
-import { plural } from "@/domain/primitives"
 import type { FixtureDefinition } from "@/domain/fixtures/definitions"
 import { libraryModelId } from "@/domain/fixtures/definitions"
 
@@ -45,11 +45,16 @@ export function useModelUsage() {
 }
 
 /** "Used by 2 fixture definitions and 3 plates", or "Not used". */
-export function usageText(usage: ModelUsage | undefined) {
-  if (!usage || (!usage.definitions && !usage.plates)) return "Not used"
+export function usageText(
+  t: TFunction<"models">,
+  usage: ModelUsage | undefined
+) {
+  if (!usage || (!usage.definitions && !usage.plates)) return t("usage.none")
   const parts = [
-    usage.definitions ? plural(usage.definitions, "fixture definition") : "",
-    usage.plates ? plural(usage.plates, "plate") : "",
+    usage.definitions
+      ? t("usage.definitions", { count: usage.definitions })
+      : "",
+    usage.plates ? t("usage.plates", { count: usage.plates }) : "",
   ].filter(Boolean)
-  return `Used by ${parts.join(" and ")}`
+  return t("usage.usedBy", { parts: parts.join(t("usage.and")) })
 }

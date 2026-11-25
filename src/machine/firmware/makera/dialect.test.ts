@@ -1,5 +1,4 @@
-import assert from "node:assert/strict"
-import { describe, test } from "node:test"
+import { describe, expect, test } from "vitest"
 import { RUN_LIMITS } from "../../contract/index.ts"
 import { ProgramError } from "../adapter.ts"
 import { prepareMakeraProgram } from "./dialect.ts"
@@ -29,7 +28,7 @@ describe("spindle speed", () => {
       "M0      (Temporary machine stop.)",
       "M3        (Spindle on clockwise.)"
     )
-    assert.deepEqual(program.text.split("\n").slice(0, -1), [
+    expect(program.text.split("\n").slice(0, -1)).toEqual([
       "G21",
       "S12000",
       "T1",
@@ -38,44 +37,43 @@ describe("spindle speed", () => {
       "",
       "M3 S12000",
     ])
-    assert.deepEqual(
-      program.changes.filter((change) => change.reason === "spindle-speed"),
-      [{ line: 7, before: "M3", after: "M3 S12000", reason: "spindle-speed" }]
-    )
+    expect(
+      program.changes.filter((change) => change.reason === "spindle-speed")
+    ).toEqual([
+      { line: 7, before: "M3", after: "M3 S12000", reason: "spindle-speed" },
+    ])
   })
 
   test("pcb2gcode's speed on a G0 reaches its bare M3", () => {
-    assert.deepEqual(
-      sent("G00 S12000     (RPM spindle speed.)", "T1", "M6", "M3").at(-1),
-      "M3 S12000"
-    )
+    expect(
+      sent("G00 S12000     (RPM spindle speed.)", "T1", "M6", "M3").at(-1)
+    ).toBe("M3 S12000")
   })
 
   test("an M3 whose command has an S is sent as written", () => {
-    assert.deepEqual(
-      speedChanges("S9000", "M3 S10000", "S10000 M3", "G0 S10000 M3"),
-      []
-    )
+    expect(
+      speedChanges("S9000", "M3 S10000", "S10000 M3", "G0 S10000 M3")
+    ).toEqual([])
   })
 
   test("the S the program set last counts, an M3's own too", () => {
-    assert.equal(sent("S10000", "S12000", "M3").at(-1), "M3 S12000")
-    assert.equal(sent("M3 S9000", "M5", "M3").at(-1), "M3 S9000")
-    assert.equal(sent("S012000.50", "M3").at(-1), "M3 S012000.50")
+    expect(sent("S10000", "S12000", "M3").at(-1)).toBe("M3 S12000")
+    expect(sent("M3 S9000", "M5", "M3").at(-1)).toBe("M3 S9000")
+    expect(sent("S012000.50", "M3").at(-1)).toBe("M3 S012000.50")
   })
 
   test("an S another code takes is no speed", () => {
     // M223 S is the rpm override in percent, G4 S the Z1's dwell in seconds.
-    assert.equal(sent("S12000", "M223 S80", "G4 S2", "M3").at(-1), "M3 S12000")
+    expect(sent("S12000", "M223 S80", "G4 S2", "M3").at(-1)).toBe("M3 S12000")
   })
 
   test("an M3 before any S is sent bare", () => {
-    assert.deepEqual(sent("M3", "G1 X1 F100"), ["M3", "G1 X1 F100"])
-    assert.deepEqual(speedChanges("M3"), [])
+    expect(sent("M3", "G1 X1 F100")).toEqual(["M3", "G1 X1 F100"])
+    expect(speedChanges("M3")).toEqual([])
   })
 
   test("an M4 gets the speed too", () => {
-    assert.equal(sent("S12000", "M4").at(-1), "M4 S12000")
+    expect(sent("S12000", "M4").at(-1)).toBe("M4 S12000")
   })
 
   test("the speed goes where the firmware reads it with the M3", () => {
@@ -92,19 +90,20 @@ describe("spindle speed", () => {
       "n10 m3": "M3 S12000",
     }
     for (const [line, expected] of Object.entries(cases))
-      assert.equal(sent("S12000", line).at(-1), expected, line)
+      expect(sent("S12000", line).at(-1), line).toBe(expected)
   })
 
   test("a line the speed takes past 63 bytes is refused", () => {
     const line = (length: number) => `G1 X${"1".repeat(length - 7)} M3`
-    assert.equal(sent("S12000", line(56)).at(-1)?.length, 63)
-    assert.throws(
-      () => prepare("S12000", line(57)),
-      (error) =>
-        error instanceof ProgramError &&
-        error.line === 2 &&
-        /63-byte line limit/.test(error.message)
-    )
+    expect(sent("S12000", line(56)).at(-1)?.length).toBe(63)
+    try {
+      prepare("S12000", line(57))
+      expect.unreachable("the over-long line was accepted")
+    } catch (error) {
+      expect(error).toBeInstanceOf(ProgramError)
+      expect((error as ProgramError).line).toBe(2)
+      expect((error as ProgramError).message).toMatch(/63-byte line limit/)
+    }
   })
 
   test("a part after the first gets the speed an earlier part set", () => {
@@ -121,10 +120,10 @@ describe("spindle speed", () => {
     ].flat()
     const program = prepareMakeraProgram(`${source.join("\n")}\n`)
     const lines = program.text.split("\n")
-    assert.equal(program.parts.length, 2)
+    expect(program.parts.length).toBe(2)
     const [, second] = program.parts
-    assert.equal(lines[second.startLine - 1], "M6 T2")
-    assert.equal(lines[second.startLine], "M3 S12000")
-    assert.deepEqual(second.before, ["G21 G90", "F100"])
+    expect(lines[second.startLine - 1]).toBe("M6 T2")
+    expect(lines[second.startLine]).toBe("M3 S12000")
+    expect(second.before).toEqual(["G21 G90", "F100"])
   })
 })

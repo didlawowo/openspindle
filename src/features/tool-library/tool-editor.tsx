@@ -1,5 +1,6 @@
 import { useId, useState } from "react"
 import type { ComponentType } from "react"
+import { useTranslation } from "react-i18next"
 import { Copy, Plus, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
@@ -36,6 +37,7 @@ import {
 import type { ProbeProfile, ToolSegment, ToolSource } from "@/domain/tools/tool"
 import { OptionSelect } from "@/components/option-select"
 import { toolKindLabel } from "./tool-format"
+import type { TFunction } from "i18next"
 import type { Choice, ToolForm } from "./tool-form"
 import { modelDataUrl } from "./tool-model-file"
 import { photoDataUrl } from "./tool-photo"
@@ -80,23 +82,23 @@ const COOLANTS = [
   "air through tool",
   "suction",
 ]
-const YES_NO: readonly Choice<boolean>[] = [
-  { value: true, label: "Yes" },
-  { value: false, label: "No" },
+const yesNo = (t: TFunction<"tools">): readonly Choice<boolean>[] => [
+  { value: true, label: t("choices.yes") },
+  { value: false, label: t("choices.no") },
 ]
-const HANDEDNESS: readonly Choice<"right" | "left">[] = [
-  { value: "right", label: "Right hand" },
-  { value: "left", label: "Left hand" },
+const handedness = (
+  t: TFunction<"tools">
+): readonly Choice<"right" | "left">[] => [
+  { value: "right", label: t("choices.rightHand") },
+  { value: "left", label: t("choices.leftHand") },
 ]
 const TAPERED_TIPS = ["flat", "ball", "bull nose"]
-const PROBE_TOUCHES: readonly Choice<ProbeProfile["touch"]>[] = [
-  { value: "z", label: "Z only" },
-  { value: "xyz", label: "X, Y and Z" },
+const probeTouches = (
+  t: TFunction<"tools">
+): readonly Choice<ProbeProfile["touch"]>[] => [
+  { value: "z", label: t("choices.zOnly") },
+  { value: "xyz", label: t("choices.xyz") },
 ]
-const TOUCHES_HINT =
-  "What the stylus senses: touches along Z only, or in X, Y and Z, as a 3D touch probe does."
-const POINTER_HINT =
-  "Whether the probe carries a laser pointer, which traces without touching."
 const EMPTY_SEGMENT: ToolSegment = {
   height: null,
   upperDiameter: null,
@@ -127,6 +129,7 @@ function FileField({
   /** The chosen file as the tool keeps it. */
   read: (file: File) => Promise<string>
 }) {
+  const { t } = useTranslation("tools")
   const id = useId()
   return (
     <form.Field name={name}>
@@ -136,7 +139,7 @@ function FileField({
           <div className="flex gap-2">
             <FilePicker
               accept={accept}
-              aria-label={`${label} file`}
+              aria-label={t("fileField.fileAria", { label })}
               onSelect={([file]) => {
                 // Reading takes a moment: the file goes to the tool it was chosen for only.
                 const toolId = form.state.values.id
@@ -147,7 +150,7 @@ function FileField({
                   },
                   (error: unknown) =>
                     toast.error(
-                      `${file.name} could not be read as a ${noun}.`,
+                      t("fileField.readFailed", { file: file.name, noun }),
                       {
                         description:
                           error instanceof Error ? error.message : undefined,
@@ -158,7 +161,7 @@ function FileField({
             >
               {(open) => (
                 <Button id={id} variant="outline" size="sm" onClick={open}>
-                  Choose {noun}…
+                  {t("fileField.choose", { noun })}
                 </Button>
               )}
             </FilePicker>
@@ -168,7 +171,7 @@ function FileField({
               disabled={field.state.value === null}
               onClick={() => field.handleChange(null)}
             >
-              Remove {noun}
+              {t("fileField.remove", { noun })}
             </Button>
           </div>
         </Field>
@@ -178,12 +181,15 @@ function FileField({
 }
 
 function GeneralSection({ form, source }: SectionProps) {
+  const { t } = useTranslation("tools")
   return (
     <>
       <div className="grid grid-cols-1 gap-3 md:has-[>img]:grid-cols-[minmax(0,1fr)_130px]">
         <FieldGroup className="grid grid-cols-2 gap-4">
           <form.AppField name="name">
-            {(field) => <field.TextField label="Name" required wide />}
+            {(field) => (
+              <field.TextField label={t("fields.name")} required wide />
+            )}
           </form.AppField>
           <form.AppField
             name="kind"
@@ -198,7 +204,7 @@ function GeneralSection({ form, source }: SectionProps) {
           >
             {(field) => (
               <field.TextField
-                label="Tool type"
+                label={t("fields.toolType")}
                 required
                 wide
                 suggestions={TOOL_KINDS}
@@ -212,9 +218,9 @@ function GeneralSection({ form, source }: SectionProps) {
                   <form.AppField name="probe.touch">
                     {(field) => (
                       <field.ChoiceField
-                        label="Touches"
-                        hint={TOUCHES_HINT}
-                        choices={PROBE_TOUCHES}
+                        label={t("fields.touches")}
+                        hint={t("hints.touches")}
+                        choices={probeTouches(t)}
                         required
                       />
                     )}
@@ -222,9 +228,9 @@ function GeneralSection({ form, source }: SectionProps) {
                   <form.AppField name="probe.pointer">
                     {(field) => (
                       <field.ChoiceField
-                        label="Laser pointer"
-                        hint={POINTER_HINT}
-                        choices={YES_NO}
+                        label={t("fields.laserPointer")}
+                        hint={t("hints.pointer")}
+                        choices={yesNo(t)}
                         required
                       />
                     )}
@@ -236,17 +242,20 @@ function GeneralSection({ form, source }: SectionProps) {
           <form.AppField name="material">
             {(field) => (
               <field.TextField
-                label="Tool material"
+                label={t("fields.toolMaterial")}
                 suggestions={TOOL_MATERIALS}
               />
             )}
           </form.AppField>
           <form.AppField name="grade">
-            {(field) => <field.TextField label="Grade" />}
+            {(field) => <field.TextField label={t("fields.grade")} />}
           </form.AppField>
           <form.AppField name="coating">
             {(field) => (
-              <field.TextField label="Coating" suggestions={COATINGS} />
+              <field.TextField
+                label={t("fields.coating")}
+                suggestions={COATINGS}
+              />
             )}
           </form.AppField>
         </FieldGroup>
@@ -256,43 +265,49 @@ function GeneralSection({ form, source }: SectionProps) {
       </div>
       <FieldGroup className="grid grid-cols-2 gap-4">
         <form.AppField name="vendor">
-          {(field) => <field.TextField label="Vendor" />}
+          {(field) => <field.TextField label={t("fields.vendor")} />}
         </form.AppField>
         <form.AppField name="productId">
-          {(field) => <field.TextField label="Product ID" />}
+          {(field) => <field.TextField label={t("fields.productId")} />}
         </form.AppField>
         <form.AppField name="productLink">
           {(field) => (
-            <field.TextField label="Product URL" wide maxLength={2048} />
+            <field.TextField
+              label={t("fields.productUrl")}
+              wide
+              maxLength={2048}
+            />
           )}
         </form.AppField>
         <form.AppField name="vendorDescription">
-          {(field) => <field.TextField label="Vendor description" wide />}
+          {(field) => (
+            <field.TextField label={t("fields.vendorDescription")} wide />
+          )}
         </form.AppField>
         <form.AppField name="notes">
-          {(field) => <field.TextAreaField label="Notes" />}
+          {(field) => <field.TextAreaField label={t("fields.notes")} />}
         </form.AppField>
         <FileField
           form={form}
           name="image"
-          label="Product photo"
-          noun="photo"
+          label={t("fields.productPhoto")}
+          noun={t("fileField.photo")}
           accept="image/png,image/jpeg,image/webp"
           read={photoDataUrl}
         />
         <FileField
           form={form}
           name="model"
-          label="3D model"
-          noun="model"
+          label={t("fields.model3d")}
+          noun={t("fileField.model")}
           accept=".glb,model/gltf-binary"
           read={modelDataUrl}
         />
       </FieldGroup>
       {source?.fileName && (
         <FieldDescription>
-          Source {source.fileName}
-          {source.unit === "inches" && " · Converted from inches"}
+          {t("editor.sourceFile", { name: source.fileName })}
+          {source.unit === "inches" && t("editor.convertedFromInches")}
         </FieldDescription>
       )}
     </>
@@ -300,181 +315,276 @@ function GeneralSection({ form, source }: SectionProps) {
 }
 
 function GeometrySection({ form }: SectionProps) {
+  const { t } = useTranslation("tools")
   return (
     <FieldGroup className="grid grid-cols-2 gap-4">
       <form.AppField name="diameter">
-        {(field) => <field.NumberField label="Cutting diameter" unit="mm" />}
+        {(field) => (
+          <field.NumberField label={t("fields.cuttingDiameter")} unit="mm" />
+        )}
       </form.AppField>
       <form.AppField name="geometry.maxDiameter">
-        {(field) => <field.NumberField label="Maximum diameter" unit="mm" />}
+        {(field) => (
+          <field.NumberField label={t("fields.maxDiameter")} unit="mm" />
+        )}
       </form.AppField>
       <form.AppField name="geometry.shankDiameter">
-        {(field) => <field.NumberField label="Shank diameter" unit="mm" />}
+        {(field) => (
+          <field.NumberField label={t("fields.shankDiameter")} unit="mm" />
+        )}
       </form.AppField>
       <form.AppField name="geometry.fluteLength">
-        {(field) => <field.NumberField label="Flute length" unit="mm" />}
+        {(field) => (
+          <field.NumberField label={t("fields.fluteLength")} unit="mm" />
+        )}
       </form.AppField>
       <form.AppField name="geometry.overallLength">
-        {(field) => <field.NumberField label="Overall length" unit="mm" />}
+        {(field) => (
+          <field.NumberField label={t("fields.overallLength")} unit="mm" />
+        )}
       </form.AppField>
       <form.AppField name="geometry.bodyLength">
-        {(field) => <field.NumberField label="Body length" unit="mm" />}
+        {(field) => (
+          <field.NumberField label={t("fields.bodyLength")} unit="mm" />
+        )}
       </form.AppField>
       <form.AppField name="geometry.shoulderLength">
-        {(field) => <field.NumberField label="Shoulder length" unit="mm" />}
+        {(field) => (
+          <field.NumberField label={t("fields.shoulderLength")} unit="mm" />
+        )}
       </form.AppField>
       <form.AppField name="geometry.shoulderDiameter">
-        {(field) => <field.NumberField label="Shoulder diameter" unit="mm" />}
+        {(field) => (
+          <field.NumberField label={t("fields.shoulderDiameter")} unit="mm" />
+        )}
       </form.AppField>
       <form.AppField name="geometry.assemblyGaugeLength">
         {(field) => (
-          <field.NumberField label="Assembly gauge length" unit="mm" />
+          <field.NumberField
+            label={t("fields.assemblyGaugeLength")}
+            unit="mm"
+          />
         )}
       </form.AppField>
       <form.AppField name="flutes">
-        {(field) => <field.NumberField label="Flutes" integer />}
+        {(field) => <field.NumberField label={t("fields.flutes")} integer />}
       </form.AppField>
       <form.AppField name="geometry.handedness">
         {(field) => (
-          <field.ChoiceField label="Handedness" choices={HANDEDNESS} />
+          <field.ChoiceField
+            label={t("fields.handedness")}
+            choices={handedness(t)}
+          />
         )}
       </form.AppField>
       <form.AppField name="geometry.coolantThrough">
         {(field) => (
-          <field.ChoiceField label="Through-tool coolant" choices={YES_NO} />
+          <field.ChoiceField
+            label={t("fields.coolantThrough")}
+            choices={yesNo(t)}
+          />
         )}
       </form.AppField>
       <form.AppField name="geometry.cornerRadius">
-        {(field) => <field.NumberField label="Corner radius" unit="mm" />}
+        {(field) => (
+          <field.NumberField label={t("fields.cornerRadius")} unit="mm" />
+        )}
       </form.AppField>
       <form.AppField name="geometry.upperRadius">
-        {(field) => <field.NumberField label="Upper radius" unit="mm" />}
+        {(field) => (
+          <field.NumberField label={t("fields.upperRadius")} unit="mm" />
+        )}
       </form.AppField>
       <form.AppField name="geometry.tipDiameter">
-        {(field) => <field.NumberField label="Tip diameter" unit="mm" />}
+        {(field) => (
+          <field.NumberField label={t("fields.tipDiameter")} unit="mm" />
+        )}
       </form.AppField>
       <form.AppField name="geometry.tipLength">
-        {(field) => <field.NumberField label="Tip length" unit="mm" />}
+        {(field) => (
+          <field.NumberField label={t("fields.tipLength")} unit="mm" />
+        )}
       </form.AppField>
       <form.AppField name="geometry.pointAngle">
         {(field) => (
-          <field.NumberField label="Point angle" unit="°" max={180} />
+          <field.NumberField
+            label={t("fields.pointAngle")}
+            unit="°"
+            max={180}
+          />
         )}
       </form.AppField>
       <form.AppField name="geometry.taperAngle">
-        {(field) => <field.NumberField label="Taper angle" unit="°" max={90} />}
+        {(field) => (
+          <field.NumberField label={t("fields.taperAngle")} unit="°" max={90} />
+        )}
       </form.AppField>
       <form.AppField name="geometry.taperedTip">
         {(field) => (
-          <field.TextField label="Tapered tip" suggestions={TAPERED_TIPS} />
+          <field.TextField
+            label={t("fields.taperedTip")}
+            suggestions={TAPERED_TIPS}
+          />
         )}
       </form.AppField>
       <form.AppField name="geometry.numberOfTeeth">
-        {(field) => <field.NumberField label="Teeth" integer />}
+        {(field) => <field.NumberField label={t("fields.teeth")} integer />}
       </form.AppField>
       <form.AppField name="geometry.threadPitchMin">
         {(field) => (
-          <field.NumberField label="Minimum thread pitch" unit="mm" />
+          <field.NumberField label={t("fields.threadPitchMin")} unit="mm" />
         )}
       </form.AppField>
       <form.AppField name="geometry.threadPitchMax">
         {(field) => (
-          <field.NumberField label="Maximum thread pitch" unit="mm" />
+          <field.NumberField label={t("fields.threadPitchMax")} unit="mm" />
         )}
       </form.AppField>
       <form.AppField name="geometry.threadProfileAngle">
         {(field) => (
-          <field.NumberField label="Thread profile angle" unit="°" max={180} />
+          <field.NumberField
+            label={t("fields.threadProfileAngle")}
+            unit="°"
+            max={180}
+          />
         )}
       </form.AppField>
       <form.AppField name="geometry.threadTip">
-        {(field) => <field.TextField label="Thread tip" />}
+        {(field) => <field.TextField label={t("fields.threadTip")} />}
       </form.AppField>
     </FieldGroup>
   )
 }
 
 function PresetFields({ form, index }: { form: ToolForm; index: number }) {
+  const { t } = useTranslation("tools")
   const preset = `presets[${index}]` as const
   return (
     <FieldGroup className="grid grid-cols-2 gap-4">
       <form.AppField name={`${preset}.name`}>
-        {(field) => <field.TextField label="Preset name" required />}
+        {(field) => <field.TextField label={t("fields.presetName")} required />}
       </form.AppField>
       <form.AppField name={`${preset}.material`}>
-        {(field) => <field.TextField label="Stock material" />}
+        {(field) => <field.TextField label={t("fields.stockMaterial")} />}
       </form.AppField>
       <form.AppField name={`${preset}.description`}>
-        {(field) => <field.TextField label="Preset description" wide />}
+        {(field) => (
+          <field.TextField label={t("fields.presetDescription")} wide />
+        )}
       </form.AppField>
       <form.AppField name={`${preset}.rpm`}>
-        {(field) => <field.NumberField label="Spindle speed" unit="rpm" />}
+        {(field) => (
+          <field.NumberField label={t("fields.spindleSpeed")} unit="rpm" />
+        )}
       </form.AppField>
       <form.AppField name={`${preset}.rampRpm`}>
-        {(field) => <field.NumberField label="Ramp spindle speed" unit="rpm" />}
+        {(field) => (
+          <field.NumberField label={t("fields.rampSpindleSpeed")} unit="rpm" />
+        )}
       </form.AppField>
       <form.AppField name={`${preset}.cuttingSpeed`}>
-        {(field) => <field.NumberField label="Cutting speed" unit="m/min" />}
+        {(field) => (
+          <field.NumberField label={t("fields.cuttingSpeed")} unit="m/min" />
+        )}
       </form.AppField>
       <form.AppField name={`${preset}.rampAngle`}>
-        {(field) => <field.NumberField label="Ramp angle" unit="°" max={180} />}
+        {(field) => (
+          <field.NumberField label={t("fields.rampAngle")} unit="°" max={180} />
+        )}
       </form.AppField>
       <form.AppField name={`${preset}.feedRate`}>
-        {(field) => <field.NumberField label="Cutting feed" unit="mm/min" />}
+        {(field) => (
+          <field.NumberField label={t("fields.cuttingFeed")} unit="mm/min" />
+        )}
       </form.AppField>
       <form.AppField name={`${preset}.plungeFeed`}>
-        {(field) => <field.NumberField label="Plunge feed" unit="mm/min" />}
+        {(field) => (
+          <field.NumberField label={t("fields.plungeFeed")} unit="mm/min" />
+        )}
       </form.AppField>
       <form.AppField name={`${preset}.rampFeed`}>
-        {(field) => <field.NumberField label="Ramp feed" unit="mm/min" />}
+        {(field) => (
+          <field.NumberField label={t("fields.rampFeed")} unit="mm/min" />
+        )}
       </form.AppField>
       <form.AppField name={`${preset}.leadInFeed`}>
-        {(field) => <field.NumberField label="Lead-in feed" unit="mm/min" />}
+        {(field) => (
+          <field.NumberField label={t("fields.leadInFeed")} unit="mm/min" />
+        )}
       </form.AppField>
       <form.AppField name={`${preset}.leadOutFeed`}>
-        {(field) => <field.NumberField label="Lead-out feed" unit="mm/min" />}
+        {(field) => (
+          <field.NumberField label={t("fields.leadOutFeed")} unit="mm/min" />
+        )}
       </form.AppField>
       <form.AppField name={`${preset}.transitionFeed`}>
-        {(field) => <field.NumberField label="Transition feed" unit="mm/min" />}
+        {(field) => (
+          <field.NumberField label={t("fields.transitionFeed")} unit="mm/min" />
+        )}
       </form.AppField>
       <form.AppField name={`${preset}.retractFeed`}>
-        {(field) => <field.NumberField label="Retract feed" unit="mm/min" />}
+        {(field) => (
+          <field.NumberField label={t("fields.retractFeed")} unit="mm/min" />
+        )}
       </form.AppField>
       <form.AppField name={`${preset}.feedPerTooth`}>
         {(field) => (
-          <field.NumberField label="Feed per tooth" unit="mm/tooth" />
+          <field.NumberField label={t("fields.feedPerTooth")} unit="mm/tooth" />
         )}
       </form.AppField>
       <form.AppField name={`${preset}.feedPerRevolution`}>
         {(field) => (
-          <field.NumberField label="Feed per revolution" unit="mm/rev" />
+          <field.NumberField
+            label={t("fields.feedPerRevolution")}
+            unit="mm/rev"
+          />
         )}
       </form.AppField>
       <form.AppField name={`${preset}.useFeedPerRevolution`}>
         {(field) => (
-          <field.ChoiceField label="Use feed per revolution" choices={YES_NO} />
+          <field.ChoiceField
+            label={t("fields.useFeedPerRevolution")}
+            choices={yesNo(t)}
+          />
         )}
       </form.AppField>
       <form.AppField name={`${preset}.coolant`}>
-        {(field) => <field.TextField label="Coolant" suggestions={COOLANTS} />}
+        {(field) => (
+          <field.TextField label={t("fields.coolant")} suggestions={COOLANTS} />
+        )}
       </form.AppField>
       <form.AppField name={`${preset}.stepover`}>
-        {(field) => <field.NumberField label="Stepover" unit="mm" />}
+        {(field) => (
+          <field.NumberField label={t("fields.stepover")} unit="mm" />
+        )}
       </form.AppField>
       <form.AppField name={`${preset}.useStepover`}>
-        {(field) => <field.ChoiceField label="Use stepover" choices={YES_NO} />}
+        {(field) => (
+          <field.ChoiceField
+            label={t("fields.useStepover")}
+            choices={yesNo(t)}
+          />
+        )}
       </form.AppField>
       <form.AppField name={`${preset}.stepdown`}>
-        {(field) => <field.NumberField label="Stepdown" unit="mm" />}
+        {(field) => (
+          <field.NumberField label={t("fields.stepdown")} unit="mm" />
+        )}
       </form.AppField>
       <form.AppField name={`${preset}.useStepdown`}>
-        {(field) => <field.ChoiceField label="Use stepdown" choices={YES_NO} />}
+        {(field) => (
+          <field.ChoiceField
+            label={t("fields.useStepdown")}
+            choices={yesNo(t)}
+          />
+        )}
       </form.AppField>
     </FieldGroup>
   )
 }
 
 function PresetsSection({ form }: SectionProps) {
+  const { t } = useTranslation("tools")
   const [selected, setSelected] = useState(0)
   return (
     // Value mode (not array mode): the picker shows the presets' live names.
@@ -488,12 +598,12 @@ function PresetsSection({ form }: SectionProps) {
               value: position,
               label: item.name,
             }))
-          : [{ value: 0, label: "No presets" }]
+          : [{ value: 0, label: t("presets.noPresets") }]
         return (
           <>
             <div className="flex items-center gap-2">
               <OptionSelect
-                aria-label="Cutting preset"
+                aria-label={t("presets.presetAria")}
                 className="min-w-0 flex-1"
                 options={options}
                 value={index}
@@ -509,19 +619,19 @@ function PresetsSection({ form }: SectionProps) {
                 }}
               >
                 <Plus />
-                Add
+                {t("presets.add")}
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label="Duplicate cutting preset"
+                aria-label={t("presets.duplicateAria")}
                 disabled={!preset}
                 onClick={() => {
                   if (!preset) return
                   presets.pushValue({
                     ...structuredClone(preset),
                     id: crypto.randomUUID(),
-                    name: `${preset.name} copy`,
+                    name: t("presets.copyName", { name: preset.name }),
                   })
                   setSelected(list.length)
                 }}
@@ -531,7 +641,7 @@ function PresetsSection({ form }: SectionProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label="Delete cutting preset"
+                aria-label={t("presets.deleteAria")}
                 disabled={!preset}
                 onClick={() => {
                   presets.removeValue(index)
@@ -557,12 +667,15 @@ function Segments({
   form: ToolForm
   part: "holder" | "shaft"
 }) {
+  const { t } = useTranslation("tools")
   return (
     <form.Field name={`${part}.segments`} mode="array">
       {(segments) => (
         <FieldSet>
           <FieldLegend>
-            {part === "holder" ? "Holder segments" : "Shaft segments"}
+            {part === "holder"
+              ? t("segments.holderSegments")
+              : t("segments.shaftSegments")}
           </FieldLegend>
           <div className="flex justify-end">
             <Button
@@ -571,7 +684,7 @@ function Segments({
               onClick={() => segments.pushValue(EMPTY_SEGMENT)}
             >
               <Plus />
-              Add segment
+              {t("segments.addSegment")}
             </Button>
           </div>
           {(segments.state.value ?? []).map((_, index) => (
@@ -581,23 +694,37 @@ function Segments({
             >
               <form.AppField name={`${part}.segments[${index}].height`}>
                 {(field) => (
-                  <field.NumberField label={`Height ${index + 1}`} unit="mm" />
+                  <field.NumberField
+                    label={t("segments.heightN", { n: index + 1 })}
+                    unit="mm"
+                  />
                 )}
               </form.AppField>
               <form.AppField name={`${part}.segments[${index}].upperDiameter`}>
                 {(field) => (
-                  <field.NumberField label={`Upper Ø ${index + 1}`} unit="mm" />
+                  <field.NumberField
+                    label={t("segments.upperDiameterN", { n: index + 1 })}
+                    unit="mm"
+                  />
                 )}
               </form.AppField>
               <form.AppField name={`${part}.segments[${index}].lowerDiameter`}>
                 {(field) => (
-                  <field.NumberField label={`Lower Ø ${index + 1}`} unit="mm" />
+                  <field.NumberField
+                    label={t("segments.lowerDiameterN", { n: index + 1 })}
+                    unit="mm"
+                  />
                 )}
               </form.AppField>
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label={`Remove ${part} segment ${index + 1}`}
+                aria-label={t(
+                  part === "holder"
+                    ? "segments.removeSegmentAriaHolder"
+                    : "segments.removeSegmentAriaShaft",
+                  { n: index + 1 }
+                )}
                 onClick={() => segments.removeValue(index)}
               >
                 <X />
@@ -615,6 +742,7 @@ function ShaftSection({ form }: SectionProps) {
 }
 
 function HolderSection({ form }: SectionProps) {
+  const { t } = useTranslation("tools")
   return (
     <form.Subscribe selector={(state) => state.values.holder !== null}>
       {(hasHolder) =>
@@ -622,23 +750,30 @@ function HolderSection({ form }: SectionProps) {
           <>
             <FieldGroup className="grid grid-cols-2 gap-4">
               <form.AppField name="holder.name">
-                {(field) => <field.TextField label="Holder name" />}
+                {(field) => <field.TextField label={t("fields.holderName")} />}
               </form.AppField>
               <form.AppField name="holder.vendor">
-                {(field) => <field.TextField label="Holder vendor" />}
+                {(field) => (
+                  <field.TextField label={t("fields.holderVendor")} />
+                )}
               </form.AppField>
               <form.AppField name="holder.productId">
-                {(field) => <field.TextField label="Holder product ID" />}
+                {(field) => (
+                  <field.TextField label={t("fields.holderProductId")} />
+                )}
               </form.AppField>
               <form.AppField name="holder.gaugeLength">
                 {(field) => (
-                  <field.NumberField label="Holder gauge length" unit="mm" />
+                  <field.NumberField
+                    label={t("fields.holderGaugeLength")}
+                    unit="mm"
+                  />
                 )}
               </form.AppField>
               <form.AppField name="holder.productLink">
                 {(field) => (
                   <field.TextField
-                    label="Holder product URL"
+                    label={t("fields.holderProductUrl")}
                     wide
                     maxLength={2048}
                   />
@@ -651,13 +786,13 @@ function HolderSection({ form }: SectionProps) {
               className="self-start"
               onClick={() => form.setFieldValue("holder", null)}
             >
-              Remove holder
+              {t("segments.removeHolder")}
             </Button>
           </>
         ) : (
           <Empty>
             <EmptyHeader>
-              <EmptyTitle>No holder assigned</EmptyTitle>
+              <EmptyTitle>{t("segments.noHolder")}</EmptyTitle>
             </EmptyHeader>
             <EmptyContent>
               <Button
@@ -665,7 +800,7 @@ function HolderSection({ form }: SectionProps) {
                 onClick={() => form.setFieldValue("holder", createHolder())}
               >
                 <Plus data-icon="inline-start" />
-                Add holder
+                {t("segments.addHolder")}
               </Button>
             </EmptyContent>
           </Empty>
@@ -676,35 +811,50 @@ function HolderSection({ form }: SectionProps) {
 }
 
 function PostProcessSection({ form }: SectionProps) {
+  const { t } = useTranslation("tools")
   return (
     <FieldGroup className="grid grid-cols-2 gap-4">
       <form.AppField name="postProcess.number">
-        {(field) => <field.NumberField label="Tool number" integer />}
+        {(field) => (
+          <field.NumberField label={t("fields.toolNumber")} integer />
+        )}
       </form.AppField>
       <form.AppField name="postProcess.lengthOffset">
-        {(field) => <field.NumberField label="Length offset" integer />}
+        {(field) => (
+          <field.NumberField label={t("fields.lengthOffset")} integer />
+        )}
       </form.AppField>
       <form.AppField name="postProcess.diameterOffset">
-        {(field) => <field.NumberField label="Diameter offset" integer />}
+        {(field) => (
+          <field.NumberField label={t("fields.diameterOffset")} integer />
+        )}
       </form.AppField>
       <form.AppField name="postProcess.turret">
-        {(field) => <field.NumberField label="Turret" integer />}
+        {(field) => <field.NumberField label={t("fields.turret")} integer />}
       </form.AppField>
       <form.AppField name="postProcess.manualToolChange">
         {(field) => (
-          <field.ChoiceField label="Manual tool change" choices={YES_NO} />
+          <field.ChoiceField
+            label={t("fields.manualToolChange")}
+            choices={yesNo(t)}
+          />
         )}
       </form.AppField>
       <form.AppField name="postProcess.breakControl">
         {(field) => (
-          <field.ChoiceField label="Break control" choices={YES_NO} />
+          <field.ChoiceField
+            label={t("fields.breakControl")}
+            choices={yesNo(t)}
+          />
         )}
       </form.AppField>
       <form.AppField name="postProcess.liveTool">
-        {(field) => <field.ChoiceField label="Live tool" choices={YES_NO} />}
+        {(field) => (
+          <field.ChoiceField label={t("fields.liveTool")} choices={yesNo(t)} />
+        )}
       </form.AppField>
       <form.AppField name="postProcess.comment">
-        {(field) => <field.TextField label="Post comment" wide />}
+        {(field) => <field.TextField label={t("fields.postComment")} wide />}
       </form.AppField>
     </FieldGroup>
   )
@@ -753,6 +903,7 @@ export function ToolEditor({
   onDuplicate,
   onDelete,
 }: ToolEditorProps) {
+  const { t } = useTranslation("tools")
   const locked = busy || catalogsLoading
   return (
     <>
@@ -762,13 +913,17 @@ export function ToolEditor({
             {(draft) => (
               <>
                 <ItemTitle>
-                  {draft.name || "Untitled tool"}
-                  {dirty && <Badge variant="secondary">Unsaved</Badge>}
+                  {draft.name || t("editor.untitled")}
+                  {dirty && (
+                    <Badge variant="secondary">{t("editor.unsaved")}</Badge>
+                  )}
                 </ItemTitle>
                 <ItemDescription>
                   {draft.vendor ?? toolKindLabel(draft.kind)}
                   {draft.productId ? ` · ${draft.productId}` : ""}
-                  {catalogName ? ` · ${catalogName} catalog` : " · My tools"}
+                  {catalogName
+                    ? t("editor.catalogNote", { name: catalogName })
+                    : t("editor.myToolsNote")}
                 </ItemDescription>
               </>
             )}
@@ -778,17 +933,21 @@ export function ToolEditor({
           <Button
             variant="ghost"
             size={catalogName ? "default" : "icon"}
-            aria-label={catalogName ? "Copy to My tools" : "Duplicate tool"}
+            aria-label={
+              catalogName
+                ? t("editor.copyToMyTools")
+                : t("editor.duplicateAria")
+            }
             disabled={locked}
             onClick={onDuplicate}
           >
             <Copy />
-            {catalogName && "Copy to My tools"}
+            {catalogName && t("editor.copyToMyTools")}
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Delete tool"
+            aria-label={t("editor.deleteAria")}
             disabled={locked || !canDelete}
             onClick={onDelete}
           >
@@ -816,11 +975,11 @@ export function ToolEditor({
           <TabsList
             variant="line"
             className="w-full shrink-0 justify-start px-3"
-            aria-label="Tool parameters"
+            aria-label={t("editor.parametersAria")}
           >
             {EDITOR_TABS.map((name) => (
               <TabsTrigger key={name} value={name} disabled={busy}>
-                {name}
+                {t(`tabs.${name}`)}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -836,7 +995,9 @@ export function ToolEditor({
                   className="min-w-0 flex-1"
                   disabled={locked || catalogName !== null}
                 >
-                  <FieldLegend className="sr-only">{name}</FieldLegend>
+                  <FieldLegend className="sr-only">
+                    {t(`tabs.${name}`)}
+                  </FieldLegend>
                   <Section form={form} source={source} />
                 </FieldSet>
                 <form.Subscribe selector={(state) => state.values}>

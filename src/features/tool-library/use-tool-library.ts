@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useSelector } from "@tanstack/react-form"
 import { useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useWorkspaceStore } from "@/app/workspace/workspace-context"
 import type { StepId } from "@/app/workspace/history"
-import { plural } from "@/domain/primitives"
 import {
   catalogForTool,
   mergeCatalogTools,
@@ -20,14 +20,13 @@ import {
   exportToolLibrary,
   importToolLibrary,
 } from "@/formats/tool-library/library-file"
-import type { ToolImportResult } from "@/formats/tool-library/library-file"
 import { FILE_KINDS } from "@/platform/contract/files"
 import type { SaveFileResult } from "@/platform/contract/files"
 import { useHost } from "@/platform/host-context"
 import type { EditorTab } from "./tool-editor"
 import { useToolForm } from "./tool-form"
 import type { ToolSaveRequest } from "./tool-form"
-import { describeToolError, errorMessage } from "./tool-format"
+import { describeToolError } from "./tool-format"
 import { recommendTools, useToolTable } from "./tool-table"
 import { useToolCatalogs } from "./use-tool-catalogs"
 
@@ -52,19 +51,40 @@ const NO_KINDS: readonly string[] = []
 /** Runs against the library, after any unsaved edits were saved or discarded. */
 export type LibraryAction = (library: readonly Tool[]) => void
 
+/**
+ * A footer message: a translation key with its parameters, or text that comes
+ * from elsewhere (a domain error) and stays as it is. Keeping keys in state
+ * means a language change re-translates what is still shown.
+ */
+type Message =
+  | {
+      key:
+        | "status.savedShort"
+        | "status.saved"
+        | "status.exportCanceled"
+        | "status.importFailed"
+        | "status.exportFailed"
+    }
+  | { key: "status.added"; added: number; skipped: number }
+  | { key: "status.tooLarge"; mb: number }
+  | { text: string }
+
 interface Feedback {
   /** The latest outcome, shown in the footer. */
-  status: string
+  status: Message | null
   /** Import or export failures. */
-  errors: string[]
+  errors: Message[]
   /** Warnings from the latest import. */
   importNotes: string[]
 }
-const NO_FEEDBACK: Feedback = { status: "", errors: [], importNotes: [] }
+const NO_FEEDBACK: Feedback = { status: null, errors: [], importNotes: [] }
 
-const EXPORT_STATUS = {
-  saved: "Library saved",
-  canceled: "Export canceled",
+/** A library file over the size its format allows. */
+class LibraryTooLarge extends Error {}
+
+const EXPORT_KEYS = {
+  saved: "status.saved",
+  canceled: "status.exportCanceled",
 } as const satisfies Record<SaveFileResult["status"], string>
 
 /** Form values while no tool is open; never shown or saved. */
@@ -78,18 +98,9 @@ async function readToolLibrary({
   library: readonly Tool[]
 }) {
   const { maxBytes } = FILE_KINDS.toolLibrary
-  if (file.size > maxBytes)
-    throw new Error(
-      `Tool libraries must be ${maxBytes / 1024 / 1024} MB or smaller.`
-    )
+  if (file.size > maxBytes) throw new LibraryTooLarge()
   const bytes = new Uint8Array(await file.arrayBuffer())
   return importToolLibrary(bytes, file.name, library)
-}
-
-function importStatus({ tools, skipped }: ToolImportResult) {
-  const added = `Added ${plural(tools.length, "tool")} to your library.`
-  if (!skipped) return added
-  return `${added} Skipped ${plural(skipped, "tool")} already in the library.`
 }
 
 /**
@@ -105,6 +116,23 @@ export function useToolLibrary({
   recommendedKinds = NO_KINDS,
   selectionOnly = false,
 }: ToolLibraryOptions) {
+  const { t } = useTranslation("tools")
+  const showMessage = (message: Message) => {
+    if ("text" in message) return message.text
+    switch (message.key) {
+      case "status.added":
+        return (
+          t("status.added", { count: message.added }) +
+          (message.skipped
+            ? t("status.skipped", { count: message.skipped })
+            : "")
+        )
+      case "status.tooLarge":
+        return t("status.tooLarge", { mb: message.mb })
+      default:
+        return t(message.key)
+    }
+  }
   const workspace = useWorkspaceStore()
   const host = useHost()
   const catalogQuery = useToolCatalogs()
@@ -142,7 +170,11 @@ export function useToolLibrary({
       ? tools.map((tool) => (tool.id === saved.id ? saved : tool))
       : [...tools, saved]
     onChange(library)
-    setFeedback((previous) => ({ ...previous, status: "Saved", errors: [] }))
+    setFeedback((previous) => ({
+      ...previous,
+      status: { key: "status.savedShort" },
+      errors: [],
+    }))
     request.afterSave?.(library)
   }
   const draftDefaults = useMemo(
@@ -188,7 +220,7 @@ export function useToolLibrary({
   const edit = (tool: Tool | null) => {
     setEditing(tool)
     form.reset(tool ? toToolDraft(tool) : NO_DRAFT)
-    setFeedback((previous) => ({ ...previous, status: "", errors: [] }))
+    setFeedback((previous) => ({ ...previous, status: null, errors: [] }))
   }
   const table = useToolTable({
     tools: allTools,
@@ -205,16 +237,16 @@ export function useToolLibrary({
 
   const errors = [
     ...new Set([
-      ...feedback.errors,
+      ...feedback.errors.map(showMessage),
       ...Object.values(schemaIssues ?? {})
         .flat()
         .map((issue) => describeToolError(toolIssueMessage(issue))),
     ]),
   ]
-  let status = feedback.status
-  if (!status && dirty) status = "Unsaved changes"
-  if (importLibrary.isPending) status = "Importing library…"
-  if (exportLibrary.isPending) status = "Exporting library…"
+  let status = feedback.status ? showMessage(feedback.status) : ""
+  if (!status && dirty) status = t("status.unsavedChanges")
+  if (importLibrary.isPending) status = t("status.importing")
+  if (exportLibrary.isPending) status = t("status.exporting")
 
   return {
     catalogs: catalogQuery,
@@ -272,9 +304,7 @@ export function useToolLibrary({
           !workspace.undo(deletedStep) &&
           workspace.history.holds(deletedStep)
         )
-          toast.info(
-            "Newer changes follow this one. Undo them first with Edit › Undo."
-          )
+          toast.info(t("status.undoBlocked"))
         setDeletedStep(null)
       }),
     importFile: (file: File) => {
@@ -288,7 +318,11 @@ export function useToolLibrary({
             const first = result.tools.at(0)
             if (first) edit(first)
             setFeedback({
-              status: importStatus(result),
+              status: {
+                key: "status.added",
+                added: result.tools.length,
+                skipped: result.skipped,
+              },
               errors: [],
               importNotes: result.warnings,
             })
@@ -296,25 +330,36 @@ export function useToolLibrary({
           onError: (error) =>
             setFeedback({
               ...NO_FEEDBACK,
-              errors: [errorMessage(error, "Could not import this library.")],
+              errors: [
+                error instanceof LibraryTooLarge
+                  ? {
+                      key: "status.tooLarge",
+                      mb: FILE_KINDS.toolLibrary.maxBytes / 1024 / 1024,
+                    }
+                  : error instanceof Error && error.message
+                    ? { text: error.message }
+                    : { key: "status.importFailed" },
+              ],
             }),
         }
       )
     },
     exportTools: () =>
       guard((library) => {
-        setFeedback((previous) => ({ ...previous, status: "", errors: [] }))
+        setFeedback((previous) => ({ ...previous, status: null, errors: [] }))
         exportLibrary.mutate(library, {
           onSuccess: (result) =>
             setFeedback((previous) => ({
               ...previous,
-              status: EXPORT_STATUS[result.status],
+              status: { key: EXPORT_KEYS[result.status] },
             })),
           onError: (error) =>
             setFeedback((previous) => ({
               ...previous,
               errors: [
-                errorMessage(error, "Could not export the tool library."),
+                error instanceof Error && error.message
+                  ? { text: error.message }
+                  : { key: "status.exportFailed" },
               ],
             })),
         })

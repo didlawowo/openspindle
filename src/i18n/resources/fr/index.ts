@@ -10,6 +10,7 @@ import { frPrepare } from "./prepare"
 import { frProbing } from "./probing"
 import { frSettings } from "./settings"
 import { frShell } from "./shell"
+import { frTools } from "./tools"
 import { frViewer } from "./viewer"
 
 /** Every string the interface shows in French; typed as the English shape so no key can be missed. */
@@ -25,5 +26,6 @@ export const frResources: UiResources = {
   common: frCommon,
   fusion360: frFusion360,
   models: frModels,
+  tools: frTools,
   viewer: frViewer,
 }

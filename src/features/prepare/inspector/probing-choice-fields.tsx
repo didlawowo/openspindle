@@ -118,7 +118,14 @@ export function ProbingChoiceFields({
         replaced &&
         strandedText(
           pt,
-          strandedBy(plate, replaced.entry.number, item, machine, operation.id)
+          strandedBy(
+            pt,
+            plate,
+            replaced.entry.number,
+            item,
+            machine,
+            operation.id
+          )
         )
       return {
         value: item.id,

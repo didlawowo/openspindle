@@ -262,7 +262,9 @@ export function buildTreeRows(
     const operations = plate.operations.map((operation, position): TreeRow => {
       const phase = operationPhase(operation)
       const operationLabel = treeLabel(operationDisplayName(pt, operation))
-      const search = `${operationsSearch} ${operationLabel} ${phaseLabels(t)[phase]}`
+      // The stored name joins the search too: a French UI still finds an operation
+      // by its English default, and a renamed one by what it was saved as.
+      const search = `${operationsSearch} ${operationLabel} ${operation.name} ${phaseLabels(t)[phase]}`
       return {
         kind: "operation",
         id: `operation:${operation.id}`,

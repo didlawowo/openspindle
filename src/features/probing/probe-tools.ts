@@ -11,6 +11,7 @@ import type { MachineProbing, ProbingStrategy } from "@/domain/probing/strategy"
 import { probeProfile } from "@/domain/tools/tool"
 import type { ProbeProfile, Tool } from "@/domain/tools/tool"
 import { isProbeSlot } from "@/domain/tools/tool-table"
+import { operationDisplayName } from "./strategy-copy"
 
 /** What a probe senses and carries, in a few words: "Touches Z · laser pointer". */
 export function profileText(
@@ -108,6 +109,7 @@ export function entryText(
  * without a probe they run with.
  */
 export function strandedBy(
+  t: TFunction<"probing">,
   plate: Plate,
   number: number,
   tool: Tool,
@@ -123,7 +125,7 @@ export function strandedBy(
     if (!strategy || strategyUnsupported(strategy, machine) !== null) return []
     return profile && runsWith(strategy, profile, machine)
       ? []
-      : [operation.name]
+      : [operationDisplayName(t, operation)]
   })
 }
 

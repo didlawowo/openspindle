@@ -87,7 +87,7 @@ function strategyOffer(
   if (!replaced) return { tool, replaces: null }
   const stranded = strandedText(
     pt,
-    strandedBy(plate, replaced.number, tool, machine)
+    strandedBy(pt, plate, replaced.number, tool, machine)
   )
   return {
     tool,

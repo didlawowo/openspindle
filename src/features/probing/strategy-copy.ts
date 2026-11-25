@@ -1,6 +1,6 @@
 import type { TFunction } from "i18next"
 import type { Operation } from "@/domain/operations/operation"
-import { strategyLabel } from "@/domain/probing/strategies"
+import { probingLabel } from "@/domain/probing/strategies"
 
 /**
  * A strategy's label and description in the interface's language. They live in the pure
@@ -30,12 +30,10 @@ export function operationDisplayName(
   operation: Operation
 ): string {
   const { source } = operation
-  if (
-    source.kind === "probing" &&
-    operation.name === strategyLabel(source.strategy)
-  )
-    return t(`strategies.${source.strategy}.label`, {
-      defaultValue: operation.name,
-    })
+  if (source.kind === "probing") {
+    const label = probingLabel({ source })
+    if (operation.name === label)
+      return strategyLabelFor(t, { id: source.strategy, label })
+  }
   return operation.name
 }

@@ -97,6 +97,7 @@ describe("useImportModels", () => {
     expect(outcome.imported).toEqual([known])
     expect(outcome.failures).toEqual([])
     expect(host.models.list).not.toHaveBeenCalled()
-    expect(result.current.progress).toBeNull()
+    // The step report is React state: let it flush before asserting it ended.
+    await waitFor(() => expect(result.current.progress).toBeNull())
   })
 })

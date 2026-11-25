@@ -45,6 +45,10 @@ import {
   strandedBy,
   strandedText,
 } from "@/features/probing/probe-tools"
+import {
+  strategyDescriptionFor,
+  strategyLabelFor,
+} from "@/features/probing/strategy-copy"
 
 const ROW = "grid grid-cols-2 items-center gap-3"
 
@@ -81,6 +85,7 @@ export function ProbingChoiceFields({
   strategy: ProbingStrategy
 }) {
   const { t } = useTranslation("prepare")
+  const { t: pt } = useTranslation("probing")
   const id = useId()
   const workspace = useWorkspaceStore()
   const library = useWorkspace((state) => state.tools)
@@ -112,6 +117,7 @@ export function ProbingChoiceFields({
       const stranded =
         replaced &&
         strandedText(
+          pt,
           strandedBy(plate, replaced.entry.number, item, machine, operation.id)
         )
       return {
@@ -120,7 +126,7 @@ export function ProbingChoiceFields({
         replaces:
           replaced &&
           [
-            sharedReplacementText(replaced, library),
+            sharedReplacementText(pt, replaced, library),
             ...(stranded ? [`${stranded}.`] : []),
           ].join(" "),
       }
@@ -134,12 +140,17 @@ export function ProbingChoiceFields({
     const reason =
       item.id === strategy.id ? null : strategyBlocked(item, plate, machine)
     return reason === null
-      ? { value: item.id, label: item.label }
-      : { value: item.id, label: item.label, disabled: true, reason }
+      ? { value: item.id, label: strategyLabelFor(pt, item) }
+      : {
+          value: item.id,
+          label: strategyLabelFor(pt, item),
+          disabled: true,
+          reason,
+        }
   })
   const probeHint = [
     `T${source.probe}`,
-    ...(profile ? [profileText(profile)] : []),
+    ...(profile ? [profileText(pt, profile)] : []),
     ...(tool && source.task === "origin" ? [ballText(t, tool)] : []),
   ].join(" · ")
 
@@ -194,12 +205,14 @@ export function ProbingChoiceFields({
       {strategies.length > 1 && (
         <Field orientation="horizontal" className={ROW}>
           <FieldLabel htmlFor={`${id}-strategy`}>
-            <Hint text={strategy.description}>{t("probing.strategy")}</Hint>
+            <Hint text={strategyDescriptionFor(pt, strategy)}>
+              {t("probing.strategy")}
+            </Hint>
           </FieldLabel>
           <OptionSelect
             id={`${id}-strategy`}
             className="w-full min-w-0"
-            aria-description={strategy.description}
+            aria-description={strategyDescriptionFor(pt, strategy)}
             options={strategyOptions}
             value={strategy.id}
             onValueChange={changeStrategy}

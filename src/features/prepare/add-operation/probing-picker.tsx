@@ -30,6 +30,10 @@ import { useImportContext } from "@/features/shell/use-import"
 import { ItemGroup } from "@/components/ui/item"
 import type { FixtureKit } from "@/domain/fixtures/fixture-kit"
 import { useStrategyPicture } from "@/features/probing/use-strategy-picture"
+import {
+  strategyDescriptionFor,
+  strategyLabelFor,
+} from "@/features/probing/strategy-copy"
 import { StrategyItem } from "./strategy-item"
 import { useAddOperation } from "./use-add-operation"
 import type { AddedOperation } from "./use-add-operation"
@@ -63,6 +67,7 @@ export function useProbingReason(): string | null {
  */
 function strategyOffer(
   t: TFunction<"prepare">,
+  pt: TFunction<"probing">,
   strategy: ProbingStrategy,
   plate: Plate,
   machine: MachineProbing,
@@ -81,6 +86,7 @@ function strategyOffer(
   const replaced = replacedEntry(plate, tool, machine)
   if (!replaced) return { tool, replaces: null }
   const stranded = strandedText(
+    pt,
     strandedBy(plate, replaced.number, tool, machine)
   )
   return {
@@ -88,7 +94,7 @@ function strategyOffer(
     replaces: [
       t("probing.usesReplaces", {
         tool: tool.name,
-        entry: entryText(replaced, library),
+        entry: entryText(pt, replaced, library),
       }),
       ...(stranded ? [`${stranded}.`] : []),
     ].join(" "),
@@ -195,8 +201,9 @@ function StrategyChoice({
   onSelect: (tool: Tool) => void
 }) {
   const { t } = useTranslation("prepare")
+  const { t: pt } = useTranslation("probing")
   const machine = kit.probing!
-  const offer = strategyOffer(t, strategy, plate, machine, library)
+  const offer = strategyOffer(t, pt, strategy, plate, machine, library)
   const shown =
     "tool" in offer
       ? offer.tool
@@ -205,8 +212,8 @@ function StrategyChoice({
   const Icon = probingIcon(strategy)
   return (
     <StrategyItem
-      title={strategy.label}
-      description={strategy.description}
+      title={strategyLabelFor(pt, strategy)}
+      description={strategyDescriptionFor(pt, strategy)}
       picture={picture}
       icon={<Icon />}
       note={"tool" in offer ? offer.replaces : null}

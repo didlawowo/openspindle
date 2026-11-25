@@ -86,6 +86,7 @@ function selectableOf(row: TreeRow) {
  */
 export function PlateTree({ className }: { className?: string }) {
   const { t } = useTranslation("prepare")
+  const { t: pt } = useTranslation("probing")
   const plates = useWorkspace((state) => state.plates)
   const tools = useWorkspace((state) => state.tools)
   const selectedPlateId = useWorkspace((state) => state.selectedPlateId)
@@ -109,8 +110,8 @@ export function PlateTree({ className }: { className?: string }) {
     {}
   )
   const data = useMemo(
-    () => buildTreeRows(t, plates, tools, diagnosticsOf),
-    [t, plates, tools, diagnosticsOf]
+    () => buildTreeRows(t, pt, plates, tools, diagnosticsOf),
+    [t, pt, plates, tools, diagnosticsOf]
   )
   const searching = query.trim() !== ""
   // The row model reads the expanded state itself, so every expanded row is listed explicitly.

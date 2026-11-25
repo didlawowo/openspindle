@@ -31,6 +31,7 @@ import {
 import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 import { useTranslation } from "react-i18next"
+import { operationDisplayName } from "@/features/probing/strategy-copy"
 import type { TFunction } from "i18next"
 import { cn } from "cn"
 import { Badge } from "@/components/ui/badge"
@@ -810,6 +811,7 @@ function OperationRow(
   props: RowProps & { node: Extract<TreeRow, { kind: "operation" }> }
 ) {
   const { t } = useTranslation("prepare")
+  const { t: pt } = useTranslation("probing")
   const workspace = useWorkspaceStore()
   const { node, row } = props
   const { plate, operation } = node
@@ -906,8 +908,10 @@ function OperationRow(
           active={active}
           title={
             suppressed
-              ? t("tree.suppressedName", { name: operation.name })
-              : operation.name
+              ? t("tree.suppressedName", {
+                  name: operationDisplayName(pt, operation),
+                })
+              : operationDisplayName(pt, operation)
           }
           onClick={() => props.onSelectOperation(plate.id, operation.id)}
         >

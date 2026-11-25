@@ -1,6 +1,8 @@
 import { useMemo } from "react"
 import { CircleAlert, CircleCheck, Grid3X3, TriangleAlert } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   Card,
@@ -52,16 +54,16 @@ export type HeightMapReviewProps = {
 
 const VERDICTS: Record<
   FlatnessVerdict,
-  { title: string; variant: "default" | "destructive"; icon: LucideIcon }
+  {
+    key: "review.flat" | "review.uneven" | "review.unreliable"
+    variant: "default" | "destructive"
+    icon: LucideIcon
+  }
 > = {
-  flat: { title: "The surface is flat", variant: "default", icon: CircleCheck },
-  uneven: {
-    title: "The surface is uneven",
-    variant: "default",
-    icon: TriangleAlert,
-  },
+  flat: { key: "review.flat", variant: "default", icon: CircleCheck },
+  uneven: { key: "review.uneven", variant: "default", icon: TriangleAlert },
   unreliable: {
-    title: "Check the probing before resuming",
+    key: "review.unreliable",
     variant: "destructive",
     icon: CircleAlert,
   },
@@ -72,29 +74,56 @@ const millimetres = (
   format: (value: number) => string
 ) => (value === undefined ? "—" : `${format(value)} mm`)
 
-function reviewFacts({
-  size,
-  expected,
-  sizeMatches,
-  samples,
-  statistics,
-  outliers,
-  surface,
-}: HeightMapAnalysis) {
+function reviewFacts(
+  t: TFunction<"probing">,
+  {
+    size,
+    expected,
+    sizeMatches,
+    samples,
+    statistics,
+    outliers,
+    surface,
+  }: HeightMapAnalysis
+) {
   const mismatch =
     sizeMatches === false && expected
-      ? ` · probed ${expected.columns} × ${expected.rows}`
+      ? t("review.probedExpected", {
+          columns: expected.columns,
+          rows: expected.rows,
+        })
       : ""
   return [
-    { label: "Grid", value: `${size.columns} × ${size.rows}${mismatch}` },
-    { label: "Measured", value: `${samples.valid} / ${samples.total}` },
-    { label: "Outliers", value: String(outliers.length) },
-    { label: "Minimum", value: millimetres(statistics?.min, formatHeight) },
-    { label: "Maximum", value: millimetres(statistics?.max, formatHeight) },
-    { label: "Mean", value: millimetres(statistics?.mean, formatHeight) },
-    { label: "Range", value: millimetres(statistics?.range, formatSpan) },
-    { label: "Tilt", value: millimetres(surface?.tilt, formatSpan) },
-    { label: "Flatness", value: millimetres(surface?.flatness, formatSpan) },
+    {
+      label: t("review.grid"),
+      value: `${size.columns} × ${size.rows}${mismatch}`,
+    },
+    {
+      label: t("review.measured"),
+      value: `${samples.valid} / ${samples.total}`,
+    },
+    { label: t("review.outliers"), value: String(outliers.length) },
+    {
+      label: t("review.minimum"),
+      value: millimetres(statistics?.min, formatHeight),
+    },
+    {
+      label: t("review.maximum"),
+      value: millimetres(statistics?.max, formatHeight),
+    },
+    {
+      label: t("review.mean"),
+      value: millimetres(statistics?.mean, formatHeight),
+    },
+    {
+      label: t("review.range"),
+      value: millimetres(statistics?.range, formatSpan),
+    },
+    { label: t("review.tilt"), value: millimetres(surface?.tilt, formatSpan) },
+    {
+      label: t("review.flatness"),
+      value: millimetres(surface?.flatness, formatSpan),
+    },
   ]
 }
 
@@ -102,6 +131,7 @@ function PendingRead({
   reading,
   readError,
 }: Pick<HeightMapReviewProps, "reading" | "readError">) {
+  const { t } = useTranslation("probing")
   if (reading)
     return (
       <Empty>
@@ -109,10 +139,8 @@ function PendingRead({
           <EmptyMedia variant="icon">
             <Spinner />
           </EmptyMedia>
-          <EmptyTitle>Reading the height map…</EmptyTitle>
-          <EmptyDescription>
-            M375.1 reports the heights the firmware measured.
-          </EmptyDescription>
+          <EmptyTitle>{t("review.reading")}</EmptyTitle>
+          <EmptyDescription>{t("review.readingHint")}</EmptyDescription>
         </EmptyHeader>
       </Empty>
     )
@@ -120,7 +148,7 @@ function PendingRead({
     return (
       <Alert variant="destructive">
         <CircleAlert />
-        <AlertTitle>The height map could not be read</AlertTitle>
+        <AlertTitle>{t("review.readFailed")}</AlertTitle>
         <AlertDescription>{readError}</AlertDescription>
       </Alert>
     )
@@ -130,21 +158,20 @@ function PendingRead({
         <EmptyMedia variant="icon">
           <Grid3X3 />
         </EmptyMedia>
-        <EmptyTitle>No height map yet</EmptyTitle>
-        <EmptyDescription>
-          Read the height map to review the probing.
-        </EmptyDescription>
+        <EmptyTitle>{t("review.none")}</EmptyTitle>
+        <EmptyDescription>{t("review.noneHint")}</EmptyDescription>
       </EmptyHeader>
     </Empty>
   )
 }
 
 function Verdict({ analysis }: { analysis: HeightMapAnalysis }) {
-  const { title, variant, icon: Icon } = VERDICTS[analysis.verdict]
+  const { t } = useTranslation("probing")
+  const { key, variant, icon: Icon } = VERDICTS[analysis.verdict]
   return (
     <Alert variant={variant}>
       <Icon />
-      <AlertTitle>{title}</AlertTitle>
+      <AlertTitle>{t(key)}</AlertTitle>
       <AlertDescription>
         <ul className="flex flex-col gap-1">
           {analysis.reasons.map((reason) => (
@@ -168,6 +195,7 @@ export function HeightMapReview({
   onRetryRead,
   retryReadDisabledReason,
 }: HeightMapReviewProps) {
+  const { t } = useTranslation("probing")
   const columns = expected?.columns
   const rows = expected?.rows
   const analysis = useMemo(() => {
@@ -179,13 +207,10 @@ export function HeightMapReview({
     return analyzeHeightMap(map, { expected: size })
   }, [map, columns, rows])
   return (
-    <Card size="sm" role="region" aria-label="Height map review">
+    <Card size="sm" role="region" aria-label={t("review.aria")}>
       <CardHeader>
-        <CardTitle>Review height map</CardTitle>
-        <CardDescription>
-          The job is paused after probing. Check the measured heights, then
-          Resume to continue or Stop.
-        </CardDescription>
+        <CardTitle>{t("review.title")}</CardTitle>
+        <CardDescription>{t("review.description")}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {map && analysis ? (
@@ -194,9 +219,9 @@ export function HeightMapReview({
             <Verdict analysis={analysis} />
             <HeightMapFacts
               facts={[
-                ...reviewFacts(analysis),
+                ...reviewFacts(t, analysis),
                 {
-                  label: "Read at",
+                  label: t("review.readAt"),
                   value: (
                     <time dateTime={new Date(map.receivedAt).toISOString()}>
                       {new Date(map.receivedAt).toLocaleTimeString()}
@@ -213,13 +238,13 @@ export function HeightMapReview({
       </CardContent>
       <CardFooter className="flex-wrap justify-end gap-2">
         <ReasonButton
-          label="Retry height map read"
+          label={t("review.retryAria")}
           reason={retryReadDisabledReason}
           variant="outline"
           disabled={reading}
           onClick={onRetryRead}
         >
-          {reading ? "Reading…" : "Retry read"}
+          {reading ? t("review.retrying") : t("review.retry")}
         </ReasonButton>
       </CardFooter>
     </Card>

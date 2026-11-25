@@ -1,5 +1,7 @@
 import { useEffect, useId, useMemo, useState } from "react"
 import { LocateFixed } from "lucide-react"
+import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { FieldGroup, FieldLegend, FieldSet } from "@/components/ui/field"
 import { Hint } from "@/components/workspace/hint"
 import {
@@ -49,23 +51,28 @@ export type TouchOffSettingsProps = {
 }
 
 /** Where Center touches, or why there is nothing to center on. */
-function centerDescription({ result, origin, anchors }: WorkAreaFit) {
+function centerDescription(
+  t: TFunction<"probing">,
+  { result, origin, anchors }: WorkAreaFit
+) {
   if (!result.ok) return result.reason
   const [x, y] = fromWorkOrigin(workAreaMiddle(result.area), origin)
   const middle =
     result.covers === "cuts"
-      ? `The middle of the cuts is X ${x} Y ${y} from the work origin.`
-      : `The plate has no machining operations; the middle of its stock is X ${x} Y ${y} from the work origin.`
+      ? t("touch.middleCuts", { x, y })
+      : t("touch.middleStock", { x, y })
   if (anchors.length)
-    return `${middle} Center touches there, relative to a stored anchor.`
-  return `${middle} Without stored anchors, position the probe there before Run.`
+    return t("touch.centerAnchors", { middle, action: t("touch.center") })
+  return t("touch.centerNoAnchors", { middle })
 }
 
 /** Why Center is unavailable; null when it can place the touch point. */
-function centerReason({ result, anchors }: WorkAreaFit) {
+function centerReason(
+  t: TFunction<"probing">,
+  { result, anchors }: WorkAreaFit
+) {
   if (!result.ok) return result.reason
-  if (!anchors.length)
-    return "Centering needs the stored anchors of the plate's device."
+  if (!anchors.length) return t("touch.centerNeedsAnchors")
   return null
 }
 
@@ -109,6 +116,7 @@ function TouchOffForm({
   pick,
   disabled,
 }: Required<TouchOffSettingsProps>) {
+  const { t } = useTranslation("probing")
   const id = useId()
   // Only what the strategy reads is held to its range: a probe travel it does not read stays as
   // stored, whatever it is.
@@ -140,14 +148,13 @@ function TouchOffForm({
     <FieldGroup>
       <FieldSet>
         <FieldLegend>
-          <Hint text="The probed surface becomes work Z0, and the plate's work origin stays on the stock top.">
-            Touch-off
-          </Hint>
+          <Hint text={t("touch.hint")}>{t("touch.legend")}</Hint>
         </FieldLegend>
         <FieldGroup className="gap-3">
           {reads.probeTravel && (
             <ParameterField
               id={`${id}-probeTravel`}
+              paramKey="params.probeTravel"
               parameter={parameters.probeTravel}
               field={probingField(form, "probeTravel")}
               disabled={disabled}
@@ -155,6 +162,7 @@ function TouchOffForm({
           )}
           <ParameterField
             id={`${id}-clearance`}
+            paramKey="params.touchClearance"
             parameter={parameters.clearance}
             field={probingField(form, "clearance")}
             disabled={disabled}
@@ -170,10 +178,10 @@ function TouchOffForm({
         disabled={disabled}
         action={(placement, setPlacement) => (
           <WorkAreaField
-            description={centerDescription(workArea)}
-            action="Center"
+            description={centerDescription(t, workArea)}
+            action={t("touch.center")}
             icon={<LocateFixed data-icon="inline-start" />}
-            reason={centerReason(workArea)}
+            reason={centerReason(t, workArea)}
             disabled={disabled}
             onApply={() => {
               if (!workArea.result.ok) return

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import { Crosshair } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import type { DeepKeys, DeepValue } from "@tanstack/react-form"
 import {
   Field,
@@ -129,7 +130,7 @@ export function MeasurementField({
  * `title` names, such as its work origin.
  */
 export function WorkAreaField({
-  title = "Work area",
+  title,
   description,
   action,
   icon,
@@ -146,11 +147,12 @@ export function WorkAreaField({
   disabled: boolean
   onApply: () => void
 }) {
+  const { t } = useTranslation("probing")
   return (
     <Field orientation="horizontal" data-disabled={disabled}>
       <FieldContent>
         <FieldTitle>
-          <Hint text={description}>{title}</Hint>
+          <Hint text={description}>{title ?? t("fields.workArea")}</Hint>
         </FieldTitle>
       </FieldContent>
       <ReasonButton
@@ -206,20 +208,28 @@ export function SwitchField({
 /** A numeric field of a probing form on its own row, as its strategy's parameter describes it. */
 export function ParameterField({
   id,
+  paramKey,
   parameter,
   field,
   disabled,
 }: {
   id: string
+  /** The `probing` namespace key translating the parameter's label and description. */
+  paramKey: string
   parameter: ParameterSpec
   field: ProbingField<number>
   disabled: boolean
 }) {
+  const { t } = useTranslation("probing")
+  const label = t(`${paramKey}.label`, { defaultValue: parameter.label })
+  const description = parameter.description
+    ? t(`${paramKey}.description`, { defaultValue: parameter.description })
+    : undefined
   return field(({ value, errors, onChange, onBlur }) => (
     <MeasurementField
       id={id}
-      label={parameter.label}
-      description={parameter.description}
+      label={label}
+      description={description}
       axis={parameter.axis}
       unit={parameter.unit}
       min={parameter.min}
@@ -272,6 +282,7 @@ export function PickButton({
   label: string
   disabled?: boolean
 }) {
+  const { t } = useTranslation("probing")
   return (
     <ReasonButton
       label={label}
@@ -284,7 +295,7 @@ export function PickButton({
       onClick={pick.onPick}
     >
       <Crosshair data-icon="inline-start" />
-      {pick.picking ? "Picking in the 3D view…" : label}
+      {pick.picking ? t("fields.picking") : label}
     </ReasonButton>
   )
 }
@@ -315,13 +326,14 @@ export function PlacementFields({
     setPlacement: (next: ProbePlacement) => void
   ) => ReactNode
 }) {
+  const { t } = useTranslation("probing")
   const anchorAxes = height ? AXES : PLANAR_AXES
   return placement(({ value, onChange: setPlacement }) => {
     const anchorId = value.kind === "anchor" ? value.anchorId : PROBE_POSITION
     const references = [
       {
         value: PROBE_POSITION,
-        label: "Probe position",
+        label: t("fields.probePosition"),
         axes: height ? HEIGHT_AXES : [],
       },
       ...anchors.map(({ id, name }) => ({
@@ -330,7 +342,13 @@ export function PlacementFields({
         axes: anchorAxes,
       })),
       ...(anchorId && !anchors.some(({ id }) => id === anchorId)
-        ? [{ value: anchorId, label: "Unavailable anchor", axes: anchorAxes }]
+        ? [
+            {
+              value: anchorId,
+              label: t("fields.unavailableAnchor"),
+              axes: anchorAxes,
+            },
+          ]
         : []),
     ]
     const z = value.height
@@ -348,18 +366,18 @@ export function PlacementFields({
       )
     return (
       <FieldSet>
-        <FieldLegend>Placement</FieldLegend>
+        <FieldLegend>{t("fields.placement")}</FieldLegend>
         <FieldGroup className="gap-3">
           {pick && (
             <PickButton
               pick={pick}
-              label="Pick in the 3D view"
+              label={t("fields.pickIn3d")}
               disabled={disabled}
             />
           )}
           {action?.(value, setPlacement)}
           <ReferencePointFields
-            label="Placement"
+            label={t("fields.placement")}
             references={references}
             reference={anchorId}
             point={

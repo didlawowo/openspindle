@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import {
   Cuboid,
   Cylinder,
@@ -64,11 +65,12 @@ const isViewMode = (value: unknown): value is ViewMode =>
   value === "perspective" || value === "top" || value === "front"
 
 export function ViewerToolbar({ camera }: { camera: ViewerCamera }) {
+  const { t } = useTranslation("viewer")
   return (
     <Card
       className="absolute top-1/2 left-4 z-10 -translate-y-1/2 gap-1 p-1"
       role="toolbar"
-      aria-label="3D viewer"
+      aria-label={t("toolbar.region")}
       aria-orientation="vertical"
     >
       <ToggleGroup
@@ -80,12 +82,15 @@ export function ViewerToolbar({ camera }: { camera: ViewerCamera }) {
           const next = value.at(0)
           camera.setView(isViewMode(next) ? next : camera.view)
         }}
-        aria-label="View"
+        aria-label={t("toolbar.view")}
       >
-        <ToggleGroupItem value="perspective" aria-label="Perspective view">
+        <ToggleGroupItem
+          value="perspective"
+          aria-label={t("toolbar.perspective")}
+        >
           <MousePointer2 />
         </ToggleGroupItem>
-        <ToggleGroupItem value="top" aria-label="Top view">
+        <ToggleGroupItem value="top" aria-label={t("toolbar.top")}>
           <Layers3 />
         </ToggleGroupItem>
       </ToggleGroup>
@@ -93,8 +98,8 @@ export function ViewerToolbar({ camera }: { camera: ViewerCamera }) {
       <Button
         variant="ghost"
         size="icon"
-        aria-label="Zoom in"
-        title="Zoom in"
+        aria-label={t("toolbar.zoomIn")}
+        title={t("toolbar.zoomIn")}
         onClick={() =>
           camera.setZoom(Math.min(camera.zoom + ZOOM.step, ZOOM.max))
         }
@@ -104,8 +109,8 @@ export function ViewerToolbar({ camera }: { camera: ViewerCamera }) {
       <Button
         variant="ghost"
         size="icon"
-        aria-label="Zoom out"
-        title="Zoom out"
+        aria-label={t("toolbar.zoomOut")}
+        title={t("toolbar.zoomOut")}
         onClick={() =>
           camera.setZoom(Math.max(camera.zoom - ZOOM.step, ZOOM.min))
         }
@@ -115,8 +120,8 @@ export function ViewerToolbar({ camera }: { camera: ViewerCamera }) {
       <Button
         variant="ghost"
         size="icon"
-        aria-label="Fit bed in view"
-        title="Fit bed in view"
+        aria-label={t("toolbar.fit")}
+        title={t("toolbar.fit")}
         onClick={camera.fit}
       >
         <Maximize />
@@ -129,6 +134,7 @@ export function ViewerToolbar({ camera }: { camera: ViewerCamera }) {
 
 /** The 3D views' visual style, from a menu beside the toolbar; its button shows the one chosen. */
 function VisualStyleMenu() {
+  const { t } = useTranslation("viewer")
   const [style, setStyle] = useVisualStyle()
   return (
     <DropdownMenu>
@@ -137,8 +143,8 @@ function VisualStyleMenu() {
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Visual style"
-            title="Visual style"
+            aria-label={t("toolbar.style")}
+            title={t("toolbar.style")}
           />
         }
       >
@@ -146,7 +152,7 @@ function VisualStyleMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent side="right" className="w-56">
         <DropdownMenuGroup>
-          <DropdownMenuLabel>Visual style</DropdownMenuLabel>
+          <DropdownMenuLabel>{t("toolbar.style")}</DropdownMenuLabel>
           <DropdownMenuRadioGroup
             value={style}
             onValueChange={(value) => {
@@ -155,11 +161,11 @@ function VisualStyleMenu() {
           >
             <DropdownMenuRadioItem value="smooth">
               <Cylinder />
-              Smooth Shades
+              {t("toolbar.smooth")}
             </DropdownMenuRadioItem>
             <DropdownMenuRadioItem value="edges">
               <Cuboid />
-              Shaded Edges
+              {t("toolbar.edges")}
             </DropdownMenuRadioItem>
           </DropdownMenuRadioGroup>
         </DropdownMenuGroup>

@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import {
   findFusionProgram,
@@ -19,6 +20,7 @@ import { useHost } from "@/platform/host-context"
  * resolved then is resolved alike, and the import questionnaire asks about anything new.
  */
 export function useFusionUpdate() {
+  const { t } = useTranslation("fusion360")
   const fusion = useHost().fusion
   const workspace = useWorkspaceStore()
   const context = useImportContext()
@@ -40,11 +42,9 @@ export function useFusionUpdate() {
       const origin =
         operation?.source.kind === "file" ? operation.source.origin : undefined
       if (!plate || !operation || !origin)
-        throw new Error("This operation did not come from Fusion 360.")
+        throw new Error(t("update.notFromFusion"))
       if (!(await fusion.snapshot()).connected)
-        throw new Error(
-          "Connect Fusion 360 first: in Fusion, click OpenSpindle › Connect to OpenSpindle."
-        )
+        throw new Error(t("update.connectFirst"))
       const found = findFusionProgram(await fusion.list(), origin)
       if (!found.ok) throw new Error(found.error)
       const program = await fusion.read(found.value.id)

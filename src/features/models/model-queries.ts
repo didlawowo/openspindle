@@ -30,10 +30,15 @@ export function useModelLibrary() {
 }
 
 export type ImportProgress = { readonly fileName: string; step: ImportStep }
+export type ImportFailure = {
+  readonly file: string
+  /** Why it failed, or null when the failure carries no message of its own. */
+  readonly message: string | null
+}
 export type ImportOutcome = {
   readonly imported: readonly ModelRecord[]
-  /** One line per file that could not be added. */
-  readonly failures: readonly string[]
+  /** One entry per file that could not be added. */
+  readonly failures: readonly ImportFailure[]
 }
 
 /**
@@ -53,7 +58,7 @@ export function useImportModels() {
       const cancelled = () => abort.signal.aborted
       controller.current = abort
       const imported: ModelRecord[] = []
-      const failures: string[] = []
+      const failures: ImportFailure[] = []
       try {
         for (const file of files) {
           if (cancelled()) break
@@ -71,9 +76,13 @@ export function useImportModels() {
             await client.invalidateQueries({ queryKey: modelKeys.library })
           } catch (error) {
             if (cancelled()) break
-            failures.push(
-              `${file.name}: ${error instanceof Error ? error.message : "it could not be read."}`
-            )
+            failures.push({
+              file: file.name,
+              message:
+                error instanceof Error && error.message.trim()
+                  ? error.message
+                  : null,
+            })
           }
         }
       } finally {

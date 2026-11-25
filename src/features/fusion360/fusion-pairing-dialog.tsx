@@ -1,4 +1,5 @@
 import { useId, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useForm } from "@tanstack/react-form"
 import { REGEXP_ONLY_DIGITS } from "input-otp"
 import { z } from "zod"
@@ -36,6 +37,7 @@ export function FusionPairingDialog({
   requestId: string
   returnToFusion: boolean
 }) {
+  const { t } = useTranslation("fusion360")
   const fusion = useHost().fusion
   const connection = useFusionConnection()
   const lifetime = useFusionLifetime()
@@ -82,8 +84,8 @@ export function FusionPairingDialog({
   })
   return (
     <AppDialog
-      title="Fusion 360 wants to connect"
-      description="Enter the six-digit code shown in Fusion 360."
+      title={t("pairing.title")}
+      description={t("pairing.description")}
       onClose={() => {
         void dismiss()
       }}
@@ -100,7 +102,9 @@ export function FusionPairingDialog({
               <form.Field name="code">
                 {(field) => (
                   <Field data-invalid={!field.state.meta.isValid || !!error}>
-                    <FieldLabel htmlFor={id}>Connection code</FieldLabel>
+                    <FieldLabel htmlFor={id}>
+                      {t("pairing.codeLabel")}
+                    </FieldLabel>
                     <InputOTP
                       id={id}
                       autoFocus
@@ -144,10 +148,7 @@ export function FusionPairingDialog({
               </form.Field>
               {error && <FieldError role="alert">{error}</FieldError>}
               {!active && !submitting && !error && (
-                <FieldError role="alert">
-                  This request has expired or ended. Click Connect to
-                  OpenSpindle in Fusion for a new code.
-                </FieldError>
+                <FieldError role="alert">{t("pairing.expired")}</FieldError>
               )}
               <div className="flex justify-end gap-2">
                 <Button
@@ -158,7 +159,7 @@ export function FusionPairingDialog({
                     void dismiss()
                   }}
                 >
-                  Cancel
+                  {t("pairing.cancel")}
                 </Button>
                 <form.Subscribe selector={(state) => state.values.code}>
                   {(code) => (
@@ -168,7 +169,9 @@ export function FusionPairingDialog({
                         !active || submitting || canceling || code.length !== 6
                       }
                     >
-                      {submitting ? "Connecting…" : "Connect"}
+                      {submitting
+                        ? t("pairing.connecting")
+                        : t("pairing.connect")}
                     </Button>
                   )}
                 </form.Subscribe>

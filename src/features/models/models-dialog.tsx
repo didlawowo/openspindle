@@ -1,4 +1,7 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
+import i18next from "i18next"
+import type { TFunction } from "i18next"
 import { Box, PencilLine, Plus, Trash2 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
@@ -33,7 +36,7 @@ import { FilePicker } from "@/components/file-picker"
 import { InlineNameInput } from "@/components/workspace/inline-name-input"
 import { MODEL_ACCEPT } from "@/domain/models/model"
 import type { ModelRecord } from "@/domain/models/model"
-import { TEXT_LIMIT, formatBytes, plural } from "@/domain/primitives"
+import { TEXT_LIMIT, formatBytes } from "@/domain/primitives"
 import { AppDialog } from "@/features/shell/app-dialog"
 import type { ImportStep } from "./import-model"
 import {
@@ -45,38 +48,52 @@ import {
 import { usageText, useModelUsage } from "./model-usage"
 import type { ModelUsage } from "./model-usage"
 
-const STEP_LABELS: Record<ImportStep, string> = {
-  reading: "Reading",
-  tessellating: "Tessellating",
-  saving: "Saving",
-}
-
-const length = (value: number) =>
-  Number(value.toFixed(value < 10 ? 1 : 0)).toLocaleString("en-US")
+const length = (locale: string, value: number) =>
+  Number(value.toFixed(value < 10 ? 1 : 0)).toLocaleString(locale)
 
 /**
  * "STEP · 120 × 80 × 25 mm · 48,210 triangles · 3.2 MB". The size is of `bounds`: the model as
  * its file has it, or as a fixture stands it.
  */
 export function modelDetails(
+  t: TFunction<"models">,
   model: ModelRecord,
   bounds: ModelRecord["bounds"] = model.bounds
 ) {
+  const locale = i18next.language
   const { min, max } = bounds
-  const size = max.map((value, axis) => length(value - min[axis])).join(" × ")
+  const size = max
+    .map((value, axis) => length(locale, value - min[axis]))
+    .join(" × ")
   const origin = model.source
     ? model.source.format.toUpperCase()
-    : "From a project"
+    : t("details.fromProject")
   return [
     origin,
     `${size} mm`,
-    plural(model.mesh.triangles, "triangle"),
+    t("details.triangles", {
+      count: model.mesh.triangles,
+      formatted: new Intl.NumberFormat(locale).format(model.mesh.triangles),
+    }),
     formatBytes(model.source?.bytes ?? model.mesh.bytes),
   ].join(" · ")
 }
 
+/** The running import step's label: exhaustive, so a new step fails the typecheck. */
+const stepLabel = (t: TFunction<"models">, step: ImportStep) => {
+  switch (step) {
+    case "reading":
+      return t("add.steps.reading")
+    case "tessellating":
+      return t("add.steps.tessellating")
+    case "saving":
+      return t("add.steps.saving")
+  }
+}
+
 /** Adds STEP and GLB files, one after another, with the running file's step. */
 function AddModels() {
+  const { t } = useTranslation("models")
   const importing = useImportModels()
   const failures = importing.data?.failures ?? []
   return (
@@ -85,7 +102,7 @@ function AddModels() {
         <FilePicker
           accept={MODEL_ACCEPT}
           multiple
-          aria-label="Model files"
+          aria-label={t("add.filesAria")}
           onSelect={(files) => importing.mutate(files)}
         >
           {(open) => (
@@ -95,7 +112,7 @@ function AddModels() {
               onClick={open}
             >
               <Plus data-icon="inline-start" />
-              Add models…
+              {t("add.button")}
             </Button>
           )}
         </FilePicker>
@@ -103,28 +120,25 @@ function AddModels() {
           <>
             <FieldDescription role="status" className="flex items-center gap-2">
               <Spinner />
-              {STEP_LABELS[importing.progress.step]}{" "}
+              {stepLabel(t, importing.progress.step)}{" "}
               {importing.progress.fileName}…
             </FieldDescription>
             <Button variant="ghost" onClick={importing.cancel}>
-              Cancel
+              {t("add.cancel")}
             </Button>
           </>
         )}
       </div>
-      <FieldDescription>
-        STEP files are tessellated on this computer and kept with their mesh.
-        Fixtures place models on the bed.
-      </FieldDescription>
+      <FieldDescription>{t("add.note")}</FieldDescription>
       {failures.length > 0 && (
         <Alert variant="destructive">
-          <AlertTitle>
-            {plural(failures.length, "file")} could not be added
-          </AlertTitle>
+          <AlertTitle>{t("add.failed", { count: failures.length })}</AlertTitle>
           <AlertDescription>
             <ul className="list-inside list-disc">
-              {failures.map((failure) => (
-                <li key={failure}>{failure}</li>
+              {failures.map((failure, index) => (
+                <li key={`${failure.file}:${index}`}>
+                  {failure.file}: {failure.message ?? t("add.couldNotRead")}
+                </li>
               ))}
             </ul>
           </AlertDescription>
@@ -143,6 +157,7 @@ function ModelRow({
   usage: ModelUsage | undefined
   onDelete: () => void
 }) {
+  const { t } = useTranslation("models")
   const [editing, setEditing] = useState(false)
   const rename = useRenameModel()
   return (
@@ -154,7 +169,7 @@ function ModelRow({
         {editing ? (
           <InlineNameInput
             name={model.name}
-            label={`Name of ${model.name}`}
+            label={t("row.nameAria", { name: model.name })}
             maxLength={TEXT_LIMIT}
             onSave={(name) => rename.mutate({ id: model.id, name })}
             onDone={() => setEditing(false)}
@@ -165,15 +180,15 @@ function ModelRow({
           </ItemTitle>
         )}
         <ItemDescription className="font-numeric">
-          {modelDetails(model)}
+          {modelDetails(t, model)}
         </ItemDescription>
-        <ItemDescription>{usageText(usage)}</ItemDescription>
+        <ItemDescription>{usageText(t, usage)}</ItemDescription>
       </ItemContent>
       <ItemActions>
         <Button
           variant="ghost"
           size="icon-sm"
-          aria-label={`Rename ${model.name}`}
+          aria-label={t("row.renameAria", { name: model.name })}
           onClick={() => setEditing(true)}
         >
           <PencilLine />
@@ -181,7 +196,7 @@ function ModelRow({
         <Button
           variant="ghost"
           size="icon-sm"
-          aria-label={`Delete ${model.name}`}
+          aria-label={t("row.deleteAria", { name: model.name })}
           onClick={onDelete}
         >
           <Trash2 />
@@ -201,6 +216,7 @@ function DeleteModel({
   usage: ModelUsage | undefined
   onClose: () => void
 }) {
+  const { t } = useTranslation("models")
   const remove = useRemoveModel()
   const used = !!usage && (usage.definitions > 0 || usage.plates > 0)
   return (
@@ -212,20 +228,22 @@ function DeleteModel({
     >
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete {model.name}?</AlertDialogTitle>
+          <AlertDialogTitle>
+            {t("delete.title", { name: model.name })}
+          </AlertDialogTitle>
           <AlertDialogDescription>
             {used
-              ? `${usageText(usage)}. Their fixtures will show a box of its size until they get another model.`
-              : "It is not used by any fixture."}
+              ? t("delete.used", { usage: usageText(t, usage) })
+              : t("delete.unused")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t("delete.cancel")}</AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
             onClick={() => remove.mutate(model.id, { onSettled: onClose })}
           >
-            Delete
+            {t("delete.confirm")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -235,15 +253,18 @@ function DeleteModel({
 
 /** The Models library: uploaded STEP and GLB models that fixtures place on the bed. */
 export function ModelsDialog({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation("models")
   const library = useModelLibrary()
   const usage = useModelUsage()
   const [deleting, setDeleting] = useState<ModelRecord | null>(null)
   const models = library.data ?? []
   return (
     <AppDialog
-      title="Models"
+      title={t("dialog.title")}
       description={
-        <span className="font-numeric">{plural(models.length, "model")}</span>
+        <span className="font-numeric">
+          {t("dialog.count", { count: models.length })}
+        </span>
       }
       width="wide"
       onClose={onClose}
@@ -261,15 +282,14 @@ export function ModelsDialog({ onClose }: { onClose: () => void }) {
               <EmptyMedia variant="icon">
                 <Box />
               </EmptyMedia>
-              <EmptyTitle>No models yet</EmptyTitle>
+              <EmptyTitle>{t("dialog.emptyTitle")}</EmptyTitle>
               <EmptyDescription>
-                Add STEP or GLB files of your fixtures, such as vises and
-                clamps, to place them on the bed.
+                {t("dialog.emptyDescription")}
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
         )}
-        <div className="flex flex-col gap-2" aria-label="Models">
+        <div className="flex flex-col gap-2" aria-label={t("dialog.region")}>
           {models.map((model) => (
             <ModelRow
               key={model.id}

@@ -42,7 +42,7 @@ const SAVED_KEYS = new Set([
 
 export function AppearanceProvider({ children }: { children: ReactNode }) {
   const { t } = useTranslation("common")
-  const [appearance, setPreference] = useState<Appearance | null>(null)
+  const [appearance, setPreference] = useState<Appearance>(readAppearance)
   const [systemDark, setSystemDark] = useState(
     () => window.matchMedia(SYSTEM_DARK_QUERY).matches
   )
@@ -70,7 +70,6 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    if (appearance === null) return
     const system = window.matchMedia(SYSTEM_DARK_QUERY)
     const update = () => {
       setSystemDark(system.matches)
@@ -114,15 +113,13 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     [fonts, t]
   )
 
-  let resolvedAppearance: "light" | "dark" | null = null
-  if (appearance === "system")
-    resolvedAppearance = systemDark ? "dark" : "light"
-  else if (appearance !== null) resolvedAppearance = appearance
+  const resolvedAppearance: "light" | "dark" =
+    appearance === "system" ? (systemDark ? "dark" : "light") : appearance
 
   return (
     <AppearanceContext.Provider
       value={{
-        appearance: appearance ?? "system",
+        appearance,
         resolvedAppearance,
         setAppearance,
         fonts,

@@ -30,9 +30,9 @@ const { version } = JSON.parse(
 const rendererNotices = thirdPartyNotices("renderer")
 
 export default defineConfig(({ command }) => {
-  // Release builds (npm run dist:mac, which reads .env, and the release workflow) have a Sentry
-  // auth token in their environment: they upload their source maps, so that error reports show
-  // the source, and ship without them. Other builds make none.
+  // Release builds (npm run dist:mac, which reads .env) have a Sentry auth token in their
+  // environment: they upload their source maps, so that error reports show the source, and ship
+  // without them. Other builds make none.
   const uploadSourceMaps =
     command === "build" && Boolean(process.env.SENTRY_AUTH_TOKEN)
   const sourcemap = uploadSourceMaps ? ("hidden" as const) : false

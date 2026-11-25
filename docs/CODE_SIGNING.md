@@ -6,7 +6,7 @@ OpenSpindle's Windows releases are to be signed through SignPath Foundation's pr
 
 ## What is signed
 
-Only what the [release workflow](../.github/workflows/release.yml) builds from this repository's source, at a release tag on `main`: `OpenSpindle.exe` and the installer, `OpenSpindle-Setup-<version>.exe`. Nothing built elsewhere, from other source or by anyone else is signed. The libraries that come with Electron, beside `OpenSpindle.exe`, are Electron's.
+Only what `npm run dist:win` builds from this repository's source, at a release tag on `main`: `OpenSpindle.exe` and the installer, `OpenSpindle-Setup-<version>.exe`. Nothing built elsewhere, from other source or by anyone else is signed. The libraries that come with Electron, beside `OpenSpindle.exe`, are Electron's.
 
 ## Team roles
 

@@ -74,7 +74,7 @@ If something behaves differently, **Help › Export Protocol Trace…** saves th
 
 ## Contributing
 
-Contributions are welcome, from people and their coding agents: testing on a real Z1 (the open release pull request has a [build to try](docs/releasing.md#trying-the-next-release)), support for more machines, tool catalogs, testing on Windows, and fixes. [AGENTS.md](AGENTS.md) holds the project's conventions.
+Contributions are welcome, from people and their coding agents: testing on a real Z1 (the CI workflow builds a [build to try](docs/releasing.md#trying-a-build)), support for more machines, tool catalogs, testing on Windows, and fixes. [AGENTS.md](AGENTS.md) holds the project's conventions.
 
 ### Development
 
@@ -94,11 +94,11 @@ Before you open a pull request, `npm run typecheck`, `npm run lint`, `npm run ch
 
 Branch from `main` and keep each pull request to one change; it is squash-merged once CI passes. Its title becomes the commit on `main`, so it is a [Conventional Commit](https://www.conventionalcommits.org/) in the present tense, such as `fix(job): A pause is found by the line the machine reports`:
 
-- `feat`, `fix`, `perf` and `revert` go into the release notes and decide the next version
+- `feat`, `fix`, `perf` and `revert` go into the release notes
 - `docs`, `style`, `refactor`, `test`, `build`, `ci` and `chore` stay out of them
 - `!` before the colon marks a breaking change
 
-The release pull request updates the version and CHANGELOG.md ([releasing](docs/releasing.md)).
+The version and CHANGELOG.md are updated by hand when a release is cut ([releasing](docs/releasing.md)).
 
 ## Acknowledgements
 

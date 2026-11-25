@@ -14,7 +14,7 @@ const CHECK_INTERVAL_MS = 4 * 60 * 60_000
 const feedFile = () => path.join(process.resourcesPath, "app-update.yml")
 
 /**
- * Packaged apps update themselves from the GitHub releases the release workflow publishes
+ * Packaged apps update themselves from this repository's published GitHub releases
  * (docs/releasing.md). They check shortly after launch and every four hours, download a newer
  * version in the background and install it when the app quits; a notification says when one
  * is ready. The app menu's Check for Updates… says what it finds, and Restart to Install

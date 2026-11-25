@@ -50,10 +50,10 @@ fileAssociations:
     rank: Owner
 mac:
   category: public.app-category.productivity
-  # Signed with the Developer ID Application certificate named by CSC_NAME in .env or, in CI,
-  # imported from CSC_LINK (docs/releasing.md), with hardened runtime and electron-builder's
-  # default entitlements. Fail rather than produce an unsigned app when it is missing; npm run
-  # package:mac signs ad-hoc instead.
+  # Signed with the Developer ID Application certificate named by CSC_NAME in .env
+  # (docs/releasing.md), with hardened runtime and electron-builder's default entitlements. Fail
+  # rather than produce an unsigned app when it is missing; npm run package:mac signs ad-hoc
+  # instead.
   forceCodeSigning: true
   fileAssociations:
     - ext: [nc, cnc, gcode, tap, ngc]

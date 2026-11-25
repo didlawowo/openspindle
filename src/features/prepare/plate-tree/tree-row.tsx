@@ -695,7 +695,6 @@ const copyName = (t: TFunction<"prepare">, name: string) =>
  */
 function duplicateCommand(
   t: TFunction<"prepare">,
-  pt: TFunction<"probing">,
   plate: Plate,
   operation: Operation
 ): Extract<WorkspaceCommand, { type: "operation.add" }> {
@@ -705,7 +704,7 @@ function duplicateCommand(
     operation: {
       ...structuredClone(operation),
       id: newId(),
-      name: copyName(t, operationDisplayName(pt, operation)),
+      name: copyName(t, operation.name),
       revision: 0,
       tools: [],
     },
@@ -852,7 +851,7 @@ function OperationRow(
   }
   // The copy is selected, as an operation just added is.
   const duplicate = () => {
-    const command = duplicateCommand(t, pt, plate, operation)
+    const command = duplicateCommand(t, plate, operation)
     const added = workspace.dispatch(command)
     if (!added.ok) {
       toast.error(added.error)

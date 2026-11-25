@@ -6,8 +6,9 @@ import { strategyLabelFor } from "@/features/probing/strategy-copy"
 
 /**
  * What kind of operation this is: a probing operation goes by its strategy, the others by their
- * kind's label. The stored English label, as the job's run stages show it; the inspector shows
- * the translated one (`useOperationKindLabel`).
+ * kind's label. The stored English label, as the job's run stages show it. The hook below shows
+ * the translated strategy label; other kinds still go by their domain label, translated with
+ * the domain messages themselves (a separate decision, see issue #20).
  */
 export function operationKindLabel(operation: Operation): string {
   const { source } = operation

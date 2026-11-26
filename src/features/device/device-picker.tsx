@@ -219,7 +219,11 @@ export function DevicePicker({ close }: { close: () => void }) {
     onSubmit: ({ value }) =>
       connectTo({ host: value.host.trim(), port: Number(value.port) }),
   })
-  const devices = discovery.data ?? []
+  // The connected device has its own card above; the network list offers the others only.
+  const connectedId = device ? targetId(device) : null
+  const devices = (discovery.data ?? []).filter(
+    (found) => targetId(found) !== connectedId
+  )
   const pendingId = connect.isPending ? targetId(connect.variables) : null
   const manualPending =
     pendingId !== null &&
@@ -279,22 +283,18 @@ export function DevicePicker({ close }: { close: () => void }) {
           )}
           {devices.map((found) => {
             const id = targetId(found)
-            const connected = device !== null && targetId(device) === id
-            let label = t("picker.connect")
-            if (connected) label = t("picker.connected")
-            if (pendingId === id) label = t("picker.connecting")
+            const label =
+              pendingId === id ? t("picker.connecting") : t("picker.connect")
             return (
               <DeviceItem
                 key={id}
-                model={connected ? device.model : null}
+                model={null}
                 name={found.name}
-                description={
-                  found.busy && !connected ? t("picker.inUse", { id }) : id
-                }
+                description={found.busy ? t("picker.inUse", { id }) : id}
               >
                 <Button
                   variant="outline"
-                  disabled={busy || found.busy || connected}
+                  disabled={busy || found.busy}
                   onClick={() =>
                     connectTo({
                       host: found.host,

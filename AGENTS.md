@@ -12,7 +12,7 @@ OpenSpindle is an Electron desktop app for preparing and running jobs on a Maker
 
 - `main` is the trunk. Work on a short-lived branch and merge it through a pull request, which is squash-merged once CI passes; never push to `main`.
 - The pull request's title becomes the commit on `main` and, for `feat`, `fix`, `perf` and `revert`, a line of the release notes installed apps show before updating. Write it as a Conventional Commit whose description says what changed for people using the app, in the present tense: `fix(job): A pause is found by the line the machine reports`. README.md's Pull requests section lists the types.
-- Never edit package.json's `version`, CHANGELOG.md or `.release-please-manifest.json`: release-please's release pull request owns them (docs/releasing.md).
+- package.json's `version` and CHANGELOG.md are updated by hand when a release is cut, in the pull request that prepares it (docs/releasing.md). Nothing updates them automatically.
 
 # Project preferences
 
@@ -56,5 +56,3 @@ Declared deviations from the dc-tech.work repository standard, for its architect
 - `racine-fichiers` : `components.json` — the shadcn CLI reads it from the repository root.
 - `racine-fichiers` : `electron-builder.yml` — electron-builder's configuration, read from the repository root.
 - `racine-fichiers` : `electron.vite.config.ts` — electron-vite requires its configuration file at the repository root.
-- `racine-fichiers` : `release-please-config.json` — release-please reads its configuration from the repository root (docs/releasing.md).
-- `racine-fichiers` : `.release-please-manifest.json` — release-please reads the released-version manifest from the repository root (docs/releasing.md).

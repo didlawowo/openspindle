@@ -1,6 +1,6 @@
 # Checks every pull request and every push to main; the ruleset on main requires the Checks job.
-# Release pull requests also package the app on the repository's macOS runner, so a packaging problem shows
-# before the release is tagged, and keep those builds for testers to try. See docs/releasing.md.
+# Run workflow also packages the app on the repository's macOS runner, for testers to try. See
+# docs/releasing.md.
 name: CI
 
 on:
@@ -50,10 +50,9 @@ jobs:
 
   package:
     name: Package (macOS)
-    # Only branches of this repository, never a fork's pull request: this job runs the pull
-    # request's own code on the repository's Mac, and a fork could name its branch like a
-    # release branch. First-time contributor approval gates the other jobs.
-    if: github.event_name == 'workflow_dispatch' || (startsWith(github.head_ref, 'release-please--') && github.event.pull_request.head.repo.full_name == github.repository)
+    # Run workflow only: this job runs the branch's own code on the repository's Mac, so it never
+    # runs for a pull request from a fork. First-time contributor approval gates the other jobs.
+    if: github.event_name == 'workflow_dispatch'
     # The label of the repository's self-hosted Apple Silicon runner.
     runs-on: openspindle-macos
     timeout-minutes: 30
@@ -70,8 +69,8 @@ jobs:
       - run: npm ci
 
       # The universal app as a release builds it, but ad-hoc signed and not notarized, and without
-      # an update feed, which electron-builder writes only beside a DMG or zip target. In a pull
-      # request's build electron-builder skips all signing unless told otherwise, which leaves an
+      # an update feed, which electron-builder writes only beside a DMG or zip target. In a CI
+      # build electron-builder skips all signing unless told otherwise, which leaves an
       # app macOS refuses to open; signing ad hoc takes no secrets.
       - run: npm run package:mac -- --universal
         env:

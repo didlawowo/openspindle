@@ -1,5 +1,5 @@
-# A pull request's title becomes the subject of its squash-merged commit on main, which
-# release-please reads to choose the next version and write the release notes (docs/releasing.md).
+# A pull request's title becomes the subject of its squash-merged commit on main, and the
+# release notes are written from those titles at release time (docs/releasing.md).
 name: PR title
 
 on:

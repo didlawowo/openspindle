@@ -1,7 +1,9 @@
 import { renderHook, waitFor } from "@testing-library/react"
+import { QueryClient } from "@tanstack/react-query"
 import { describe, expect, test, vi } from "vitest"
 import { Providers, fakeHost } from "@/test/harness"
 import type { ModelRecord } from "@/domain/models/model"
+import { webCryptoSha256 } from "@/lib/sha256"
 import { modelKeys, useImportModels, useModelLibrary } from "./model-queries"
 
 const record = {
@@ -65,14 +67,30 @@ describe("useImportModels", () => {
     expect(outcome.failures).toEqual([{ file: "part.step", message: null }])
   })
 
-  test("the library query the import checks against is the shared one", async () => {
+  test("the import checks new files against the cached library", async () => {
     const host = fakeHost()
+    const known = {
+      ...record,
+      source: { sha256: await webCryptoSha256(new TextEncoder().encode("x")) },
+    }
+    const queryClient = new QueryClient()
+    queryClient.setQueryData(modelKeys.library, [known])
     const { result } = renderHook(() => useImportModels(), {
-      wrapper: ({ children }) => <Providers host={host}>{children}</Providers>,
+      wrapper: ({ children }) => (
+        <Providers host={host} queryClient={queryClient}>
+          {children}
+        </Providers>
+      ),
     })
-    await result.current.mutateAsync([])
+    const outcome = await result.current.mutateAsync([
+      new File(["x"], "vise.step"),
+    ])
+    // The file's hash matches the cached record, and the import returns it: the
+    // duplicate check read the shared library query, not a fresh fetch.
+    expect(outcome.imported).toEqual([known])
+    expect(outcome.failures).toEqual([])
     expect(host.models.list).not.toHaveBeenCalled()
-    expect(result.current.progress).toBeNull()
-    expect(modelKeys.library).toEqual(["models", "library"])
+    // The step report is React state: let it flush before asserting it ended.
+    await waitFor(() => expect(result.current.progress).toBeNull())
   })
 })

@@ -98,7 +98,7 @@ Branch from `main` and keep each pull request to one change; it is squash-merged
 - `docs`, `style`, `refactor`, `test`, `build`, `ci` and `chore` stay out of them
 - `!` before the colon marks a breaking change
 
-The version and CHANGELOG.md are updated by hand when a release is cut ([releasing](docs/releasing.md)).
+The version and CHANGELOG.md are derived from those titles when `main` is merged, by git-cliff ([releasing](docs/releasing.md)).
 
 ## Acknowledgements
 

@@ -113,11 +113,6 @@ export const frDesignRules: UiResources["designRules"] = {
       description:
         "Les commandes propres au Z1 qui suppriment ou renomment des fichiers sur son stockage, modifient ses réglages ou ses réglages d’usine, lancent le mode de mise à jour du micrologiciel ou exécutent un fichier hors Exécuter.",
     },
-    "pcb/outside-stock": {
-      label: "PCB sur la matière",
-      description:
-        "Un programme PCB conserve l’origine depuis laquelle KiCad l’a tracé. Tracé depuis l’origine de la page plutôt qu’une origine de fichier de perçage/positionnement à l’origine pièce, la carte se retrouve à côté de la matière.",
-    },
     "pcb/plot-origin": {
       label: "PCB tracé depuis son coin inférieur gauche",
       description:

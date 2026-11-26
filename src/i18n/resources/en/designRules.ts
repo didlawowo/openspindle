@@ -1,3 +1,16 @@
+import { RULES } from "@/domain/rules/rules"
+
+/**
+ * A configurable rule's label and description, as the domain words them: the settings page's
+ * rows. Derived, so a rule's wording changes here with the rule itself.
+ */
+const rules = Object.fromEntries(
+  RULES.filter((rule) => rule.configurable).map((rule) => [
+    rule.id,
+    { label: rule.label, description: rule.description },
+  ])
+)
+
 /** Strings of the design rules: their results card, settings page and summary. */
 export const enDesignRules = {
   title: "Design rules",
@@ -31,7 +44,6 @@ export const enDesignRules = {
     warning: "Warning",
     ignore: "Ignore",
   },
-  // Rule labels and descriptions come from the domain and are used in diagnostics; they stay
-  // in English, so these lookups fall back to them.
-  rules: {} as Record<string, { label: string; description: string }>,
+  // Rule labels and descriptions are the domain's (`RULES`), keyed here for the settings page.
+  rules,
 }

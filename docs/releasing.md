@@ -8,7 +8,7 @@ Packaged apps keep only Electron's English resources (`electronLanguages` in [el
 
 ## Versions
 
-Versions follow semantic versioning and are chosen by hand when a release is cut: the pull request that prepares the release sets `version` in package.json and package-lock.json and adds the release's section to CHANGELOG.md ([Pull requests](../README.md#pull-requests)). Nothing derives the version from the titles of the merged pull requests. A `feat`, `fix`, `perf` or `revert` title still says what belongs in the release notes.
+Versions follow semantic versioning and are derived from the titles of the merged pull requests, on `main`: a `feat` since the last tag makes a minor version, a `fix` a patch, a breaking change (`!` before the colon) a major one. Nothing else counts — a run that merges `docs`, `ci`, `chore` and the rest alone releases nothing. [release.yml](../.github/workflows/release.yml) computes it with [git-cliff](https://git-cliff.org/) from [cliff.toml](../cliff.toml), writes `version` in package.json, prepends the release's section to CHANGELOG.md, commits both as `chore(release): v<version> [skip ci]`, tags that commit, and opens a draft GitHub release titled "OpenSpindle <version>" whose notes are the section ([Releasing](#releasing)).
 
 A build uses the version as its build number (`CFBundleVersion` on macOS, the last part of the file version on Windows). The About panel on macOS shows both; dev and preview runs show package.json's version as "(dev)".
 
@@ -20,16 +20,14 @@ The About panel credits the open-source software the app includes, with the lice
 
 `main` is the trunk: every change reaches it as a squash-merged pull request that passed CI, and every release is cut from it. [ci.yml](../.github/workflows/ci.yml) runs `npm ci`, the typecheck, lint, Prettier check and build on every pull request and every push to `main`, and fails when the build changes the committed `build/third-party-notices.json`; [pr-title.yml](../.github/workflows/pr-title.yml) checks that a pull request's title is a Conventional Commit. **Run workflow** on the CI workflow packages the app on the repository's macOS runner for any branch, for testers ([Trying a build](#trying-a-build)).
 
-A release is made by hand:
+Merging into `main` starts the version and its notes; the built apps are added on the Mac:
 
-1. In a pull request, set `version` in package.json and package-lock.json and add the release's section to CHANGELOG.md. Merge it once CI passes.
-2. Tag the merge commit on `main` with the version, and push the tag: `git tag v<version>` then `git push origin v<version>`.
-3. Create a draft GitHub release from that tag, titled "OpenSpindle <version>", whose notes are the release's section of CHANGELOG.md: `gh release create v<version> --draft --title "OpenSpindle <version>" --notes-file <notes>`.
-4. Build the app from the tag with `npm run dist:mac` ([Releasing from a Mac](#releasing-from-a-mac)). It signs and notarizes the universal app and writes the DMG, the zip, their blockmaps and `latest-mac.yml` in `release/`.
-5. Attach them to the draft: `gh release upload v<version> release/*.dmg release/*.zip release/*.blockmap release/latest-mac.yml`.
-6. Publish the draft as the latest release: `gh release edit v<version> --draft=false --latest`.
+1. **Version, notes, tag and draft** come from the merge itself: [release.yml](../.github/workflows/release.yml) runs on every push to `main`, takes the commits since the last tag that the rules above count, and, when there is at least one, writes the version and CHANGELOG.md, tags the commit and opens the draft release. When nothing counts, it says so and stops. Nothing to do by hand, and never write `version` or CHANGELOG.md in a pull request.
+2. Build the app from that tag with `npm run dist:mac` ([Releasing from a Mac](#releasing-from-a-mac)). It signs and notarizes the universal app and writes the DMG, the zip, their blockmaps and `latest-mac.yml` in `release/`.
+3. Attach them to the draft: `gh release upload v<version> release/*.dmg release/*.zip release/*.blockmap release/latest-mac.yml`.
+4. Publish the draft as the latest release: `gh release edit v<version> --draft=false --latest`.
 
-Installed apps see a release only once it is published, with everything attached. If a build fails, fix the cause and rebuild from the same tag; the draft stays unpublished until its files are attached. Published releases are immutable: to replace one, delete the release and its tag (`gh release delete v<version> --cleanup-tag`) and cut a new version.
+Installed apps see a release only once it is published, with everything attached. If a build fails, fix the cause and rebuild from the same tag; the draft stays unpublished until its files are attached. Published releases are immutable: to replace one, delete the release and its tag (`gh release delete v<version> --cleanup-tag`); the next merge then releases that code again under the next version, and a fix merged for it carries the version forward.
 
 ## Trying a build
 

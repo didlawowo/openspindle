@@ -12,7 +12,7 @@ OpenSpindle is an Electron desktop app for preparing and running jobs on a Maker
 
 - `main` is the trunk. Work on a short-lived branch and merge it through a pull request, which is squash-merged once CI passes; never push to `main`.
 - The pull request's title becomes the commit on `main` and, for `feat`, `fix`, `perf` and `revert`, a line of the release notes installed apps show before updating. Write it as a Conventional Commit whose description says what changed for people using the app, in the present tense: `fix(job): A pause is found by the line the machine reports`. README.md's Pull requests section lists the types.
-- package.json's `version` and CHANGELOG.md are updated by hand when a release is cut, in the pull request that prepares it (docs/releasing.md). Nothing updates them automatically.
+- Never edit package.json's `version` or CHANGELOG.md: the release workflow derives both from the merged titles with git-cliff when `main` is pushed, tags the version and opens the draft release (docs/releasing.md).
 
 # Project preferences
 

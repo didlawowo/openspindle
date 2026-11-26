@@ -1,0 +1,110 @@
+# Cuts a release from `main`: the next version and its notes come from the
+# Conventional Commits since the last tag (git-cliff, cliff.toml), then the version is
+# written, tagged and published as a GitHub release. docs/releasing.md describes the
+# whole flow, including attaching the built apps.
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+# One release at a time, never cancelled: a half-done release must not be replaced by
+# the next push's.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Version and release
+    runs-on: arc-runner-openspindle
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The tags are what the next version is counted from.
+          fetch-depth: 0
+      # A run keeps its own commit even when another merge moves `main` during CI.
+      # Releasing from that commit while `main` has moved on would publish notes and
+      # a tag that miss the newer commits: the later push releases them instead.
+      - name: This run must still be the head of main
+        id: freshness
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          if [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Run is behind main; the newer push will release instead."
+          fi
+      # git-cliff counts from the last tag. With none it would start again below the
+      # version already published: fail rather than tag a version that goes backwards.
+      - name: A starting tag must exist
+        if: steps.freshness.outputs.current == 'true'
+        run: |
+          set -euo pipefail
+          if [ -z "$(git tag -l)" ]; then
+            echo "::error::No git tag: no next version to compute. Tag the commit the" \
+              "current package.json version names, once: git tag -a v<version> -m v<version>" \
+              "&& git push origin v<version>"
+            exit 1
+          fi
+      # Computes the version, prepends the release's section to CHANGELOG.md and
+      # writes the notes to /tmp/release-notes.md. `released` is false when no commit
+      # since the last tag warrants one (docs, chore, and the rest).
+      - name: Version and notes (Conventional Commits)
+        id: bump
+        if: steps.freshness.outputs.current == 'true'
+        uses: didlawowo/workflow-ci/.github/actions/git-cliff-bump@v1.25.0
+        with:
+          config: cliff.toml
+          tag-prefix: "v"
+      # The app's own version, which electron-builder writes into the build and the
+      # updater compares: the tag without its prefix.
+      - name: Write the version into package.json
+        id: files
+        if: steps.freshness.outputs.current == 'true' && steps.bump.outputs.released == 'true'
+        env:
+          TAG: ${{ steps.bump.outputs.version }}
+        run: |
+          set -euo pipefail
+          VERSION="${TAG#v}"
+          node -e '
+            const fs = require("node:fs")
+            const path = "package.json"
+            const manifest = JSON.parse(fs.readFileSync(path, "utf8"))
+            manifest.version = process.env.TAG.replace(/^v/, "")
+            fs.writeFileSync(path, JSON.stringify(manifest, null, 2) + "\n")
+          '
+          test -s CHANGELOG.md
+          test -s /tmp/release-notes.md
+          grep -q "\"version\": \"$VERSION\"" package.json
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+      - name: Commit, tag and publish the release
+        if: steps.freshness.outputs.current == 'true' && steps.bump.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.bump.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md package.json
+          # `[skip ci]`: the version commit is not a change to release again.
+          git commit -m "chore(release): $TAG [skip ci]"
+          # No rebase: if main moved between the guard and this push, git refuses, and
+          # the tag never claims code the notes did not see.
+          git tag -a "$TAG" -m "$TAG"
+          git push origin HEAD:main --follow-tags
+          # A draft: the built apps are attached first, then it is published, so an
+          # installed app never sees a release without its files (docs/releasing.md).
+          gh release create "$TAG" \
+            --draft \
+            --title "OpenSpindle ${TAG#v}" \
+            --notes-file /tmp/release-notes.md
+      - name: Nothing to release
+        if: steps.freshness.outputs.current == 'true' && steps.bump.outputs.released != 'true'
+        run: echo "::notice::No commit since the last tag warrants a release; nothing was tagged."

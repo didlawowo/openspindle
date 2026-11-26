@@ -1,5 +1,43 @@
 # Changelog
 
+Every notable change to OpenSpindle, newest first. The project follows
+[semantic versioning](https://semver.org/) and
+[Conventional Commits](https://www.conventionalcommits.org/).
+
+## [0.4.0] — 2026-11-26
+
+### Features
+
+- *(windows)* A Windows installer, built and released with the Mac app (#39)
+- Suppress operations and paths, even solder-mask clearing, machine origin and more device controls (#41)
+- Set origin from a plate, machine clock sync, library-wide program fixtures and steadier transfers (#45)
+- Add an interface language setting (English and French) (#13)
+- *(i18n)* Translate the workspace shell's texts into French (#28)
+- *(i18n)* Translate the Job tab's strings (#29)
+- *(i18n)* Translate the Prepare tab's texts into French (#32)
+- *(i18n)* Translate the machine and PCB zones into French (#33)
+- *(i18n)* Translate the shared components' texts into French (#35)
+- *(i18n)* Translate the probing forms and picker into French (#36)
+- *(i18n)* Translate the viewer, models and Fusion 360 zones into French (#38)
+- *(i18n)* Translate the tool library zone into French (#37)
+- *(i18n)* Translate the glossary and design rules into French (#40)
+- *(settings)* Start the interface in light instead of following the system (#42)
+- *(job)* Refuse to run while two plates' stock touch (#46)
+- *(viewer)* Hold the view's angle while locked, with Shift+L (#47)
+- *(prepare)* Add a second material on the bed from the Stock panel (#50)
+- *(viewer)* Draw every plate on one bed at its own coordinates (#51)
+
+
+### Fixes
+
+- *(deps)* Update Electron and zod to close two security advisories
+- *(deps)* Keep the lockfile's libc fields and drop the stale notices sections
+- *(i18n)* Write work-area numbers in the interface language (#41)
+- *(i18n)* Carry the design rules' labels in English too (#45)
+- *(device)* Stop listing the connected device on the network list (#48)
+
+# Changelog
+
 ## [0.3.0](https://github.com/openspindle/openspindle/compare/v0.2.0...v0.3.0) (2026-10-03)
 
 

@@ -10,6 +10,7 @@ export const enViewer = {
     fit: "Fit bed in view",
     lockView: "Lock the view",
     unlockView: "Unlock the view",
+    oneBed: "Plates on one bed",
     style: "Visual style",
     smooth: "Smooth Shades",
     edges: "Shaded Edges",

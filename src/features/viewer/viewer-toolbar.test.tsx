@@ -1,4 +1,10 @@
-import { act, renderHook, screen, waitFor } from "@testing-library/react"
+import {
+  act,
+  cleanup,
+  renderHook,
+  screen,
+  waitFor,
+} from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, test, vi } from "vitest"
 import { Providers, renderWithProviders } from "@/test/harness"
@@ -14,6 +20,8 @@ function cameraFixture() {
     fit: vi.fn(),
     locked: false,
     toggleLocked: vi.fn(),
+    oneBed: false,
+    toggleOneBed: vi.fn(),
   }
 }
 
@@ -37,6 +45,7 @@ describe("viewer toolbar", () => {
       "Zoom out",
       "Fit bed in view",
       "Lock the view",
+      "Plates on one bed",
       "Visual style",
     ]) {
       const button = screen.getByRole("button", { name })
@@ -219,5 +228,30 @@ describe("the view lock", () => {
     })
     input.remove()
     expect(result.current.locked).toBe(false)
+  })
+})
+
+describe("the one-bed view", () => {
+  test("it starts off, and the camera's toggle turns it on and off", () => {
+    const { result } = renderHook(() => useViewerCamera(), {
+      wrapper: ({ children }) => <Providers>{children}</Providers>,
+    })
+    expect(result.current.oneBed).toBe(false)
+    act(() => result.current.toggleOneBed())
+    expect(result.current.oneBed).toBe(true)
+    act(() => result.current.toggleOneBed())
+    expect(result.current.oneBed).toBe(false)
+  })
+
+  test("the toolbar's button toggles it, and reads as pressed once on", async () => {
+    const { camera } = renderToolbar()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole("button", { name: "Plates on one bed" }))
+    expect(camera.toggleOneBed).toHaveBeenCalled()
+    cleanup()
+    renderToolbar({ ...cameraFixture(), oneBed: true })
+    expect(
+      screen.getByRole("button", { name: "Plates on one bed" })
+    ).toHaveAttribute("aria-pressed", "true")
   })
 })

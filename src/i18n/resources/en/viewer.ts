@@ -8,6 +8,8 @@ export const enViewer = {
     zoomIn: "Zoom in",
     zoomOut: "Zoom out",
     fit: "Fit bed in view",
+    lockView: "Lock the view",
+    unlockView: "Unlock the view",
     style: "Visual style",
     smooth: "Smooth Shades",
     edges: "Shaded Edges",

@@ -10,6 +10,8 @@ export const frViewer: UiResources["viewer"] = {
     zoomIn: "Zoomer",
     zoomOut: "Dézoomer",
     fit: "Ajuster le plateau à la vue",
+    lockView: "Figer la vue",
+    unlockView: "Défiger la vue",
     style: "Style visuel",
     smooth: "Ombres lisses",
     edges: "Arêtes ombrées",

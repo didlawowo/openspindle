@@ -193,6 +193,9 @@ export const frJob: UiResources["job"] = {
   check: {
     device: "Périphérique connecté",
     program: "La plaque compile",
+    platesClear: "Plaques espacées les unes des autres",
+    platesOverlap:
+      "Sa matière touche celle de {{plate}} ; écartez-les sur le plateau.",
     tools: "Outils assignés",
     operations: "Opérations à jour",
     designRules: "Règles de conception respectées",

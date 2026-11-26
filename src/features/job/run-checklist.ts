@@ -72,6 +72,11 @@ export type RunContext = {
   readonly designRules: DesignRuleCheck | null
   readonly snapshot: MachineSnapshot
   readonly check: ProgramCheck
+  /**
+   * The plate whose stock touches this plate's, as the Plates list names it: two plates on one
+   * bed cannot overlap. Null when the plate is clear of the others.
+   */
+  readonly stockConflict: string | null
 }
 
 /** One row of the Run checklist: a named condition of Run, as it shows for the context. */
@@ -202,6 +207,19 @@ export const deviceConnected: RunCheckRow = {
  * The plate chain's failure (no plate, or one without operations: Prepare reports nothing for an
  * empty plate, but there is nothing to run yet), else what the plate's program reports.
  */
+export const platesClear: RunCheckRow = {
+  id: "plates-clear",
+  label: "check.platesClear",
+  show: ({ plate, stockConflict }, t) => {
+    if (!plate) return pending(t("check.waitsForPlate"))
+    if (!stockConflict) return pass()
+    return fail(
+      t("check.platesOverlap", { plate: stockConflict }),
+      openPrepare(t)
+    )
+  },
+}
+
 export const plateCompiles: RunCheckRow = {
   id: "program",
   label: "check.program",
@@ -343,6 +361,7 @@ export const machineReady: RunCheckRow = {
 export const RUN_CHECKLIST: readonly RunCheckRow[] = [
   deviceConnected,
   plateCompiles,
+  platesClear,
   toolsAssigned,
   operationsCurrent,
   designRulesMet,

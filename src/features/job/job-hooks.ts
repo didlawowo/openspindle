@@ -40,6 +40,7 @@ import { createJobSession, jobSessionStore } from "./job-session"
 import type { JobT } from "./job-view"
 import type { ProgramCheck } from "./program-check"
 import { evaluateRunChecklist } from "./run-checklist"
+import { useStockConflict } from "./use-stock-conflict"
 import type { RunChecklist } from "./run-checklist"
 
 /** The Run checklist of a plate, against the connected machine. */
@@ -52,6 +53,7 @@ export function useRunChecklist(
   const snapshot = useMachineSnapshot()
   const diagnostics = usePlateDiagnostics(plate)
   const designRules = usePlateDesignRuleCheck(plate)
+  const stockConflict = useStockConflict(plate)
   const device = snapshot.connection.device
   const connectedDeviceId = device ? machineId(device) : null
   const anchors = snapshot.anchors.value
@@ -81,6 +83,7 @@ export function useRunChecklist(
       designRules,
       snapshot,
       check,
+      stockConflict,
     },
     t
   )

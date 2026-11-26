@@ -188,6 +188,8 @@ export const enJob = {
   check: {
     device: "Device connected",
     program: "Plate compiles",
+    platesClear: "Plates clear of each other",
+    platesOverlap: "Its stock touches {{plate}}'s; separate them on the bed.",
     tools: "Tools assigned",
     operations: "Operations up to date",
     designRules: "Design rules met",

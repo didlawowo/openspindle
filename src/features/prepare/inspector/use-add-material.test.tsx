@@ -90,7 +90,7 @@ describe("useAddMaterial", () => {
     })
   })
 
-  test("says the bed has no room left, and adds nothing", () => {
+  test("says no place beside the material is free, and adds nothing", () => {
     const first = plateAt([0, 0, 0], { ...stock, width: 150, depth: 150 })
     const stores = storeOf([first])
     const { result } = renderAdd(first, stores)
@@ -98,7 +98,10 @@ describe("useAddMaterial", () => {
     expect(stores.state.plates).toHaveLength(1)
     expect(toast.error).toHaveBeenCalledWith(
       "The material could not be added.",
-      { description: "The bed has no room left for this material." }
+      {
+        description:
+          "No free place beside the material on the bed. Move a piece to make room.",
+      }
     )
   })
 })

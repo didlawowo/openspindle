@@ -12,10 +12,10 @@ import type { Stock } from "@/domain/stock/stock"
 export const MATERIAL_GAP = 10
 
 /**
- * Where another piece of `stock` sits on the bed, beside `own`: to its right, else below it,
- * to its left or above it, else beside another piece already on the bed (`others`) in the
+ * Where another piece of `stock` sits on the bed, beside `own`: to its right, else behind it,
+ * to its left or in front of it, else beside another piece already on the bed (`others`) in the
  * same order. The place is inside the machine's work area and touches no piece; null when
- * the bed has no such room.
+ * none of these places is free.
  */
 export function besideStock(
   own: StockBox,
@@ -28,8 +28,8 @@ export function besideStock(
   const places = boxes.flatMap((box): Point3[] => [
     [box.max[0] + MATERIAL_GAP, box.min[1], z],
     [box.min[0], box.max[1] + MATERIAL_GAP, z],
-    [box.min[0] - MATERIAL_GAP - stock.width, box.min[1], z],
-    [box.min[0], box.min[1] - MATERIAL_GAP - stock.depth, z],
+    [toMicrometre(box.min[0] - MATERIAL_GAP - stock.width), box.min[1], z],
+    [box.min[0], toMicrometre(box.min[1] - MATERIAL_GAP - stock.depth), z],
   ])
   const free = ([px, py]: Point3) => {
     const inside =
@@ -51,7 +51,7 @@ export function besideStock(
  * The plate another piece of the same material makes: the same setup, its stock set beside
  * this plate's on the bed, clear of the stock of the `plates` already there, with its work
  * origin on its own top front-left corner. A plate without stock gives an empty plate on the
- * same setup; null when the bed has no room left for the piece.
+ * same setup; null when no place beside a piece on the bed is free.
  */
 export function plateWithStockBeside(
   plate: Plate,

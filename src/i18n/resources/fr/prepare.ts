@@ -294,7 +294,8 @@ export const frPrepare: UiResources["prepare"] = {
     addCustom: "Ajouter une matière personnalisée",
     addOnBed: "Ajouter une matière sur le plateau",
     addOnBedFailed: "La matière n’a pas pu être ajoutée.",
-    addOnBedNoRoom: "Le plateau n’a plus de place libre pour cette matière.",
+    addOnBedNoRoom:
+      "Aucune place libre à côté des matières du plateau. Déplacez une pièce pour faire de la place.",
     name: "Nom",
     namePlaceholder: "ex. Chute de noyer",
     material: "Matière",

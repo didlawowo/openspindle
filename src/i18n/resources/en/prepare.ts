@@ -285,7 +285,8 @@ export const enPrepare = {
     addCustom: "Add custom stock",
     addOnBed: "Add material on the bed",
     addOnBedFailed: "The material could not be added.",
-    addOnBedNoRoom: "The bed has no room left for this material.",
+    addOnBedNoRoom:
+      "No free place beside the material on the bed. Move a piece to make room.",
     name: "Name",
     namePlaceholder: "e.g. Walnut offcut",
     material: "Material",

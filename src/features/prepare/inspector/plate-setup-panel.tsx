@@ -1,6 +1,7 @@
 import { useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
 import { FieldGroup } from "@/components/ui/field"
 import {
   usePlateIndex,
@@ -23,6 +24,7 @@ import {
   WorkOriginFields,
 } from "./setup-fields"
 import { StockFields } from "./stock-fields"
+import { useAddMaterial } from "./use-add-material"
 
 /**
  * Read device for a plate's work origin: reads the connected device's anchors, as Read anchors
@@ -68,11 +70,17 @@ function useSetupChange(plateId: string) {
 export function PlateStockPanel({ plate }: { plate: Plate }) {
   const { t } = useTranslation("prepare")
   const onChange = useSetupChange(plate.id)
+  const addMaterial = useAddMaterial(plate)
   const props = { setup: plate.setup, onChange }
   return (
     <FieldGroup className="p-4" aria-label={t("inspector.tabStock")}>
       <StockFields plateId={plate.id} {...props} />
       <StockPlacementFields {...props} />
+      {plate.setup.stock && (
+        <Button variant="outline" className="w-full" onClick={addMaterial}>
+          {t("stock.addOnBed")}
+        </Button>
+      )}
     </FieldGroup>
   )
 }

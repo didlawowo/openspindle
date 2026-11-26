@@ -1,0 +1,80 @@
+import { act, renderHook } from "@testing-library/react"
+import { beforeEach, describe, expect, test, vi } from "vitest"
+import { toast } from "sonner"
+import { WorkspaceStore } from "@/app/workspace/store"
+import { createPlate, createPlateSetup } from "@/domain/plate/plate"
+import type { Plate } from "@/domain/plate/plate"
+import type { Stock } from "@/domain/stock/stock"
+import { Providers, testStores } from "@/test/harness"
+import { useAddMaterial } from "./use-add-material"
+
+vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
+
+const stock: Stock = {
+  id: "stock-1",
+  name: "Aluminium",
+  material: "aluminium",
+  width: 100,
+  depth: 100,
+  height: 10,
+  color: "#888888",
+}
+
+const plateAt = (at: [number, number, number]): Plate =>
+  createPlate({
+    ...createPlateSetup({ stock, stockSource: "assigned" }),
+    stockAnchor: at,
+  })
+
+function storeOf(plates: readonly Plate[]): WorkspaceStore {
+  const stores = testStores()
+  return new WorkspaceStore({
+    ...stores.workspace.state,
+    plates: [...plates],
+    selectedPlateId: plates[0]?.id ?? null,
+  })
+}
+
+function renderAdd(plate: Plate, stores: WorkspaceStore) {
+  return renderHook(() => useAddMaterial(plate), {
+    wrapper: ({ children }) => (
+      <Providers stores={{ ...testStores(), workspace: stores }}>
+        {children}
+      </Providers>
+    ),
+  })
+}
+
+describe("useAddMaterial", () => {
+  beforeEach(() => vi.mocked(toast.error).mockClear())
+
+  test("adds a second material on the same bed, and selects it", () => {
+    const first = plateAt([0, 0, 0])
+    const stores = storeOf([first])
+    const { result } = renderAdd(first, stores)
+    act(() => result.current())
+    const plates = stores.state.plates
+    expect(plates).toHaveLength(2)
+    expect(plates[1].setup.stock).toEqual(stock)
+    expect(plates[1].setup.stockAnchor[0]).toBeGreaterThan(
+      first.setup.stockAnchor[0] + stock.width
+    )
+    expect(stores.state.selectedPlateId).toBe(plates[1].id)
+  })
+
+  test("says why when the workspace refuses, and adds nothing", () => {
+    const first = plateAt([0, 0, 0])
+    const full = [
+      first,
+      ...Array.from({ length: 99 }, () => plateAt([0, 0, 0])),
+    ]
+    const stores = storeOf(full)
+    const { result } = renderAdd(first, stores)
+    act(() => result.current())
+    expect(stores.state.plates).toHaveLength(100)
+    expect(toast.error).toHaveBeenCalledWith(
+      "The material could not be added.",
+      { description: "A workspace holds at most 100 plates." }
+    )
+  })
+})

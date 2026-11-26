@@ -292,6 +292,8 @@ export const frPrepare: UiResources["prepare"] = {
     applyMaterial: "Appliquer la matière",
     add: "Ajouter une matière",
     addCustom: "Ajouter une matière personnalisée",
+    addOnBed: "Ajouter une matière sur le plateau",
+    addOnBedFailed: "La matière n’a pas pu être ajoutée.",
     name: "Nom",
     namePlaceholder: "ex. Chute de noyer",
     material: "Matière",

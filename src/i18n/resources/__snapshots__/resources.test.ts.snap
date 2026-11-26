@@ -1521,6 +1521,8 @@ exports[`translation resources > the English resources match their recorded text
     "stock": {
       "add": "Add stock",
       "addCustom": "Add custom stock",
+      "addOnBed": "Add material on the bed",
+      "addOnBedFailed": "The material could not be added.",
       "applyMaterial": "Apply material",
       "choose": "Choose stock",
       "colour": "Colour",
@@ -3751,6 +3753,8 @@ exports[`translation resources > the French resources match their recorded text 
     "stock": {
       "add": "Ajouter une matière",
       "addCustom": "Ajouter une matière personnalisée",
+      "addOnBed": "Ajouter une matière sur le plateau",
+      "addOnBedFailed": "La matière n’a pas pu être ajoutée.",
       "applyMaterial": "Appliquer la matière",
       "choose": "Choisir la matière",
       "colour": "Couleur",

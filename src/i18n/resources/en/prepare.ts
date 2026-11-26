@@ -283,6 +283,8 @@ export const enPrepare = {
     applyMaterial: "Apply material",
     add: "Add stock",
     addCustom: "Add custom stock",
+    addOnBed: "Add material on the bed",
+    addOnBedFailed: "The material could not be added.",
     name: "Name",
     namePlaceholder: "e.g. Walnut offcut",
     material: "Material",

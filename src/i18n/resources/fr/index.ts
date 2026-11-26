@@ -1,7 +1,9 @@
 import type { UiResources } from "../en"
 import { frCommon } from "./common"
+import { frDesignRules } from "./designRules"
 import { frDevice } from "./device"
 import { frFusion360 } from "./fusion360"
+import { frGlossary } from "./glossary"
 import { frJob } from "./job"
 import { frMenu } from "./menu"
 import { frModels } from "./models"
@@ -28,4 +30,6 @@ export const frResources: UiResources = {
   models: frModels,
   tools: frTools,
   viewer: frViewer,
+  glossary: frGlossary,
+  designRules: frDesignRules,
 }

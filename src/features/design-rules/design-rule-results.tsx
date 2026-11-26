@@ -1,5 +1,7 @@
 import { Fragment } from "react"
+import type { ReactNode } from "react"
 import { CircleAlert, RefreshCw, TriangleAlert, X } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -45,17 +47,37 @@ function Summary({
 }: {
   violations: readonly DesignRuleViolation[]
 }) {
+  const { t } = useTranslation("designRules")
   const errors = violations.filter((item) => item.severity === "error").length
-  const counts = [
-    { noun: "error", count: errors },
-    { noun: "warning", count: violations.length - errors },
-  ].filter((item) => item.count > 0)
-  if (!counts.length) return "No problems"
-  return counts.map(({ noun, count }, index) => (
-    <Fragment key={noun}>
+  const warnings = violations.length - errors
+  if (!violations.length) return t("summary.noProblems")
+  const parts: { key: string; node: ReactNode }[] = []
+  if (errors > 0) {
+    parts.push({
+      key: "errors",
+      node: (
+        <>
+          <span className="font-numeric">{errors}</span>{" "}
+          {t("summary.error", { count: errors })}
+        </>
+      ),
+    })
+  }
+  if (warnings > 0) {
+    parts.push({
+      key: "warnings",
+      node: (
+        <>
+          <span className="font-numeric">{warnings}</span>{" "}
+          {t("summary.warning", { count: warnings })}
+        </>
+      ),
+    })
+  }
+  return parts.map((part, index) => (
+    <Fragment key={part.key}>
       {index > 0 && ", "}
-      <span className="font-numeric">{count}</span> {noun}
-      {count === 1 ? "" : "s"}
+      {part.node}
     </Fragment>
   ))
 }
@@ -67,6 +89,7 @@ function Summary({
  * stays until closed, and says when the plate or the rules changed since.
  */
 export function DesignRuleResults() {
+  const { t } = useTranslation("designRules")
   const workspace = useWorkspaceStore()
   const { result } = useDesignRuleResults()
   const focus = useProblemFocus()
@@ -89,13 +112,13 @@ export function DesignRuleResults() {
     <Card
       size="sm"
       role="region"
-      aria-label="Design rules"
+      aria-label={t("cardAria")}
       className="absolute top-16 right-4 z-10 max-h-[calc(100%-5rem)] w-96 max-w-[calc(100%-6rem)] shadow-lg"
     >
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          Design rules
-          {outOfDate && <Badge variant="outline">Out of date</Badge>}
+          {t("title")}
+          {outOfDate && <Badge variant="outline">{t("outOfDate")}</Badge>}
         </CardTitle>
         <CardDescription>
           {label} · <Summary violations={violations} />
@@ -104,8 +127,8 @@ export function DesignRuleResults() {
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="Check again"
-            title="Check again"
+            aria-label={t("checkAgain")}
+            title={t("checkAgain")}
             onClick={() => checkPlateDesignRules(workspace.state, plateId)}
           >
             <RefreshCw />
@@ -113,8 +136,8 @@ export function DesignRuleResults() {
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="Close design rules"
-            title="Close"
+            aria-label={t("closeAria")}
+            title={t("close")}
             onClick={closeDesignRuleResults}
           >
             <X />
@@ -123,22 +146,23 @@ export function DesignRuleResults() {
       </CardHeader>
       <CardContent className="flex min-h-0 flex-col gap-2 overflow-y-auto">
         {!violations.length && (
-          <p className="text-muted-foreground">
-            Nothing on this plate breaks a design rule.
-          </p>
+          <p className="text-muted-foreground">{t("empty")}</p>
         )}
         {result.violations.map(({ key, diagnostic: violation }) => {
           const error = violation.severity === "error"
           const Icon = error ? CircleAlert : TriangleAlert
           const shown = isFocused(focus, plateId, key)
           const { fix } = violation
+          const ruleLabel = t(`rules.${violation.rule}.label`, {
+            defaultValue: violation.label,
+          })
           return (
             <Item key={key} variant="muted" size="sm" className="items-start">
               <ItemMedia variant="icon" className="translate-y-0.5 self-start">
                 <Icon className={error ? "text-destructive" : "text-warning"} />
               </ItemMedia>
               <ItemContent>
-                <ItemTitle>{violation.label}</ItemTitle>
+                <ItemTitle>{ruleLabel}</ItemTitle>
                 <ProblemText
                   className="text-muted-foreground"
                   problem={violation.message}
@@ -149,7 +173,9 @@ export function DesignRuleResults() {
                         variant={error ? "warning" : "outline"}
                         size="xs"
                         disabled={outOfDate}
-                        aria-label={`Apply: ${violation.suggestion}`}
+                        aria-label={t("applyAria", {
+                          suggestion: violation.suggestion,
+                        })}
                         onClick={() => {
                           quickFix(result.plate, fix)
                           checkPlateDesignRules(workspace.state, plateId)
@@ -164,7 +190,7 @@ export function DesignRuleResults() {
               <ItemActions className="self-start">
                 <Toggle
                   size="sm"
-                  aria-label={`Show ${violation.label} in the 3D view`}
+                  aria-label={t("showAria", { label: ruleLabel })}
                   pressed={shown}
                   disabled={
                     outOfDate ||
@@ -175,7 +201,7 @@ export function DesignRuleResults() {
                     else focusProblem(null)
                   }}
                 >
-                  Show
+                  {t("show")}
                 </Toggle>
               </ItemActions>
             </Item>

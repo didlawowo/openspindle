@@ -1,6 +1,7 @@
 import { useRef } from "react"
 import type { CSSProperties } from "react"
 import { ShieldCheck } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,7 @@ import { DesignRulesSettings } from "./design-rules-settings"
  * far. A page applies its changes on Save.
  */
 export function WorkspaceSettingsDialog({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation("designRules")
   const page = useRef<HTMLElement>(null)
   return (
     <Dialog
@@ -45,7 +47,7 @@ export function WorkspaceSettingsDialog({ onClose }: { onClose: () => void }) {
           <Sidebar collapsible="none" className="border-r">
             <SidebarHeader>
               <DialogTitle className="px-2 pt-1">
-                Workspace settings
+                {t("settings.title")}
               </DialogTitle>
             </SidebarHeader>
             <SidebarContent>
@@ -55,7 +57,7 @@ export function WorkspaceSettingsDialog({ onClose }: { onClose: () => void }) {
                     <SidebarMenuItem>
                       <SidebarMenuButton isActive>
                         <ShieldCheck />
-                        <span>Design rules</span>
+                        <span>{t("settings.page")}</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   </SidebarMenu>
@@ -69,11 +71,10 @@ export function WorkspaceSettingsDialog({ onClose }: { onClose: () => void }) {
             className="flex min-w-0 flex-1 flex-col outline-none"
           >
             <header className="flex shrink-0 flex-col gap-1 p-4 pr-10">
-              <h2 className="font-heading text-sm font-medium">Design rules</h2>
-              <DialogDescription>
-                What a plate&apos;s program is checked against, in Prepare and
-                before Run. They are saved with the project.
-              </DialogDescription>
+              <h2 className="font-heading text-sm font-medium">
+                {t("settings.page")}
+              </h2>
+              <DialogDescription>{t("settings.description")}</DialogDescription>
             </header>
             <DesignRulesSettings onClose={onClose} />
           </main>

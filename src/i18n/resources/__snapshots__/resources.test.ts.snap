@@ -89,7 +89,76 @@ exports[`translation resources > the English resources match their recorded text
     "closeAria": "Close design rules",
     "empty": "Nothing on this plate breaks a design rule.",
     "outOfDate": "Out of date",
-    "rules": {},
+    "rules": {
+      "absolute-arc-centres": {
+        "description": "The Z1 reads G90.1 as G90 and always takes I, J and K as offsets from the arc's start, so arcs after it turn around the wrong centre.",
+        "label": "Absolute arc centres (G90.1)",
+      },
+      "cutter-compensation": {
+        "description": "The Z1 has no cutter radius compensation: it cuts the programmed path, not one offset by the tool's radius.",
+        "label": "Cutter compensation (G41, G42)",
+      },
+      "erase-stored-data": {
+        "description": "M498.2 zeroes the tool number, the tool lengths and the G54 offsets the Z1 saves: the work zero and the tool reference probing set are lost.",
+        "label": "Erase stored tool data (M498.2)",
+      },
+      "firmware-commands": {
+        "description": "The Z1's own commands that delete or rename files on its storage, change its settings or factory settings, start firmware update mode or play a file outside Run.",
+        "label": "Firmware commands (rm, config-set, play)",
+      },
+      "max-cut-depth": {
+        "description": "How far below the stock top a cut may reach, in total.",
+        "label": "Max cut depth",
+      },
+      "max-cutting-feed": {
+        "description": "The fastest feed a move may cut at.",
+        "label": "Max cutting feed",
+      },
+      "max-depth-under-stock": {
+        "description": "How far a cut may reach below the stock bottom, into what the stock lies on.",
+        "label": "Max depth under the stock",
+      },
+      "max-plunge-rate": {
+        "description": "The fastest a cutting move may go down: a straight plunge at its feed, a ramp at part of it.",
+        "label": "Max plunge rate",
+      },
+      "mode-cancels": {
+        "description": "G40, G49 and G80 cancel cutter compensation, tool length offsets and canned cycles. The Z1 has none of them and does nothing with these codes, but operations that contain them do not combine.",
+        "label": "Mode cancels (G40, G49, G80)",
+      },
+      "pcb/plot-origin": {
+        "description": "Gerber and drill files plotted from a drill/place file origin on the board's bottom-left corner machine from that corner, which the work origin then stands for, as the stock's front-left corner.",
+        "label": "PCB plotted from its bottom-left corner",
+      },
+      "radius-arcs": {
+        "description": "The Z1 takes an arc's centre only from I, J and K, so an arc given by R has no centre.",
+        "label": "Arcs given by a radius (R)",
+      },
+      "rapid-into-stock": {
+        "description": "A rapid move (G0) goes into the stock.",
+        "label": "Rapid move into the stock",
+      },
+      "relative-arc-centres": {
+        "description": "The Z1 reads G91.1 as G91, so the moves after it are taken as distances. Its arc centres are always offsets from the arc's start, which G91.1 asks for.",
+        "label": "Relative arc centres (G91.1)",
+      },
+      "spindle-reverse": {
+        "description": "The Z1's spindle turns clockwise only. It ignores M4, so the spindle stays off while the program cuts.",
+        "label": "Spindle reverse (M4)",
+      },
+      "spindle-speed": {
+        "description": "A program that starts the spindle (M3) before it sets a speed with S runs at the speed set before it, and does not combine with other operations.",
+        "label": "Spindle speed not set",
+      },
+      "spindle-stopped-while-cutting": {
+        "description": "A move cuts while the spindle is stopped, or turns without a speed.",
+        "label": "Spindle stopped while cutting",
+      },
+      "tool-length-offsets": {
+        "description": "The Z1 measures each tool at its tool change and applies its length itself. It does not know G43.",
+        "label": "Tool length offsets (G43)",
+      },
+    },
     "settings": {
       "description": "What a plate’s program is checked against, in Prepare and before Run. They are saved with the project.",
       "page": "Design rules",
@@ -2282,10 +2351,6 @@ exports[`translation resources > the French resources match their recorded text 
       "mode-cancels": {
         "description": "G40, G49 et G80 annulent la compensation d’outil, les corrections de longueur d’outil et les cycles fixes. Le Z1 ne les connaît pas et ne fait rien avec ces codes, mais les opérations qui les contiennent ne se combinent pas.",
         "label": "Annulations de mode (G40, G49, G80)",
-      },
-      "pcb/outside-stock": {
-        "description": "Un programme PCB conserve l’origine depuis laquelle KiCad l’a tracé. Tracé depuis l’origine de la page plutôt qu’une origine de fichier de perçage/positionnement à l’origine pièce, la carte se retrouve à côté de la matière.",
-        "label": "PCB sur la matière",
       },
       "pcb/plot-origin": {
         "description": "Les fichiers Gerber et de perçage tracés depuis une origine de fichier de perçage/positionnement sur le coin inférieur gauche de la carte sont usinés depuis ce coin, que l’origine pièce représente alors, comme le coin avant gauche de la matière.",

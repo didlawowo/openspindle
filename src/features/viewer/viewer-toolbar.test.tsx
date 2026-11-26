@@ -12,6 +12,8 @@ function cameraFixture() {
     setView: vi.fn(),
     setZoom: vi.fn(),
     fit: vi.fn(),
+    locked: false,
+    toggleLocked: vi.fn(),
   }
 }
 
@@ -34,6 +36,7 @@ describe("viewer toolbar", () => {
       "Zoom in",
       "Zoom out",
       "Fit bed in view",
+      "Lock the view",
       "Visual style",
     ]) {
       const button = screen.getByRole("button", { name })
@@ -136,5 +139,85 @@ describe("useViewerCamera", () => {
     expect(result.current.view).toBe("perspective")
     expect(result.current.zoom).toBe(1)
     expect(result.current.resetKey).toBe(2)
+  })
+})
+
+describe("the view lock", () => {
+  test("the toolbar's lock button toggles it, and says what it does", async () => {
+    const { camera } = renderToolbar()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole("button", { name: "Lock the view" }))
+    expect(camera.toggleLocked).toHaveBeenCalled()
+  })
+
+  test("a locked view offers to unlock", () => {
+    renderToolbar({ ...cameraFixture(), locked: true })
+    expect(
+      screen.getByRole("button", { name: "Unlock the view" })
+    ).toHaveAttribute("aria-pressed", "true")
+  })
+
+  test("Shift+L locks and unlocks the view", async () => {
+    const { result } = renderHook(() => useViewerCamera(), {
+      wrapper: ({ children }) => <Providers>{children}</Providers>,
+    })
+    expect(result.current.locked).toBe(false)
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "L", shiftKey: true })
+      )
+    })
+    expect(result.current.locked).toBe(true)
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "l", shiftKey: true })
+      )
+    })
+    expect(result.current.locked).toBe(false)
+  })
+
+  test("L alone, another modifier or a repeat leaves it alone", async () => {
+    const { result } = renderHook(() => useViewerCamera(), {
+      wrapper: ({ children }) => <Providers>{children}</Providers>,
+    })
+    for (const event of [
+      new KeyboardEvent("keydown", { key: "l" }),
+      new KeyboardEvent("keydown", { key: "l", shiftKey: true, metaKey: true }),
+      new KeyboardEvent("keydown", {
+        key: "l",
+        shiftKey: true,
+        ctrlKey: true,
+      }),
+      new KeyboardEvent("keydown", {
+        key: "l",
+        shiftKey: true,
+        altKey: true,
+      }),
+      new KeyboardEvent("keydown", { key: "l", shiftKey: true, repeat: true }),
+    ]) {
+      await act(async () => {
+        window.dispatchEvent(event)
+      })
+      expect(result.current.locked).toBe(false)
+    }
+  })
+
+  test("typing in a field keeps its own Shift+L", async () => {
+    const { result } = renderHook(() => useViewerCamera(), {
+      wrapper: ({ children }) => <Providers>{children}</Providers>,
+    })
+    const input = document.createElement("input")
+    document.body.append(input)
+    await act(async () => {
+      input.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "l",
+          shiftKey: true,
+          bubbles: true,
+        })
+      )
+    })
+    input.remove()
+    expect(result.current.locked).toBe(false)
   })
 })

@@ -37,6 +37,7 @@ import type { VisualStyle } from "./solid-style"
 import { GLOW } from "./touch-marker"
 import { ViewerAssets } from "./viewer-assets"
 import type { ModelMeshes } from "./viewer-assets"
+import { applyViewLock } from "./view-lock"
 import { ViewerStage } from "./viewer-stage"
 
 /**
@@ -64,6 +65,8 @@ export type ViewerPresentation = {
   machineOrigin?: MachineOrigin | null
   /** The tool the machine reports in its spindle, on one plate's bed (the simulator's camera). */
   liveTool?: LiveTool | null
+  /** The view holds its angle: drags do not orbit it (`applyViewLock`). */
+  viewLocked?: boolean
 }
 
 /** A tool number and its tip, in that plate's bed coordinates. */
@@ -387,6 +390,7 @@ export class BedScene {
     let changed = false
     for (const [id, view] of this.views)
       if (view.present(this.platePresentation(id))) changed = true
+    applyViewLock(this.controls, presentation.viewLocked)
     // The points moves snap to follow the fixtures shown.
     if (presentation.hiddenFixtures !== previous.hiddenFixtures)
       this.arranger?.platesChanged()

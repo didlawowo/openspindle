@@ -1,9 +1,11 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   Cuboid,
   Cylinder,
   Layers3,
+  Lock,
+  LockOpen,
   Maximize,
   Minus,
   MousePointer2,
@@ -21,8 +23,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Separator } from "@/components/ui/separator"
+import { Toggle } from "@/components/ui/toggle"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import type { ViewMode } from "@/components/workspace/bed-viewer"
+import { keyForViewer } from "@/components/workspace/viewer/setup-arranger"
 import { isVisualStyle, useVisualStyle } from "./visual-style"
 
 /** Limits match the viewer's orbit controls, which report wheel zoom through onZoomChange. */
@@ -36,6 +40,9 @@ export type ViewerCamera = {
   readonly setView: (view: ViewMode) => void
   readonly setZoom: (zoom: number) => void
   readonly fit: () => void
+  /** The view holds its angle: drags move the selected item instead of orbiting it. */
+  readonly locked: boolean
+  readonly toggleLocked: () => void
 }
 
 /** Camera state of one bed viewer: view preset, zoom and fit. */
@@ -43,10 +50,26 @@ export function useViewerCamera(): ViewerCamera {
   const [view, setViewMode] = useState<ViewMode>("perspective")
   const [zoom, setZoom] = useState(1)
   const [resetKey, setResetKey] = useState(0)
+  const [locked, setLocked] = useState(false)
+  // Shift+L, captured first, so the arrange keys' own L (a fixture's lock) leaves it alone.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!keyForViewer(event) || event.repeat) return
+      if (!event.shiftKey || event.key.toLowerCase() !== "l") return
+      if (event.metaKey || event.ctrlKey || event.altKey) return
+      event.preventDefault()
+      setLocked((current) => !current)
+    }
+    window.addEventListener("keydown", onKeyDown, { capture: true })
+    return () =>
+      window.removeEventListener("keydown", onKeyDown, { capture: true })
+  }, [])
   return {
     view,
     zoom,
     resetKey,
+    locked,
+    toggleLocked: () => setLocked((current) => !current),
     setView: (next) => {
       setViewMode(next)
       // Re-apply the preset even when this view is already selected.
@@ -126,6 +149,19 @@ export function ViewerToolbar({ camera }: { camera: ViewerCamera }) {
       >
         <Maximize />
       </Button>
+      <Separator />
+      <Toggle
+        size="sm"
+        className="size-8"
+        pressed={camera.locked}
+        aria-label={
+          camera.locked ? t("toolbar.unlockView") : t("toolbar.lockView")
+        }
+        title={camera.locked ? t("toolbar.unlockView") : t("toolbar.lockView")}
+        onPressedChange={camera.toggleLocked}
+      >
+        {camera.locked ? <Lock /> : <LockOpen />}
+      </Toggle>
       <Separator />
       <VisualStyleMenu />
     </Card>

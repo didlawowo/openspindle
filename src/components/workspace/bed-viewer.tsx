@@ -63,6 +63,8 @@ type Props = {
   progress?: number
   showRapids: boolean
   showStock: boolean
+  /** The view holds its angle: drags do not orbit it. */
+  viewLocked?: boolean
   view: ViewMode
   /** How the solids are drawn; smoothly shaded by default. */
   style?: VisualStyle
@@ -98,6 +100,7 @@ export function BedViewer({
   showRapids,
   showStock,
   view,
+  viewLocked,
   style = "smooth",
   resetKey,
   zoom,
@@ -178,6 +181,7 @@ export function BedViewer({
       ghosts,
       showRapids,
       showStock,
+      viewLocked,
       problems,
       shownProblem,
       machineOrigin,
@@ -191,6 +195,7 @@ export function BedViewer({
     ghosts,
     showRapids,
     showStock,
+    viewLocked,
     problems,
     shownProblem,
     machineOrigin,

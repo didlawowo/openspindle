@@ -65,6 +65,8 @@ type Props = {
   showStock: boolean
   /** The view holds its angle: drags do not orbit it. */
   viewLocked?: boolean
+  /** Every plate on one bed, at its own coordinates, instead of one bed each. */
+  sharedBed?: boolean
   view: ViewMode
   /** How the solids are drawn; smoothly shaded by default. */
   style?: VisualStyle
@@ -101,6 +103,7 @@ export function BedViewer({
   showStock,
   view,
   viewLocked,
+  sharedBed = false,
   style = "smooth",
   resetKey,
   zoom,
@@ -230,6 +233,9 @@ export function BedViewer({
   useEffect(() => {
     sceneRef.current?.setZoom(zoom)
   }, [zoom, resetKey])
+  useEffect(() => {
+    sceneRef.current?.setSharedBed(sharedBed)
+  }, [sharedBed])
   useEffect(() => {
     sceneRef.current?.setStyle(style)
   }, [style])

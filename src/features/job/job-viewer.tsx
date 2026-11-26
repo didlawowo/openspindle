@@ -42,6 +42,7 @@ export function JobViewer({
         showStock
         view={camera.view}
         viewLocked={camera.locked}
+        sharedBed={camera.oneBed}
         style={style}
         resetKey={camera.resetKey}
         zoom={camera.zoom}

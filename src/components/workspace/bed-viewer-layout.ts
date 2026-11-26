@@ -35,7 +35,8 @@ export type PlatePlacement = {
   bounds: ViewerBounds
   label: Point3
 }
-const PLATE_GAP = 56
+/** The space left between one plate's bed and the next, drawn side by side. */
+export const PLATE_GAP = 56
 export const PATH_DISPLAY_LIFT = 0.6
 export const WORK_AXIS_LENGTH = 16
 export const WORK_AXIS_LABEL_DISTANCE = 20
@@ -255,12 +256,24 @@ function plateEnvelope(plate: ViewerPlate, area: ViewerBounds): ViewerBounds {
 }
 
 /**
- * Pack plate envelopes in array order, each on its machine's bed. Without plates, the layout
- * frames the `empty` bed.
+ * Where a plate's name stands: over its stock, else over the middle of its bed.
+ */
+function plateLabelX(plate: ViewerPlate, area: ViewerBounds): number {
+  const stock = plateStockBounds(plate)
+  return stock
+    ? (stock.min[0] + stock.max[0]) / 2
+    : (area.min[0] + area.max[0]) / 2
+}
+
+/**
+ * Pack plate envelopes in array order, each on its machine's bed; `shared` draws them all on one
+ * bed instead, at their own bed coordinates, with each name over its own stock. Without plates,
+ * the layout frames the `empty` bed.
  */
 export function layoutPlates(
   plates: readonly ViewerPlate[],
-  empty: MachineBed
+  empty: MachineBed,
+  shared = false
 ) {
   /** Where the next envelope starts; the first starts at its own bed's left edge. */
   let cursor: number | null = null
@@ -271,13 +284,15 @@ export function layoutPlates(
   const placements = plates.map((plate, index): PlatePlacement => {
     const area = bedArea(plateBed(plate))
     const local = plateEnvelope(plate, area)
-    const offsetX = (cursor ?? area.min[0]) - local.min[0]
+    const offsetX = shared ? 0 : (cursor ?? area.min[0]) - local.min[0]
     const placed: ViewerBounds = {
       min: [local.min[0] + offsetX, local.min[1], local.min[2]],
       max: [local.max[0] + offsetX, local.max[1], local.max[2]],
     }
     const label: Point3 = [
-      (area.min[0] + area.max[0]) / 2 + offsetX,
+      shared
+        ? plateLabelX(plate, area)
+        : (area.min[0] + area.max[0]) / 2 + offsetX,
       area.min[1] - LABEL_GAP,
       area.max[2],
     ]

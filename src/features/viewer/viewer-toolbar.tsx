@@ -4,6 +4,7 @@ import {
   Cuboid,
   Cylinder,
   Layers3,
+  LayoutGrid,
   Lock,
   LockOpen,
   Maximize,
@@ -43,6 +44,9 @@ export type ViewerCamera = {
   /** The view holds its angle: drags move the selected item instead of orbiting it. */
   readonly locked: boolean
   readonly toggleLocked: () => void
+  /** Every plate on one bed, at its own coordinates, instead of one bed each. */
+  readonly oneBed: boolean
+  readonly toggleOneBed: () => void
 }
 
 /** Camera state of one bed viewer: view preset, zoom and fit. */
@@ -51,6 +55,7 @@ export function useViewerCamera(): ViewerCamera {
   const [zoom, setZoom] = useState(1)
   const [resetKey, setResetKey] = useState(0)
   const [locked, setLocked] = useState(false)
+  const [oneBed, setOneBed] = useState(false)
   // Shift+L, captured first, so the arrange keys' own L (a fixture's lock) leaves it alone.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -70,6 +75,8 @@ export function useViewerCamera(): ViewerCamera {
     resetKey,
     locked,
     toggleLocked: () => setLocked((current) => !current),
+    oneBed,
+    toggleOneBed: () => setOneBed((current) => !current),
     setView: (next) => {
       setViewMode(next)
       // Re-apply the preset even when this view is already selected.
@@ -161,6 +168,16 @@ export function ViewerToolbar({ camera }: { camera: ViewerCamera }) {
         onPressedChange={camera.toggleLocked}
       >
         {camera.locked ? <Lock /> : <LockOpen />}
+      </Toggle>
+      <Toggle
+        size="sm"
+        className="size-8"
+        pressed={camera.oneBed}
+        aria-label={t("toolbar.oneBed")}
+        title={t("toolbar.oneBed")}
+        onPressedChange={camera.toggleOneBed}
+      >
+        <LayoutGrid />
       </Toggle>
       <Separator />
       <VisualStyleMenu />

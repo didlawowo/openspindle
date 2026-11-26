@@ -184,6 +184,8 @@ export class BedScene {
   private readonly views = new Map<string, PlateView>()
   private plates: readonly ViewerPlate[] = []
   private layout = layoutPlates([], this.emptyBed)
+  /** Every plate on one bed, at its own coordinates, instead of one bed each. */
+  private sharedBed = false
   /** The frame of playback the selected plate is drawn at; null for its whole program. */
   private playback: PlaybackFrame | null = null
   private presentation: ViewerPresentation = {
@@ -340,7 +342,7 @@ export class BedScene {
       next.length !== previous.length ||
       next.some((plate, index) => previous[index]?.id !== plate.id)
     this.plates = next
-    this.layout = layoutPlates(next, this.emptyBed)
+    this.layout = layoutPlates(next, this.emptyBed, this.sharedBed)
     this.emptyGrid.visible = next.length === 0
     this.stage.canvas.removeAttribute("title")
     const ids = new Set(next.map((plate) => plate.id))
@@ -365,6 +367,21 @@ export class BedScene {
     if (arrangementChanged && this.view === "camera") this.setView(this.view)
     else if (arrangementChanged) this.center()
     else this.placeLens()
+    this.arranger?.platesChanged()
+    this.stage.invalidate()
+  }
+
+  /**
+   * Draws each plate on its own bed (the default), or every plate on the machine's one bed at
+   * its own coordinates (`layoutPlates`), where the plates' stocks are where they really are.
+   */
+  setSharedBed(shared: boolean) {
+    this.sharedBed = shared
+    this.layout = layoutPlates(this.plates, this.emptyBed, shared)
+    for (const placement of this.layout.placements) {
+      const plate = this.plates[placement.index]
+      this.views.get(plate.id)?.update(plate, placement)
+    }
     this.arranger?.platesChanged()
     this.stage.invalidate()
   }

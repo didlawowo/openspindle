@@ -4,6 +4,13 @@ Every notable change to OpenSpindle, newest first. The project follows
 [semantic versioning](https://semver.org/) and
 [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [0.4.1] — 2026-11-27
+
+### Fixes
+
+- *(prepare)* Add material on the bed keeps the first plate and finds free room (#54)
+- *(camera)* The simulated Z1 camera matches what the real camera sees (#55)
+
 ## [0.4.0] — 2026-11-26
 
 ### Features

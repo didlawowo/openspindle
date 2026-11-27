@@ -351,6 +351,18 @@ describe("stockPlace", () => {
     expect(Math.abs((corner?.[1] ?? 0) - 80)).toBeLessThanOrEqual(2)
   })
 
+  test("sets nothing on a piece turned on the bed", () => {
+    const turned = bedObjects(
+      camera,
+      [photo],
+      [render([rectangle([70, 100], 60, 40, 10)])],
+      view,
+      emptyFixtures
+    )
+    const block = { width: 60, depth: 40, height: 0 }
+    expect(stockPlace(camera, [photo], view, turned, block)).toBeNull()
+  })
+
   test("sets nothing when no piece is near the block's size", () => {
     expect(place(120, 90)).toBeNull()
   })

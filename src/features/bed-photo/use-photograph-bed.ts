@@ -10,7 +10,11 @@ import {
   shootingOrder,
 } from "@/domain/fixtures/bed-photo"
 import { bedObjects, fixtureFootprints } from "@/domain/fixtures/bed-objects"
-import type { BedView, FootprintSize } from "@/domain/fixtures/bed-objects"
+import type {
+  BedObject,
+  BedView,
+  FootprintSize,
+} from "@/domain/fixtures/bed-objects"
 import type { BedArea, BedPhoto } from "@/domain/fixtures/bed-photo"
 import type { FixtureKit } from "@/domain/fixtures/fixture-kit"
 import { kitForPlate } from "@/domain/fixtures/catalog"
@@ -160,6 +164,13 @@ export function usePhotographBed() {
       }))
       const mosaic = bedMosaic(camera, taken, area, CELL)
       const view: BedView = { mosaic, area, cell: CELL }
+      // The photo is worth keeping even when nothing can be told from it.
+      let objects: readonly BedObject[] = []
+      try {
+        objects = bedObjects(camera, taken, pictures, view, clampSizes(kit))
+      } catch (error) {
+        log.error("Finding what lies on the bed failed", error)
+      }
       setBedPicture(
         {
           area,
@@ -168,10 +179,11 @@ export function usePhotographBed() {
           pixels: mosaicPixels(mosaic, pictures),
         },
         {
+          deviceId: plate.setup.deviceId,
           camera,
           photos: taken,
           view,
-          objects: bedObjects(camera, taken, pictures, view, clampSizes(kit)),
+          objects,
         }
       )
       toast.success(t("bedPhoto.done"))

@@ -5,6 +5,8 @@ import type { MachineCamera } from "@/domain/fixtures/fixture-kit"
 
 /** What the photos of a picture show lying on the bed, and what found it there. */
 export type FoundOnBed = {
+  /** The device whose bed was photographed, as plates name theirs (`PlateSetup.deviceId`). */
+  readonly deviceId: string | null
   readonly camera: MachineCamera
   readonly photos: readonly BedPhoto[]
   readonly view: BedView

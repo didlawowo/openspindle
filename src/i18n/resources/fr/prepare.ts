@@ -30,7 +30,7 @@ export const frPrepare: UiResources["prepare"] = {
     placeNoPhoto: "Photographiez d’abord le plateau.",
     placeNoStock: "La plaque sélectionnée n’a pas de matière à poser.",
     placeNotFound:
-      "La photo ne montre aucune pièce de la taille de cette matière.",
+      "La photo ne montre aucune pièce de la taille de cette matière posée droite sur le plateau.",
     placeFailed: "La matière n’a pas pu être déplacée.",
     placed:
       "La matière est posée sur la pièce que montre la photo ; vérifiez-la sur la photo, et palpez pour sa position exacte.",

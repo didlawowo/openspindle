@@ -75,6 +75,7 @@ const camera: MachineCamera = {
 const view: BedView = { mosaic, area, cell }
 
 const found: FoundOnBed = {
+  deviceId: null,
   camera,
   photos: [],
   view,
@@ -109,7 +110,7 @@ function plateWithStock(stock: Stock, at: [number, number, number]): Plate {
 
 function emptyPlate(at: [number, number, number]): Plate {
   return createPlate({
-    ...createPlateSetup({}),
+    ...createPlateSetup({ stock: null, stockSource: "unspecified" }),
     stockAnchor: at,
   })
 }
@@ -164,5 +165,12 @@ describe("usePlaceStock", () => {
     expect(stores.state.plates[0].setup.stockAnchor).toEqual([0, 0, 0])
     expect(toast.error).toHaveBeenCalledTimes(1)
     expect(toast.success).not.toHaveBeenCalled()
+  })
+
+  test("does not use a photo of another device's bed", () => {
+    act(() => setBedPicture(picture, { ...found, deviceId: "another-device" }))
+    const stores = storeOf([plateWithStock(stock60x40, [0, 0, 0])])
+    const { result } = renderPlace(stores)
+    expect(result.current.reason).not.toBeNull()
   })
 })

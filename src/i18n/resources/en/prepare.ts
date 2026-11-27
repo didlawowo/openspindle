@@ -26,7 +26,8 @@ export const enPrepare = {
   bedPhoto: {
     placeNoPhoto: "Photograph the bed first.",
     placeNoStock: "The selected plate has no stock to set.",
-    placeNotFound: "The photo shows no piece the size of this stock.",
+    placeNotFound:
+      "The photo shows no piece the size of this stock lying square to the bed.",
     placeFailed: "The stock could not be moved.",
     placed:
       "The stock is set on the piece the photo shows; check it against the photo, and probe for its exact place.",

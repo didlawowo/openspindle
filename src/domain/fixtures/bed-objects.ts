@@ -191,10 +191,13 @@ export function objectRectangle(
   object: BedObject,
   thickness: number
 ): BedRectangle {
-  const kept = 1 - thickness / camera.position[2]
+  // Nothing the camera photographs from above is as high as its lens.
+  const share = thickness / camera.position[2]
+  const kept = share > 0 && share < 1 ? 1 - share : 1
   const points = cellCentres(object.cells, view).map(
     ([x, y], index): PlanePoint => {
-      const photo = photos.at(view.mosaic.photo[object.cells[index]])
+      const shownBy = view.mosaic.photo[object.cells[index]]
+      const photo = shownBy < 0 ? undefined : photos.at(shownBy)
       if (!photo) return [x, y]
       const lensX = camera.position[0]
       const lensY = camera.position[1] + photo.spindleY
@@ -217,11 +220,14 @@ export function objectRectangle(
 
 /** How far a found piece's sides may be from a block's, together, as a share of the block's. */
 const SAME_SIZE = 0.25
+/** How far from the bed's axes, in degrees, a piece may lie and a block still be set on it. */
+const SQUARE = 3
 
 /**
  * Where a block of stock lies on the bed, as the photos show it: the front-left corner, on the
  * bed, of the block set on the found piece of stock nearest its size, or null when none is
- * within `SAME_SIZE` of it. The block keeps its own size, and is set by the piece's edge
+ * within `SAME_SIZE` of it and square to the bed (`SQUARE`). `height` is how high the block's
+ * top stands above the bed's plane the view shows. The block keeps its own size, and is set by the piece's edge
  * farthest from the camera along X, which the photos show best (the nearer edge shows the
  * piece's side as well), and by its middle along Y.
  */
@@ -247,6 +253,9 @@ export function stockPlace(
       object,
       stock.height
     )
+    // A block lies along the bed's axes: a piece turned on the bed is none it can be set on.
+    const askew = Math.abs((((angle % 90) + 135) % 90) - 45)
+    if (askew > SQUARE) continue
     const turn = (angle * Math.PI) / 180
     const alongX =
       Math.abs(Math.cos(turn)) * length + Math.abs(Math.sin(turn)) * width

@@ -34,8 +34,8 @@ export type FootprintSize = { readonly length: number; readonly width: number }
 
 /**
  * Something on the bed: stock when it is wider than the fixtures that hold stock, a fixture
- * when it is as narrow as one. Its cells are those of the view that show it and the holes it
- * encloses, by their index (row · columns + column).
+ * when it is as narrow as one. Its cells are those of the view that show it and its holes
+ * smaller than the least piece of stock, by their index (row · columns + column).
  */
 export type BedObject = {
   readonly kind: "stock" | "fixture"
@@ -150,7 +150,7 @@ export function bedObjects(
   )
   const widest = Math.max(0, ...fixtures.map(({ width }) => width))
   const wide = radius(widest / 2 + 1)
-  // A piece's holes are the piece's when no piece of stock would fit in them: pockets, and the
+  // A piece's holes are the piece's when they are smaller than the least piece of stock: pockets, and the
   // marks that show none of its colour. A wider one may be bare bed between pieces that
   // clamps join, or another piece lying on this one.
   const stock = [true, false].flatMap((colour) => {
@@ -363,8 +363,9 @@ function saturationElsewhere(
 /**
  * How much brighter than the bare bed each cell is, per photo levelled on the bare bed that
  * photo shows, and how coloured: a cell shows an object when it is brighter than the bare bed
- * by `BRIGHTER`, burnt out, or coloured. A burnt-out pixel tells no colour: the cell's is then
- * the one another photo shows there (`saturationElsewhere`).
+ * by `BRIGHTER`, burnt out, or coloured. A burnt-out pixel tells too little colour: the cell's
+ * is then the stronger of its own and the one another photo shows there
+ * (`saturationElsewhere`).
  */
 function cellLooks(
   camera: MachineCamera,

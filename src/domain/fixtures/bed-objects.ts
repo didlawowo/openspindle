@@ -34,8 +34,8 @@ export type FootprintSize = { readonly length: number; readonly width: number }
 
 /**
  * Something on the bed: stock when it is wider than the fixtures that hold stock, a fixture
- * when it is as narrow as one. Its cells are those of the view that show it, by their index
- * (row · columns + column).
+ * when it is as narrow as one. Its cells are those of the view that show it and the holes it
+ * encloses, by their index (row · columns + column).
  */
 export type BedObject = {
   readonly kind: "stock" | "fixture"
@@ -150,32 +150,18 @@ export function bedObjects(
   )
   const widest = Math.max(0, ...fixtures.map(({ width }) => width))
   const wide = radius(widest / 2 + 1)
-  // A piece's holes are the piece's: pockets, and the marks that show none of its colour.
-  const pieces = (colour: boolean) => {
+  // A piece's holes are the piece's when no piece of stock would fit in them: pockets, and the
+  // marks that show none of its colour. A wider one may be bare bed between pieces that
+  // clamps join, or another piece lying on this one.
+  const stock = [true, false].flatMap((colour) => {
     const kind = found.map((on, cell) =>
       on && (coloured[cell] === 1) === colour ? 1 : 0
     )
     return components(
-      opened(withoutHoles(kind, grid), grid, wide),
+      opened(withoutHoles(kind, grid, count(STOCK_AREA)), grid, wide),
       grid
     ).filter((cells) => cells.length >= count(STOCK_AREA))
-  }
-  const colouredStock = pieces(true)
-  // A coloured piece looks plain where it shines or was worked, and a plain one never looks
-  // coloured: what is plain and lies mostly within a coloured piece's rectangle is that piece.
-  const around = colouredStock.map((cells) =>
-    boundingRectangle(cellCentres(cells, view))
-  )
-  const plainStock = pieces(false).filter((cells) => {
-    const centres = cellCentres(cells, view)
-    return !around.some(
-      (rectangle) =>
-        centres.filter((point) => withinRectangle(rectangle, point)).length *
-          2 >
-        centres.length
-    )
   })
-  const stock = [...colouredStock, ...plainStock]
   const taken = new Uint8Array(columns * rows)
   for (const cells of stock) for (const cell of cells) taken[cell] = 1
   const aroundStock = dilated(taken, grid, radius(STOCK_EDGE))
@@ -394,10 +380,6 @@ function cellLooks(
   const coloured = new Uint8Array(cells)
   const faint = new Uint8Array(cells)
   const matrices = photos.map((photo) => bedToPhoto(camera, photo))
-  const centres = cellCentres(
-    Uint32Array.from({ length: cells }, (_, cell) => cell),
-    view
-  )
   for (let cell = 0; cell < cells; cell++) {
     const picture = pictures.at(mosaic.photo[cell])
     if (mosaic.photo[cell] < 0 || !picture) continue
@@ -407,14 +389,15 @@ function cellLooks(
     const [red, green, blue] = picture.data.subarray(from, from + 3)
     const look = pixelLook(red, green, blue)
     const washedOut = look.burnt && look.saturation <= COLOURED
-    const saturation = washedOut
+    const elsewhere = washedOut
       ? saturationElsewhere(
           matrices,
           pictures,
-          centres[cell],
+          cellCentres(Uint32Array.of(cell), view)[0],
           mosaic.photo[cell]
         )
-      : look.saturation
+      : 0
+    const saturation = Math.max(look.saturation, elsewhere)
     burnt[cell] = look.burnt ? 1 : 0
     coloured[cell] = saturation > COLOURED ? 1 : 0
     faint[cell] = saturation > FAINT ? 1 : 0
@@ -706,19 +689,6 @@ function boundingRectangle(points: readonly PlanePoint[]): Framed {
   return best
 }
 
-/** Whether a point is within a rectangle. */
-function withinRectangle(
-  { centre, length, width, along }: Framed,
-  [x, y]: PlanePoint
-) {
-  const dx = x - centre[0]
-  const dy = y - centre[1]
-  return (
-    Math.abs(dx * along[0] + dy * along[1]) <= length / 2 &&
-    Math.abs(dy * along[0] - dx * along[1]) <= width / 2
-  )
-}
-
 /** How far points reach along a unit vector `u` and across it (`v`, a quarter turn on). */
 function spans(points: readonly PlanePoint[], u: PlanePoint) {
   const span = {
@@ -769,7 +739,7 @@ function framed(
  * How much more of a turned rectangle than of one along the bed's axes points must fill for
  * the turned one to be theirs.
  */
-const TURNED = 0.02
+const TURNED = 0.01
 
 /**
  * The rectangle points fill to its edges: along the bed's axes, unless they fill more
@@ -859,21 +829,28 @@ function filledWithin(
   }
 }
 
-/** The mask with the cells it encloses: all but those reached from the grid's edge. */
-function withoutHoles(mask: Uint8Array, grid: Grid): Uint8Array {
+/**
+ * The mask with the cells it encloses, all but those reached from the grid's edge: every hole,
+ * or those of fewer than `fewerThan` cells.
+ */
+function withoutHoles(
+  mask: Uint8Array,
+  grid: Grid,
+  fewerThan = Infinity
+): Uint8Array {
   const { columns, rows } = grid
-  const edge = mask.map((on, cell) => {
+  const onEdge = (cell: number) => {
     const column = cell % columns
     const row = Math.floor(cell / columns)
-    const onEdge =
+    return (
       column === 0 || row === 0 || column === columns - 1 || row === rows - 1
-    return !on && onEdge ? 1 : 0
-  })
-  const outside = new Uint8Array(mask.length)
+    )
+  }
+  const filled = Uint8Array.from(mask)
   const empty = mask.map((on) => (on ? 0 : 1))
   for (const group of components(empty, grid)) {
-    if (!group.some((cell) => edge[cell])) continue
-    for (const cell of group) outside[cell] = 1
+    if (group.length >= fewerThan || group.some(onEdge)) continue
+    for (const cell of group) filled[cell] = 1
   }
-  return outside.map((out) => (out ? 0 : 1))
+  return filled
 }

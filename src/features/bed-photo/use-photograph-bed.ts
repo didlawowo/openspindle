@@ -1,4 +1,3 @@
-import { useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { log } from "@/app/errors/log"
@@ -13,13 +12,20 @@ import {
 import type { BedArea } from "@/domain/fixtures/bed-photo"
 import { kitForPlate } from "@/domain/fixtures/catalog"
 import type { Point3 } from "@/domain/primitives"
+import { machineId } from "@/machine/contract"
 import type { MachineSnapshot } from "@/machine/contract"
 import {
   useMachineCommand,
   useMachineHost,
   useMachineSnapshot,
 } from "@/platform/machine"
-import { setBedPicture, setShooting, useBedPicture } from "./bed-picture"
+import {
+  requestStop,
+  setBedPicture,
+  setShooting,
+  stopRequested,
+  useBedPicture,
+} from "./bed-picture"
 import { CameraSilentError, decodePhoto, watchFrames } from "./camera-frames"
 
 /** The side of a cell of the bed's picture, in millimetres. */
@@ -43,18 +49,18 @@ function machinePlace({ telemetry }: MachineSnapshot): Point3 | null {
  * Photographs the connected machine's bed for the selected plate: parks the spindle at the
  * clearance, jogs the bed along Y to each of the camera's stops (`MachineCamera.stops`), keeps a
  * picture at each, parks again, and assembles the view from above the 3D view then draws on the
- * bed (`bedMosaic`). Each move is the machine's own verified command, never sent again; the
- * first that fails ends it where the machine is, and `run` again while it shoots stops it after
- * the move under way.
+ * bed (`bedMosaic`). Each move is the machine's own verified command, never sent again, decided
+ * from where the machine reports itself then; the first that fails ends it where the machine
+ * is, and `run` again while it shoots stops it after the move under way.
  */
 export function usePhotographBed() {
   const { t } = useTranslation("prepare")
   const plate = useSelectedPlate()
   const machine = useMachineHost()
   const command = useMachineCommand()
-  const { availability, features, limits } = useMachineSnapshot()
+  const { availability, connection, features, limits } = useMachineSnapshot()
   const shooting = useBedPicture().shooting !== null
-  const stopped = useRef(false)
+  const connectedId = connection.device ? machineId(connection.device) : null
   const kit = plate ? kitForPlate(plate) : null
   const camera = kit?.camera ?? null
   const stops = camera?.stops ?? []
@@ -66,6 +72,7 @@ export function usePhotographBed() {
     )
     if (blocked) return blocked.reason ?? t("bedPhoto.unavailable")
     if (!plate || !limits) return t("bedPhoto.unavailable")
+    if (plate.setup.deviceId !== connectedId) return t("bedPhoto.otherDevice")
     if (!stops.length || features?.camera !== true)
       return t("bedPhoto.noCamera")
     return null
@@ -87,37 +94,47 @@ export function usePhotographBed() {
     const frames = watchFrames(machine)
     setShooting({ done: 0, total: stops.length })
     try {
+      // The machine as it is now, not as the last command left it: another screen may have
+      // moved it since.
+      const now = async () => place(await machine.snapshot())
       const park = () =>
         command.mutateAsync({ type: "goTo", target: "clearance" })
-      let snapshot = await park()
-      const parked = place(snapshot)
+      const keepGoing = () => {
+        if (stopRequested()) throw new StoppedError()
+      }
+      // A camera that gives nothing is found before the machine moves.
+      await frames.next(1, FRAME_TIMEOUT_MS)
+      keepGoing()
+      const parked = place(await park())
+      const still = async () => {
+        const here = await now()
+        const drifted = [0, 2].some(
+          (axis) => Math.abs(here.at[axis] - parked.at[axis]) > DRIFT
+        )
+        if (drifted) throw new Error(t("bedPhoto.drifted"))
+        return here
+      }
       const photos: { jpeg: Uint8Array; spindleY: number }[] = []
       for (const stop of shootingOrder(parked.y, stops)) {
         for (;;) {
-          if (stopped.current) throw new StoppedError()
-          const here = place(snapshot)
-          const drifted = [0, 2].some(
-            (axis) => Math.abs(here.at[axis] - parked.at[axis]) > DRIFT
-          )
-          if (drifted) throw new Error(t("bedPhoto.drifted"))
-          const distance = jogToward(here.y, stop, {
+          keepGoing()
+          const distance = jogToward((await still()).y, stop, {
             min: limits.jogMinDistance,
             max: limits.jogMaxDistance,
           })
           if (distance === null) break
-          snapshot = await command.mutateAsync({
+          await command.mutateAsync({
             type: "jog",
             axis: "Y",
             distance,
             speedScale: limits.jogMaxSpeedScale,
           })
         }
-        photos.push({
-          jpeg: await frames.next(SETTLE_FRAMES, FRAME_TIMEOUT_MS),
-          spindleY: place(snapshot).y,
-        })
+        const jpeg = await frames.next(SETTLE_FRAMES, FRAME_TIMEOUT_MS)
+        photos.push({ jpeg, spindleY: (await still()).y })
         setShooting({ done: photos.length, total: stops.length })
       }
+      keepGoing()
       await park()
       const pictures = await Promise.all(
         photos.map(({ jpeg }) => decodePhoto(jpeg))
@@ -156,12 +173,8 @@ export function usePhotographBed() {
 
   /** Starts the photos, or stops them after the move under way. */
   const run = () => {
-    if (shooting) {
-      stopped.current = true
-      return
-    }
-    stopped.current = false
-    void shoot()
+    if (shooting) requestStop()
+    else void shoot()
   }
   return { reason, shooting, run }
 }

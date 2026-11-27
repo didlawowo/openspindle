@@ -42,13 +42,13 @@ import type { ModelMeshes } from "./viewer-assets"
 import { applyViewLock } from "./view-lock"
 import { ViewerStage } from "./viewer-stage"
 
+/** How far over the bed's top its picture is drawn, so the bed does not show through it. */
+const BED_PICTURE_LIFT = 0.05
+
 /**
  * The preset views; "camera" is the view through the machine's camera (`FixtureKit.camera`),
  * else the perspective.
  */
-/** How far over the bed's top its picture is drawn, so the bed does not show through it. */
-const BED_PICTURE_LIFT = 0.05
-
 export type ViewMode = "perspective" | "top" | "front" | "camera"
 
 /** Viewer-wide display state; only the selected plate follows playback and selection. */
@@ -447,8 +447,7 @@ export class BedScene {
   /** Moves the bed's picture onto the bed it is drawn on (`bedPictureShift`). */
   private placeBedPicture() {
     if (!this.bedPicture) return
-    const [x, y] = bedPictureShift(
-      this.plates,
+    const shift = bedPictureShift(
       this.layout.placements,
       this.presentation.selectedPlateId
     )
@@ -456,7 +455,7 @@ export class BedScene {
       number,
       number,
     ]
-    this.bedPicture.position.set(centreX + x, centreY + y, BED_PICTURE_LIFT)
+    this.bedPicture.position.set(centreX + shift, centreY, BED_PICTURE_LIFT)
   }
 
   /** The selected setup item, move mode and its options. */

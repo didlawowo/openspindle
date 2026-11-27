@@ -320,20 +320,18 @@ export function layoutPlates(
 }
 
 /**
- * Where the bed's picture is drawn, as the shift of its bed coordinates in X and Y: on the bed
- * of the selected plate, else the first, where that plate's bed offset puts the bed; unshifted
- * without plates.
+ * Where the bed's picture is drawn, as the shift of its bed coordinates along X: with the
+ * selected plate's bed, else the first's; unshifted without plates. The picture is in the
+ * coordinates stock and paths are in, from the anchors, so a bed offset, which only moves the
+ * bed drawn under them, does not move it.
  */
 export function bedPictureShift(
-  plates: readonly ViewerPlate[],
   placements: readonly PlatePlacement[],
   selectedPlateId: string | null
-): readonly [number, number] {
+): number {
   const placement =
     placements.find(({ id }) => id === selectedPlateId) ?? placements.at(0)
-  if (!placement) return [0, 0]
-  const [x, y] = bedOffsetOf(plates[placement.index].anchorSetup)
-  return [placement.offsetX + x, y]
+  return placement?.offsetX ?? 0
 }
 
 /** Orthographic projection of all eight bounds corners onto the camera basis. */

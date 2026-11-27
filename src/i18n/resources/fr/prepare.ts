@@ -25,6 +25,7 @@ export const frPrepare: UiResources["prepare"] = {
   },
   bedPhoto: {
     unavailable: "La machine ne peut pas déplacer le plateau maintenant.",
+    otherDevice: "La plaque est réglée pour un autre périphérique.",
     noCamera: "Cette machine n’a pas de caméra qui photographie le plateau.",
     noPosition: "La machine n’indique pas où se trouve sa broche.",
     drifted: "La broche a bougé en X ou en Z pendant les photos du plateau.",

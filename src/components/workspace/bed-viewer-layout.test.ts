@@ -123,43 +123,17 @@ describe("bedPictureShift", () => {
   const second = plate("b", [10, 10, 0])
   const { placements } = layoutPlates([first, second], bed)
 
-  test("on the selected plate's bed", () => {
-    expect(bedPictureShift([first, second], placements, "b")).toEqual([
-      placements[1].offsetX,
-      0,
-    ])
+  test("with the selected plate's bed", () => {
+    expect(placements[1].offsetX).not.toBe(placements[0].offsetX)
+    expect(bedPictureShift(placements, "b")).toBe(placements[1].offsetX)
   })
 
-  test("on the first plate's bed when none is selected, or the selected one is gone", () => {
-    expect(bedPictureShift([first, second], placements, null)).toEqual([
-      placements[0].offsetX,
-      0,
-    ])
-    expect(bedPictureShift([first, second], placements, "c")).toEqual([
-      placements[0].offsetX,
-      0,
-    ])
-  })
-
-  test("moved with the bed by the plate's bed offset", () => {
-    const moved: ViewerPlate = {
-      ...second,
-      anchorSetup: {
-        version: 2,
-        deviceId: null,
-        source: "factory",
-        bedOffset: [3, -2],
-        anchors: [],
-      },
-    }
-    const layout = layoutPlates([first, moved], bed)
-    expect(bedPictureShift([first, moved], layout.placements, "b")).toEqual([
-      layout.placements[1].offsetX + 3,
-      -2,
-    ])
+  test("with the first plate's bed when none is selected, or the selected one is gone", () => {
+    expect(bedPictureShift(placements, null)).toBe(placements[0].offsetX)
+    expect(bedPictureShift(placements, "c")).toBe(placements[0].offsetX)
   })
 
   test("unshifted without plates", () => {
-    expect(bedPictureShift([], [], null)).toEqual([0, 0])
+    expect(bedPictureShift([], null)).toBe(0)
   })
 })

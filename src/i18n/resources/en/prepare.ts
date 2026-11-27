@@ -22,6 +22,7 @@ export const enPrepare = {
   },
   bedPhoto: {
     unavailable: "The machine cannot move the bed now.",
+    otherDevice: "The plate is set up for another device.",
     noCamera: "This machine has no camera that photographs the bed.",
     noPosition: "The machine does not report where its spindle is.",
     drifted: "The spindle moved in X or Z while the bed was photographed.",

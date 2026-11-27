@@ -2,7 +2,12 @@ import { describe, expect, test } from "vitest"
 import { DEFAULT_KIT } from "@/domain/fixtures/catalog"
 import type { GCodeProgram } from "@/domain/nc/gcode"
 import type { Stock } from "@/domain/stock/stock"
-import { PLATE_GAP, bedArea, layoutPlates } from "./bed-viewer-layout"
+import {
+  PLATE_GAP,
+  bedArea,
+  bedPictureShift,
+  layoutPlates,
+} from "./bed-viewer-layout"
 import type { ViewerPlate } from "./viewer/viewer-input"
 
 const emptyProgram: GCodeProgram = {
@@ -110,5 +115,51 @@ describe("layoutPlates", () => {
     const layout = layoutPlates([], bed)
     expect(layout.placements).toEqual([])
     expect(layout.bounds.max[0]).toBeGreaterThan(layout.bounds.min[0])
+  })
+})
+
+describe("bedPictureShift", () => {
+  const first = plate("a", [10, 10, 0])
+  const second = plate("b", [10, 10, 0])
+  const { placements } = layoutPlates([first, second], bed)
+
+  test("on the selected plate's bed", () => {
+    expect(bedPictureShift([first, second], placements, "b")).toEqual([
+      placements[1].offsetX,
+      0,
+    ])
+  })
+
+  test("on the first plate's bed when none is selected, or the selected one is gone", () => {
+    expect(bedPictureShift([first, second], placements, null)).toEqual([
+      placements[0].offsetX,
+      0,
+    ])
+    expect(bedPictureShift([first, second], placements, "c")).toEqual([
+      placements[0].offsetX,
+      0,
+    ])
+  })
+
+  test("moved with the bed by the plate's bed offset", () => {
+    const moved: ViewerPlate = {
+      ...second,
+      anchorSetup: {
+        version: 2,
+        deviceId: null,
+        source: "factory",
+        bedOffset: [3, -2],
+        anchors: [],
+      },
+    }
+    const layout = layoutPlates([first, moved], bed)
+    expect(bedPictureShift([first, moved], layout.placements, "b")).toEqual([
+      layout.placements[1].offsetX + 3,
+      -2,
+    ])
+  })
+
+  test("unshifted without plates", () => {
+    expect(bedPictureShift([], [], null)).toEqual([0, 0])
   })
 })

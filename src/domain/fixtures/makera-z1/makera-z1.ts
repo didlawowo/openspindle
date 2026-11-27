@@ -82,13 +82,15 @@ export class MakeraZ1 extends FixtureKit {
    * On the frame left of the bed, 2 mm in front of the spindle in Y, looking along X 40° down;
    * its whole 4:3 picture, which its stream shows at 640 × 480 unless the machine's configuration
    * sets another size. Fitted to the MDF bed's holes in three 640 × 480 pictures 60 mm apart
-   * along Y, within 1 mm on the bed's front half; nothing beyond bed X 110 was measured.
+   * along Y, within 1 mm on the bed's front half; nothing beyond bed X 110 was measured. Three
+   * photos 60 mm apart, as those were, show the whole bed.
    */
   readonly camera: MachineCamera = {
     position: [-64.5, -1.9, 91.6],
     target: [47.8, -1.2, -1.8],
     fov: 45.5,
     aspect: 4 / 3,
+    stops: [163, 103, 43],
   }
   readonly fixtures: readonly KitFixture[] = [
     { fixture: new Z1MdfBed(), addedIn: 1 },

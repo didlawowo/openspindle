@@ -5,6 +5,7 @@ import { max as largest, mrt, output, pass, vec4 } from "three/tsl"
 import { BlendMode, RenderPipeline } from "three/webgpu"
 import type { PassNode } from "three/webgpu"
 import type { PlaybackFrame } from "@/app/job/frame"
+import type { BedPicture } from "@/domain/fixtures/bed-photo"
 import { kitForSetup } from "@/domain/fixtures/catalog"
 import { pictureFov } from "@/domain/fixtures/fixture-kit"
 import type { MachineCamera } from "@/domain/fixtures/fixture-kit"
@@ -17,6 +18,7 @@ import type {
 } from "@/components/workspace/viewer/viewer-input"
 import {
   fitOrthographicBounds,
+  bedPictureShift,
   layoutPlates,
   plateBed,
   plateKit,
@@ -44,6 +46,9 @@ import { ViewerStage } from "./viewer-stage"
  * The preset views; "camera" is the view through the machine's camera (`FixtureKit.camera`),
  * else the perspective.
  */
+/** How far over the bed's top its picture is drawn, so the bed does not show through it. */
+const BED_PICTURE_LIFT = 0.05
+
 export type ViewMode = "perspective" | "top" | "front" | "camera"
 
 /** Viewer-wide display state; only the selected plate follows playback and selection. */
@@ -179,6 +184,11 @@ export class BedScene {
    */
   private readonly emptyBed = kitForSetup({ deviceId: null, fixtures: [] }).bed
   private readonly emptyGrid = bedGrid(this.emptyBed)
+  /** The bed's picture from the machine's camera, drawn flat on the bed. */
+  private bedPicture: THREE.Mesh<
+    THREE.PlaneGeometry,
+    THREE.MeshBasicMaterial
+  > | null = null
   private readonly raycaster = new THREE.Raycaster()
   private readonly projected = new THREE.Vector3()
   private readonly views = new Map<string, PlateView>()
@@ -368,6 +378,7 @@ export class BedScene {
     else if (arrangementChanged) this.center()
     else this.placeLens()
     this.arranger?.platesChanged()
+    this.placeBedPicture()
     this.stage.invalidate()
   }
 
@@ -383,7 +394,69 @@ export class BedScene {
       this.views.get(plate.id)?.update(plate, placement)
     }
     this.arranger?.platesChanged()
+    this.placeBedPicture()
     this.stage.invalidate()
+  }
+
+  /**
+   * Draws the bed's picture from above on the bed, just over its top, where `bedPictureShift`
+   * puts it; null takes it away.
+   */
+  setBedPicture(picture: BedPicture | null) {
+    if (this.bedPicture) {
+      this.stage.scene.remove(this.bedPicture)
+      this.bedPicture.material.map?.dispose()
+      this.bedPicture.material.dispose()
+      this.bedPicture.geometry.dispose()
+      this.bedPicture = null
+    }
+    if (picture) {
+      const { area, columns, rows, pixels } = picture
+      const canvas = document.createElement("canvas")
+      canvas.width = columns
+      canvas.height = rows
+      canvas
+        .getContext("2d")
+        ?.putImageData(
+          new ImageData(new Uint8ClampedArray(pixels), columns, rows),
+          0,
+          0
+        )
+      const map = new THREE.CanvasTexture(canvas)
+      map.colorSpace = THREE.SRGBColorSpace
+      const width = area.max[0] - area.min[0]
+      const depth = area.max[1] - area.min[1]
+      this.bedPicture = new THREE.Mesh(
+        new THREE.PlaneGeometry(width, depth),
+        new THREE.MeshBasicMaterial({
+          map,
+          transparent: true,
+          depthWrite: false,
+        })
+      )
+      this.bedPicture.userData.centre = [
+        area.min[0] + width / 2,
+        area.min[1] + depth / 2,
+      ]
+      this.stage.scene.add(this.bedPicture)
+    }
+    this.placeBedPicture()
+    this.stage.invalidate()
+  }
+
+  /** Moves the bed's picture onto the bed it is drawn on (`bedPictureShift`). */
+  private placeBedPicture() {
+    if (!this.bedPicture) return
+    const [x, y] = bedPictureShift(
+      this.plates,
+      this.layout.placements,
+      this.presentation.selectedPlateId
+    )
+    const [centreX, centreY] = this.bedPicture.userData.centre as [
+      number,
+      number,
+    ]
+    this.bedPicture.position.set(centreX + x, centreY + y, BED_PICTURE_LIFT)
   }
 
   /** The selected setup item, move mode and its options. */
@@ -412,6 +485,10 @@ export class BedScene {
     if (presentation.hiddenFixtures !== previous.hiddenFixtures)
       this.arranger?.platesChanged()
     if (changed) this.stage.invalidate()
+    if (presentation.selectedPlateId !== previous.selectedPlateId) {
+      this.placeBedPicture()
+      this.stage.invalidate()
+    }
     this.placeLens()
   }
 
@@ -530,6 +607,7 @@ export class BedScene {
     this.controls.dispose()
     for (const view of this.views.values()) view.dispose()
     this.views.clear()
+    this.setBedPicture(null)
     this.solids.dispose()
     this.studio?.dispose()
     this.assets.dispose()

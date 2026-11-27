@@ -1,4 +1,5 @@
 import type { Point3 } from "@/domain/nc/gcode"
+import { toMicrometre } from "@/domain/primitives"
 import { pictureFov } from "./fixture-kit"
 import type { MachineCamera } from "./fixture-kit"
 
@@ -174,6 +175,77 @@ export function bedMosaic(
       samples.flatMap((sample) => sample?.pixel ?? [0, 0])
     ),
   }
+}
+
+/**
+ * The bed seen from above, assembled from the camera's photos (`mosaicPixels`): its cells row by
+ * row from the top, four bytes each, over `area` of the bed's plane.
+ */
+export type BedPicture = {
+  readonly area: BedArea
+  readonly columns: number
+  readonly rows: number
+  readonly pixels: Uint8ClampedArray
+}
+
+/** A photo decoded: its pixels row by row from the top, four bytes each (red, green, blue, alpha). */
+export type PhotoPixels = {
+  readonly width: number
+  readonly height: number
+  readonly data: Uint8ClampedArray
+}
+
+/**
+ * The picture a mosaic makes of decoded photos, row by row from the top, four bytes a cell: each
+ * cell takes the pixel its sample falls in, and a cell no photo shows stays transparent.
+ */
+export function mosaicPixels(
+  mosaic: BedMosaic,
+  pictures: readonly PhotoPixels[]
+): Uint8ClampedArray {
+  const out = new Uint8ClampedArray(mosaic.columns * mosaic.rows * 4)
+  mosaic.photo.forEach((photo, cell) => {
+    const picture = pictures.at(photo)
+    if (photo < 0 || !picture) return
+    const column = within(mosaic.pixel[cell * 2], picture.width)
+    const row = within(mosaic.pixel[cell * 2 + 1], picture.height)
+    const from = (row * picture.width + column) * 4
+    out.set(picture.data.subarray(from, from + 3), cell * 4)
+    out[cell * 4 + 3] = 255
+  })
+  return out
+}
+
+/** The pixel a continuous coordinate falls in, among `count`. */
+const within = (coordinate: number, count: number) =>
+  Math.min(Math.max(Math.floor(coordinate), 0), count - 1)
+
+/**
+ * The spindle's stops in the order the bed's photos are taken from `start`, its place along the
+ * bed's Y: from the end nearer it, so the bed crosses once.
+ */
+export function shootingOrder(
+  start: number,
+  stops: readonly number[]
+): readonly number[] {
+  const up = [...stops].sort((a, b) => a - b)
+  const first = up.at(0) ?? start
+  const last = up.at(-1) ?? start
+  return Math.abs(start - first) <= Math.abs(start - last) ? up : up.reverse()
+}
+
+/**
+ * The next jog along Y that brings the spindle from `from` toward `to`, at most `max` long;
+ * null once it is there, within the `min` the machine can jog.
+ */
+export function jogToward(
+  from: number,
+  to: number,
+  { min, max }: { readonly min: number; readonly max: number }
+): number | null {
+  const left = toMicrometre(to - from)
+  if (Math.abs(left) < min) return null
+  return Math.sign(left) * Math.min(Math.abs(left), max)
 }
 
 /**

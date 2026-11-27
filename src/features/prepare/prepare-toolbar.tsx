@@ -1,5 +1,12 @@
 import { useTranslation } from "react-i18next"
-import { CircuitBoard, Crosshair, Settings2, ShieldCheck } from "lucide-react"
+import {
+  Camera,
+  CircleStop,
+  CircuitBoard,
+  Crosshair,
+  Settings2,
+  ShieldCheck,
+} from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -9,6 +16,7 @@ import {
   useWorkspace,
   useWorkspaceStore,
 } from "@/app/workspace/workspace-context"
+import { usePhotographBed } from "@/features/bed-photo/use-photograph-bed"
 import { checkPlateDesignRules } from "@/features/design-rules/design-rule-check"
 import { openDialog } from "@/features/shell/dialogs"
 import {
@@ -19,7 +27,7 @@ import { ArrangeTools } from "./arrange/arrange-tools"
 
 /**
  * Tools over the viewer, as icons that say what they do on hover: moving and locking what is
- * selected in it, the Probing and PCB actions, then checking the selected plate's design rules
+ * selected in it, the Probing and PCB actions, photographing the bed, then checking the selected plate's design rules
  * and the workspace settings.
  */
 export function PrepareToolbar() {
@@ -28,6 +36,7 @@ export function PrepareToolbar() {
   const probingReason = useProbingReason()
   const workspace = useWorkspaceStore()
   const hasPlate = useWorkspace((state) => selectedPlate(state) !== null)
+  const photo = usePhotographBed()
   return (
     <Card
       size="sm"
@@ -56,6 +65,18 @@ export function PrepareToolbar() {
             onClick={() => openDialog({ kind: "add-operation", preset: "pcb" })}
           >
             <CircuitBoard />
+          </ToolbarButton>
+          <ToolbarButton
+            label={
+              photo.shooting
+                ? t("toolbar.stopPhotographing")
+                : t("toolbar.photographBed")
+            }
+            description={t("toolbar.photographBedDescription")}
+            reason={photo.reason}
+            onClick={photo.run}
+          >
+            {photo.shooting ? <CircleStop /> : <Camera />}
           </ToolbarButton>
           <Separator orientation="vertical" />
           <ToolbarButton

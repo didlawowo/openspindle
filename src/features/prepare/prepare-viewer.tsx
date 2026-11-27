@@ -1,3 +1,7 @@
+import {
+  shownBedPicture,
+  useBedPicture,
+} from "@/features/bed-photo/bed-picture"
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { TFunction } from "i18next"
@@ -339,6 +343,7 @@ export function PrepareViewer() {
   const selection = usePrepareSelection()
   const camera = useViewerCamera()
   const [style] = useVisualStyle()
+  const bedPicture = shownBedPicture(useBedPicture())
   const focus = useProblemFocus()
   const shown = useShownProblem()
   const highlighted = useHighlightedLines(shown?.diagnostic ?? null)
@@ -438,6 +443,7 @@ export function PrepareViewer() {
         view={camera.view}
         viewLocked={camera.locked}
         sharedBed={camera.oneBed}
+        bedPicture={bedPicture}
         style={style}
         resetKey={camera.resetKey}
         zoom={camera.zoom}

@@ -13,6 +13,7 @@ export const frViewer: UiResources["viewer"] = {
     lockView: "Figer la vue",
     unlockView: "Défiger la vue",
     oneBed: "Plaques sur un seul plateau",
+    bedPicture: "Photo du plateau",
     style: "Style visuel",
     smooth: "Ombres lisses",
     edges: "Arêtes ombrées",

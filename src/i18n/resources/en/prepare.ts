@@ -8,6 +8,10 @@ export const enPrepare = {
     probing: "Probing",
     pcb: "PCB",
     pcbDescription: "Create operations from KiCad Gerber and Excellon files.",
+    photographBed: "Photograph the bed",
+    stopPhotographing: "Stop photographing",
+    photographBedDescription:
+      "Parks the spindle, moves the bed under the machine's camera and draws what it sees on the bed, from above.",
     checkDesignRules: "Check design rules",
     checkDesignRulesDescription:
       "Checks the selected plate's program against the project's design rules, and lists what breaks them.",
@@ -15,6 +19,16 @@ export const enPrepare = {
     workspaceSettings: "Workspace settings",
     workspaceSettingsDescription:
       "The project's settings, such as its design rules.",
+  },
+  bedPhoto: {
+    unavailable: "The machine cannot move the bed now.",
+    noCamera: "This machine has no camera that photographs the bed.",
+    noPosition: "The machine does not report where its spindle is.",
+    drifted: "The spindle moved in X or Z while the bed was photographed.",
+    cameraSilent: "The machine's camera gave no picture.",
+    failed: "The bed could not be photographed.",
+    stopped: "Photographing stopped; the bed stays where it is.",
+    done: "The bed's photo is drawn on the bed.",
   },
   sidebar: {
     connectDevice: "Connect device",

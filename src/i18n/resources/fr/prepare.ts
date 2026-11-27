@@ -11,6 +11,10 @@ export const frPrepare: UiResources["prepare"] = {
     pcb: "PCB",
     pcbDescription:
       "Créer des opérations à partir de fichiers Gerber et Excellon KiCad.",
+    photographBed: "Photographier le plateau",
+    stopPhotographing: "Arrêter les photos",
+    photographBedDescription:
+      "Range la broche, déplace le plateau sous la caméra de la machine et dessine ce qu’elle voit sur le plateau, vu de dessus.",
     checkDesignRules: "Vérifier les règles de conception",
     checkDesignRulesDescription:
       "Vérifie le programme de la plaque sélectionnée selon les règles de conception du projet, et liste ce qui les enfreint.",
@@ -18,6 +22,16 @@ export const frPrepare: UiResources["prepare"] = {
     workspaceSettings: "Réglages de l'espace de travail",
     workspaceSettingsDescription:
       "Les réglages du projet, comme ses règles de conception.",
+  },
+  bedPhoto: {
+    unavailable: "La machine ne peut pas déplacer le plateau maintenant.",
+    noCamera: "Cette machine n’a pas de caméra qui photographie le plateau.",
+    noPosition: "La machine n’indique pas où se trouve sa broche.",
+    drifted: "La broche a bougé en X ou en Z pendant les photos du plateau.",
+    cameraSilent: "La caméra de la machine n’a donné aucune image.",
+    failed: "Le plateau n’a pas pu être photographié.",
+    stopped: "Photos arrêtées ; le plateau reste où il est.",
+    done: "La photo du plateau est dessinée sur le plateau.",
   },
   sidebar: {
     connectDevice: "Connecter le périphérique",

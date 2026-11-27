@@ -11,6 +11,7 @@ export const enViewer = {
     lockView: "Lock the view",
     unlockView: "Unlock the view",
     oneBed: "Plates on one bed",
+    bedPicture: "Bed photo",
     style: "Visual style",
     smooth: "Smooth Shades",
     edges: "Shaded Edges",

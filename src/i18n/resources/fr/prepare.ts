@@ -15,6 +15,9 @@ export const frPrepare: UiResources["prepare"] = {
     stopPhotographing: "Arrêter les photos",
     photographBedDescription:
       "Range la broche, déplace le plateau sous la caméra de la machine et dessine ce qu’elle voit sur le plateau, vu de dessus.",
+    placeStock: "Poser la matière là où la photo la montre",
+    placeStockDescription:
+      "Déplace la matière de la plaque sélectionnée, avec son tracé, sur la pièce de sa taille dans la photo du plateau.",
     checkDesignRules: "Vérifier les règles de conception",
     checkDesignRulesDescription:
       "Vérifie le programme de la plaque sélectionnée selon les règles de conception du projet, et liste ce qui les enfreint.",
@@ -24,6 +27,13 @@ export const frPrepare: UiResources["prepare"] = {
       "Les réglages du projet, comme ses règles de conception.",
   },
   bedPhoto: {
+    placeNoPhoto: "Photographiez d’abord le plateau.",
+    placeNoStock: "La plaque sélectionnée n’a pas de matière à poser.",
+    placeNotFound:
+      "La photo ne montre aucune pièce de la taille de cette matière.",
+    placeFailed: "La matière n’a pas pu être déplacée.",
+    placed:
+      "La matière est là où la photo la montre ; palpez pour sa position exacte.",
     unavailable: "La machine ne peut pas déplacer le plateau maintenant.",
     otherDevice: "La plaque est réglée pour un autre périphérique.",
     noCamera: "Cette machine n’a pas de caméra qui photographie le plateau.",

@@ -12,6 +12,9 @@ export const enPrepare = {
     stopPhotographing: "Stop photographing",
     photographBedDescription:
       "Parks the spindle, moves the bed under the machine's camera and draws what it sees on the bed, from above.",
+    placeStock: "Set the stock where the photo shows it",
+    placeStockDescription:
+      "Moves the selected plate's stock, with the design on it, onto the piece of its size in the bed's photo.",
     checkDesignRules: "Check design rules",
     checkDesignRulesDescription:
       "Checks the selected plate's program against the project's design rules, and lists what breaks them.",
@@ -21,6 +24,11 @@ export const enPrepare = {
       "The project's settings, such as its design rules.",
   },
   bedPhoto: {
+    placeNoPhoto: "Photograph the bed first.",
+    placeNoStock: "The selected plate has no stock to set.",
+    placeNotFound: "The photo shows no piece the size of this stock.",
+    placeFailed: "The stock could not be moved.",
+    placed: "The stock is where the photo shows it; probe for its exact place.",
     unavailable: "The machine cannot move the bed now.",
     otherDevice: "The plate is set up for another device.",
     noCamera: "This machine has no camera that photographs the bed.",

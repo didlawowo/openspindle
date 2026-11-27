@@ -1,9 +1,21 @@
 import { createAtom, useSelector } from "@tanstack/react-store"
-import type { BedPicture } from "@/domain/fixtures/bed-photo"
+import type { BedObject, BedView } from "@/domain/fixtures/bed-objects"
+import type { BedPhoto, BedPicture } from "@/domain/fixtures/bed-photo"
+import type { MachineCamera } from "@/domain/fixtures/fixture-kit"
+
+/** What the photos of a picture show lying on the bed, and what found it there. */
+export type FoundOnBed = {
+  readonly camera: MachineCamera
+  readonly photos: readonly BedPhoto[]
+  readonly view: BedView
+  readonly objects: readonly BedObject[]
+}
 
 type BedPictureState = {
   /** The last picture taken; kept until the next one, never saved. */
   readonly picture: BedPicture | null
+  /** What that picture's photos show on the bed; null with no picture. */
+  readonly found: FoundOnBed | null
   /** Whether the 3D view draws it: a view setting. */
   readonly shown: boolean
   /** How many photos are taken of how many, while the machine takes them. */
@@ -14,6 +26,7 @@ type BedPictureState = {
 
 const bedPictureAtom = createAtom<BedPictureState>({
   picture: null,
+  found: null,
   shown: true,
   shooting: null,
   stopRequested: false,
@@ -25,8 +38,8 @@ export const useBedPicture = () => useSelector(bedPictureAtom)
 export const shownBedPicture = ({ picture, shown }: BedPictureState) =>
   shown ? picture : null
 
-export function setBedPicture(picture: BedPicture) {
-  bedPictureAtom.set((state) => ({ ...state, picture, shown: true }))
+export function setBedPicture(picture: BedPicture, found: FoundOnBed) {
+  bedPictureAtom.set((state) => ({ ...state, picture, found, shown: true }))
 }
 
 /** Photos begin, progress or end (null); beginning and ending clear a request to stop. */

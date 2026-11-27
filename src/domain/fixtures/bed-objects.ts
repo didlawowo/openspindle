@@ -187,6 +187,56 @@ export function objectRectangle(
   return filledRectangle(points)
 }
 
+/** How far a found piece's sides may be from a block's, together, as a share of the block's. */
+const SAME_SIZE = 0.25
+
+/**
+ * Where a block of stock lies on the bed, as the photos show it: the front-left corner, on the
+ * bed, of the block set on the found piece of stock nearest its size, or null when none is
+ * within `SAME_SIZE` of it. The block keeps its own size, and is set by the piece's edge
+ * farthest from the camera along X, which the photos show best (the nearer edge shows the
+ * piece's side as well), and by its middle along Y.
+ */
+export function stockPlace(
+  camera: MachineCamera,
+  photos: readonly BedPhoto[],
+  view: BedView,
+  objects: readonly BedObject[],
+  stock: {
+    readonly width: number
+    readonly depth: number
+    readonly height: number
+  }
+): PlanePoint | null {
+  let place: PlanePoint | null = null
+  let nearest = (stock.width + stock.depth) * SAME_SIZE
+  for (const object of objects) {
+    if (object.kind !== "stock") continue
+    const { centre, length, width, angle } = objectRectangle(
+      camera,
+      photos,
+      view,
+      object,
+      stock.height
+    )
+    const turn = (angle * Math.PI) / 180
+    const alongX =
+      Math.abs(Math.cos(turn)) * length + Math.abs(Math.sin(turn)) * width
+    const alongY =
+      Math.abs(Math.sin(turn)) * length + Math.abs(Math.cos(turn)) * width
+    const apart =
+      Math.abs(alongX - stock.width) + Math.abs(alongY - stock.depth)
+    if (apart > nearest) continue
+    nearest = apart
+    const farX =
+      camera.position[0] <= centre[0]
+        ? centre[0] + alongX / 2 - stock.width
+        : centre[0] - alongX / 2
+    place = [farX, centre[1] - stock.depth / 2]
+  }
+  return place
+}
+
 /** The middles of cells of the view, on the bed. */
 function cellCentres(cells: Uint32Array, view: BedView): PlanePoint[] {
   const { columns } = view.mosaic

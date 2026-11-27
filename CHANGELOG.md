@@ -4,6 +4,12 @@ Every notable change to OpenSpindle, newest first. The project follows
 [semantic versioning](https://semver.org/) and
 [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [0.6.0] — 2026-11-27
+
+### Features
+
+- *(prepare)* Set the stock where the bed's photo shows it (#57)
+
 ## [0.5.0] — 2026-11-27
 
 ### Features

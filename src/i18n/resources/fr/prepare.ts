@@ -33,7 +33,7 @@ export const frPrepare: UiResources["prepare"] = {
       "La photo ne montre aucune pièce de la taille de cette matière.",
     placeFailed: "La matière n’a pas pu être déplacée.",
     placed:
-      "La matière est là où la photo la montre ; palpez pour sa position exacte.",
+      "La matière est posée sur la pièce que montre la photo ; vérifiez-la sur la photo, et palpez pour sa position exacte.",
     unavailable: "La machine ne peut pas déplacer le plateau maintenant.",
     otherDevice: "La plaque est réglée pour un autre périphérique.",
     noCamera: "Cette machine n’a pas de caméra qui photographie le plateau.",

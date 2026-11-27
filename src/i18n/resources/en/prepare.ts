@@ -28,7 +28,8 @@ export const enPrepare = {
     placeNoStock: "The selected plate has no stock to set.",
     placeNotFound: "The photo shows no piece the size of this stock.",
     placeFailed: "The stock could not be moved.",
-    placed: "The stock is where the photo shows it; probe for its exact place.",
+    placed:
+      "The stock is set on the piece the photo shows; check it against the photo, and probe for its exact place.",
     unavailable: "The machine cannot move the bed now.",
     otherDevice: "The plate is set up for another device.",
     noCamera: "This machine has no camera that photographs the bed.",

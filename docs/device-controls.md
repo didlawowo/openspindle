@@ -126,7 +126,7 @@ The app finds what lies on the bed without a photo of the empty bed. The camera 
 
 A piece of stock is brought to a rectangle once its height is known, which is the plate's stock's: the photo shows a piece's top farther from the camera than it is, by 12 mm at the far end of a Z1's bed for 5 mm of height, and the rectangle is brought back by as much. Each edge of the rectangle is then moved in until the piece fills it, so a clamp over an edge does not widen it. The stock keeps its own size and is set on the piece nearest that size, by the piece's edge farthest from the camera along X and by its middle along Y; a photo that shows no piece within a quarter of the stock's size moves nothing.
 
-It places stock to within a few millimetres, for probing to find the exact place: a clamp lying along an edge, the piece's own side seen from the camera, glare on polished metal and stock as dark as the bed all move or hide an edge. The bare bed's look was measured on one Z1 under its own light.
+Check the stock against the photo once it is set, and probe for its exact place. On a Z1, a 150 × 100 × 5 mm aluminium plate held by clamps was set within 2 mm of where it lay; a 100 × 100 × 3 mm brass plate, burnt out in the photos and lying against a bright part behind it, was set 13 mm too far back. What moves or hides an edge: something as bright lying against the piece, glare on polished metal, a clamp lying along an edge, the piece's own side seen from the camera, and stock as dark as the bed. The bare bed's look was measured on one Z1 under its own light.
 
 ## Firmware configuration
 

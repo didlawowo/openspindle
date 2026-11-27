@@ -1,6 +1,11 @@
 import { describe, expect, test } from "vitest"
 
-import { bedObjects, objectRectangle, stockPlace } from "./bed-objects"
+import {
+  bedObjects,
+  fixtureFootprints,
+  objectRectangle,
+  stockPlace,
+} from "./bed-objects"
 import type { BedObject, BedView, FootprintSize } from "./bed-objects"
 import { bedMosaic, mapPoint, photoToBed } from "./bed-photo"
 import type { BedArea, BedPhoto, PlanePoint, PhotoPixels } from "./bed-photo"
@@ -348,5 +353,27 @@ describe("stockPlace", () => {
 
   test("sets nothing when no piece is near the block's size", () => {
     expect(place(120, 90)).toBeNull()
+  })
+})
+
+describe("fixtureFootprints", () => {
+  const bounds = { min: [0, 0, 0], max: [100, 100, 15] } as const
+
+  test("takes an L-bracket arm by arm, and a clamp with a slot whole", () => {
+    const arms = [
+      { min: [0, 0, 0], max: [100, 15, 15] },
+      { min: [0, 15, 0], max: [15, 100, 15] },
+    ] as const
+    expect(fixtureFootprints(bounds, arms)).toEqual([
+      { length: 100, width: 15 },
+      { length: 85, width: 15 },
+    ])
+    const slotted = [{ min: [0, 0, 0], max: [100, 60, 15] }] as const
+    expect(fixtureFootprints(bounds, slotted)).toEqual([
+      { length: 100, width: 100 },
+    ])
+    expect(fixtureFootprints(bounds, null)).toEqual([
+      { length: 100, width: 100 },
+    ])
   })
 })

@@ -51,6 +51,34 @@ export type BedRectangle = {
   readonly angle: number
 }
 
+/** A box in a fixture's frame, as fixtures give their models' and the parts they are solid in. */
+type Box = {
+  readonly min: readonly [number, number, number]
+  readonly max: readonly [number, number, number]
+}
+
+/** The share of its model's footprint a fixture's solid parts fill, under which it is taken part by part. */
+const SPARSE = 0.5
+
+/**
+ * The rectangles of the bed a fixture covers: its model's footprint, or, when the parts it is
+ * solid in fill less than `SPARSE` of it, as an L-bracket's two arms do, each part's.
+ */
+export function fixtureFootprints(
+  bounds: Box,
+  solids: readonly Box[] | null
+): FootprintSize[] {
+  const size = ({ min, max }: Box): FootprintSize => {
+    const sides = [max[0] - min[0], max[1] - min[1]]
+    return { length: Math.max(...sides), width: Math.min(...sides) }
+  }
+  const area = (box: Box) => size(box).length * size(box).width
+  const whole = area(bounds)
+  if (!solids || whole <= 0) return [size(bounds)]
+  const filled = solids.reduce((sum, box) => sum + area(box), 0)
+  return filled < whole * SPARSE ? solids.map(size) : [size(bounds)]
+}
+
 /** How much brighter than the bare bed a cell is, in log luminance, to be on an object. */
 const BRIGHTER = 0.3
 /** The saturation (0 to 1) from which a cell is coloured, as the bare bed is not. */

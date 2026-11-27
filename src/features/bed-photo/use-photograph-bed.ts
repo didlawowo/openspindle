@@ -9,7 +9,7 @@ import {
   mosaicPixels,
   shootingOrder,
 } from "@/domain/fixtures/bed-photo"
-import { bedObjects } from "@/domain/fixtures/bed-objects"
+import { bedObjects, fixtureFootprints } from "@/domain/fixtures/bed-objects"
 import type { BedView, FootprintSize } from "@/domain/fixtures/bed-objects"
 import type { BedArea, BedPhoto } from "@/domain/fixtures/bed-photo"
 import type { FixtureKit } from "@/domain/fixtures/fixture-kit"
@@ -43,11 +43,9 @@ const DRIFT = 0.05
 function clampSizes(kit: FixtureKit): FootprintSize[] {
   return kit.fixtures
     .filter(({ fixture }) => fixture.kind === "clamp")
-    .map(({ fixture }) => {
-      const { min, max } = fixture.model.bounds
-      const sides = [max[0] - min[0], max[1] - min[1]]
-      return { length: Math.max(...sides), width: Math.min(...sides) }
-    })
+    .flatMap(({ fixture }) =>
+      fixtureFootprints(fixture.model.bounds, fixture.solids)
+    )
 }
 
 /** Stopped by the user between two moves. */

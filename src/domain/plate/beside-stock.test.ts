@@ -14,7 +14,7 @@ const stock: Stock = {
 }
 
 const bed = {
-  workArea: [400, 400, 100],
+  workArea: [220, 400, 100],
   workAreaOrigin: [0, 0] as [number, number],
 }
 const own = {
@@ -53,10 +53,18 @@ describe("besideStock", () => {
 
   test("to the left when only that side has room", () => {
     const wide = {
-      workArea: [230, 120, 100],
-      workAreaOrigin: [-120, 0] as [number, number],
+      workArea: [210, 120, 100],
+      workAreaOrigin: [-100, 0] as [number, number],
     }
     expect(besideStock(own, stock, wide)).toEqual([-100, 20, 0])
+  })
+
+  test("in front when only that side has room", () => {
+    const deep = {
+      workArea: [115, 215, 100],
+      workAreaOrigin: [0, -90] as [number, number],
+    }
+    expect(besideStock(own, stock, deep)).toEqual([10, -90, 0])
   })
 
   test("past a piece already on the bed, never on it", () => {
@@ -114,6 +122,16 @@ describe("plateWithStockBeside", () => {
     const second = beside(empty)
     expect(second.id).not.toBe(empty.id)
     expect(second.setup.stock).toBeNull()
+  })
+
+  test("a plate without stock on the bed takes no room", () => {
+    const first = plate()
+    const empty = createPlate(
+      createPlateSetup({ stock: null, stockSource: "unspecified" })
+    )
+    expect(beside(first, [first, empty]).setup.stockAnchor).toEqual(
+      beside(first, [first]).setup.stockAnchor
+    )
   })
 
   test("a second one from the same plate sits clear of the first", () => {

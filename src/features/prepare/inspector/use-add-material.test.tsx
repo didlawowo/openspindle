@@ -62,6 +62,18 @@ describe("useAddMaterial", () => {
     expect(stores.state.selectedPlateId).toBe(plates[1].id)
   })
 
+  test("keeps only the empty plate: a plate of the user's own is left as it is", () => {
+    const first = plateAt([0, 0, 0])
+    const stores = storeOf([first])
+    const dispatch = vi.spyOn(stores, "dispatch")
+    const { result } = renderAdd(first, stores)
+    act(() => result.current())
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "batch",
+      commands: [expect.objectContaining({ type: "plates.add" })],
+    })
+  })
+
   test("says why when the workspace refuses, and adds nothing", () => {
     const first = plateAt([0, 0, 0])
     const full = [

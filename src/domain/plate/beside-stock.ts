@@ -60,10 +60,7 @@ export function plateWithStockBeside(
   const { stock } = plate.setup
   const own = stockBox(plate)
   if (!stock || !own) return createPlate({ ...plate.setup })
-  const others = plates
-    .filter((other) => other.id !== plate.id)
-    .map(stockBox)
-    .filter((box) => box !== null)
+  const others = plates.map(stockBox).filter((box) => box !== null)
   const anchor = besideStock(own, stock, kitForSetup(plate.setup), others)
   if (!anchor) return null
   return createPlate({

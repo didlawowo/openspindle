@@ -14,15 +14,15 @@ const stock: Stock = {
   id: "stock-1",
   name: "Aluminium",
   material: "aluminium",
-  width: 100,
-  depth: 100,
+  width: 60,
+  depth: 60,
   height: 10,
   color: "#888888",
 }
 
-const plateAt = (at: [number, number, number]): Plate =>
+const plateAt = (at: [number, number, number], piece = stock): Plate =>
   createPlate({
-    ...createPlateSetup({ stock, stockSource: "assigned" }),
+    ...createPlateSetup({ stock: piece, stockSource: "assigned" }),
     stockAnchor: at,
   })
 
@@ -62,6 +62,18 @@ describe("useAddMaterial", () => {
     expect(stores.state.selectedPlateId).toBe(plates[1].id)
   })
 
+  test("keeps only the empty plate: a plate of the user's own is left as it is", () => {
+    const first = plateAt([0, 0, 0])
+    const stores = storeOf([first])
+    const dispatch = vi.spyOn(stores, "dispatch")
+    const { result } = renderAdd(first, stores)
+    act(() => result.current())
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "batch",
+      commands: [expect.objectContaining({ type: "plates.add" })],
+    })
+  })
+
   test("says why when the workspace refuses, and adds nothing", () => {
     const first = plateAt([0, 0, 0])
     const full = [
@@ -75,6 +87,33 @@ describe("useAddMaterial", () => {
     expect(toast.error).toHaveBeenCalledWith(
       "The material could not be added.",
       { description: "A workspace holds at most 100 plates." }
+    )
+  })
+
+  test("keeps the empty plate a project starts with, as a plate of its own", () => {
+    const first = { ...plateAt([0, 0, 0]), example: true }
+    const stores = storeOf([first])
+    const { result } = renderAdd(first, stores)
+    act(() => result.current())
+    expect(stores.state.plates).toHaveLength(2)
+    expect(stores.state.plates[0]).toMatchObject({
+      id: first.id,
+      example: false,
+    })
+  })
+
+  test("says no place beside the material is free, and adds nothing", () => {
+    const first = plateAt([0, 0, 0], { ...stock, width: 150, depth: 150 })
+    const stores = storeOf([first])
+    const { result } = renderAdd(first, stores)
+    act(() => result.current())
+    expect(stores.state.plates).toHaveLength(1)
+    expect(toast.error).toHaveBeenCalledWith(
+      "The material could not be added.",
+      {
+        description:
+          "No free place beside the material on the bed. Move a piece to make room.",
+      }
     )
   })
 })

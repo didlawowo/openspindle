@@ -91,6 +91,13 @@ export class MakeraZ1 extends FixtureKit {
     fov: 45.5,
     aspect: 4 / 3,
     stops: [163, 103, 43],
+    // Fitted to the bare MDF two sets of those photos show, a day apart, under the machine's
+    // own light.
+    shade: {
+      shading: [-0.0095, -1.525, -2.8154, -0.8423, -1.5171],
+      wall: 0.04,
+      level: [-0.22, -0.3, -0.41],
+    },
   }
   readonly fixtures: readonly KitFixture[] = [
     { fixture: new Z1MdfBed(), addedIn: 1 },

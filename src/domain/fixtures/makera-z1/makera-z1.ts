@@ -79,14 +79,15 @@ export class MakeraZ1 extends FixtureKit {
   }
   readonly firmware = new Z1Firmware()
   /**
-   * On the frame left of the bed, level with the spindle in Y, looking along X 41° down; its
-   * whole 4:3 picture, which its stream shows at 640 × 480 unless the machine's configuration
-   * sets another size. Measured from a picture of the L-bracket and the bed's holes.
+   * On the frame left of the bed, 2 mm in front of the spindle in Y, looking along X 40° down;
+   * its whole 4:3 picture, which its stream shows at 640 × 480 unless the machine's configuration
+   * sets another size. Fitted to the MDF bed's holes in three 640 × 480 pictures 60 mm apart
+   * along Y, within 1 mm on the bed's front half; nothing beyond bed X 110 was measured.
    */
   readonly camera: MachineCamera = {
-    position: [-64, 0, 90],
-    target: [46, 0, -6],
-    fov: 45,
+    position: [-64.5, -1.9, 91.6],
+    target: [47.8, -1.2, -1.8],
+    fov: 45.5,
     aspect: 4 / 3,
   }
   readonly fixtures: readonly KitFixture[] = [

@@ -722,7 +722,8 @@ export class SimulatedZ1 {
         this.mpos[index] = Number(
           (this.mpos[index] + Number(axis[2])).toFixed(4)
         )
-        this.queueMove(from, word(code, "F") ?? this.seekRate, 0, false)
+        // SimpleShell.cpp: a jog's F is a share of the seek rate, not a feed rate.
+        this.queueMove(from, this.seekRate * (word(code, "F") ?? 1), 0, false)
       }
       this.ok(text)
       return

@@ -2,9 +2,12 @@ import { describe, expect, test } from "vitest"
 import {
   bedMosaic,
   bedToPhoto,
+  jogToward,
   mapPoint,
+  mosaicPixels,
   photoToBed,
   samplePhotos,
+  shootingOrder,
 } from "./bed-photo"
 import type { BedPhoto, Matrix3, PlanePoint } from "./bed-photo"
 import type { MachineCamera } from "./fixture-kit"
@@ -363,5 +366,98 @@ describe("the Makera Z1's camera", () => {
       expect(shown?.[1]).toBeCloseTo(pixel[1], 2)
       expectPixel(shown, project(camera, vga, focal, [point[0], point[1], 0]))
     }
+  })
+})
+
+describe("mosaicPixels", () => {
+  // Two photos of 2 × 2 pixels: the first all red but its last pixel, green; the second blue.
+  const red = [255, 0, 0, 255]
+  const green = [0, 255, 0, 255]
+  const blue = [0, 0, 255, 255]
+  const pictures = [
+    {
+      width: 2,
+      height: 2,
+      data: new Uint8ClampedArray([...red, ...red, ...red, ...green]),
+    },
+    {
+      width: 2,
+      height: 2,
+      data: new Uint8ClampedArray([...blue, ...blue, ...blue, ...blue]),
+    },
+  ]
+
+  test("each cell takes the pixel its sample falls in, and a cell without photo stays clear", () => {
+    const pixels = mosaicPixels(
+      {
+        columns: 2,
+        rows: 2,
+        photo: Int16Array.from([0, 0, 1, -1]),
+        pixel: Float32Array.from([0.5, 0.5, 1.9, 1.2, 0, 0, 0, 0]),
+      },
+      pictures
+    )
+    expect([...pixels]).toEqual([...red, ...green, ...blue, 0, 0, 0, 0])
+  })
+
+  test("a sample on the photo's edge takes the pixel next to it", () => {
+    const pixels = mosaicPixels(
+      {
+        columns: 2,
+        rows: 1,
+        photo: Int16Array.from([0, 0]),
+        pixel: Float32Array.from([2, 2, -0.5, -0.5]),
+      },
+      pictures
+    )
+    expect([...pixels]).toEqual([...green, ...red])
+  })
+
+  test("a cell naming a photo that was not given stays clear", () => {
+    const pixels = mosaicPixels(
+      {
+        columns: 1,
+        rows: 1,
+        photo: Int16Array.from([2]),
+        pixel: Float32Array.from([0, 0]),
+      },
+      pictures
+    )
+    expect([...pixels]).toEqual([0, 0, 0, 0])
+  })
+})
+
+describe("shootingOrder", () => {
+  test("from the end nearer the start, so the bed crosses once", () => {
+    expect(shootingOrder(180, [163, 43, 103])).toEqual([163, 103, 43])
+    expect(shootingOrder(0, [163, 43, 103])).toEqual([43, 103, 163])
+  })
+
+  test("from the lower end when the start is as far from both", () => {
+    expect(shootingOrder(103, [163, 43])).toEqual([43, 163])
+  })
+
+  test("no stops, no order", () => {
+    expect(shootingOrder(10, [])).toEqual([])
+  })
+})
+
+describe("jogToward", () => {
+  const limits = { min: 0.01, max: 10 }
+
+  test("at most the longest jog, toward the stop", () => {
+    expect(jogToward(179.7, 163, limits)).toBe(-10)
+    expect(jogToward(43, 103, limits)).toBe(10)
+  })
+
+  test("what is left when that is shorter, to the micrometre", () => {
+    expect(jogToward(169.7, 163, limits)).toBe(-6.7)
+    expect(jogToward(153, 163, limits)).toBe(10)
+  })
+
+  test("nothing once the stop is within the shortest jog", () => {
+    expect(jogToward(163.004, 163, limits)).toBeNull()
+    expect(jogToward(163, 163, limits)).toBeNull()
+    expect(jogToward(162.99, 163, limits)).toBe(0.01)
   })
 })

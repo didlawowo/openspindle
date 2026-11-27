@@ -45,6 +45,11 @@ export type MachineCamera = {
   readonly fov: number
   /** Its whole picture's width over its height. */
   readonly aspect: number
+  /**
+   * Where the spindle stands along the bed's Y, in bed coordinates, for the photos that together
+   * show the whole bed (`bed-photo.ts`); none for a camera that photographs no bed.
+   */
+  readonly stops?: readonly number[]
 }
 
 /**

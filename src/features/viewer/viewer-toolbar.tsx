@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
+  Camera,
   Cuboid,
   Cylinder,
   Layers3,
@@ -28,6 +29,10 @@ import { Toggle } from "@/components/ui/toggle"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import type { ViewMode } from "@/components/workspace/bed-viewer"
 import { keyForViewer } from "@/components/workspace/viewer/setup-arranger"
+import {
+  toggleBedPicture,
+  useBedPicture,
+} from "@/features/bed-photo/bed-picture"
 import { isVisualStyle, useVisualStyle } from "./visual-style"
 
 /** Limits match the viewer's orbit controls, which report wheel zoom through onZoomChange. */
@@ -96,6 +101,7 @@ const isViewMode = (value: unknown): value is ViewMode =>
 
 export function ViewerToolbar({ camera }: { camera: ViewerCamera }) {
   const { t } = useTranslation("viewer")
+  const bedPicture = useBedPicture()
   return (
     <Card
       className="absolute top-1/2 left-4 z-10 -translate-y-1/2 gap-1 p-1"
@@ -179,6 +185,18 @@ export function ViewerToolbar({ camera }: { camera: ViewerCamera }) {
       >
         <LayoutGrid />
       </Toggle>
+      {bedPicture.picture && (
+        <Toggle
+          size="sm"
+          className="size-8"
+          pressed={bedPicture.shown}
+          aria-label={t("toolbar.bedPicture")}
+          title={t("toolbar.bedPicture")}
+          onPressedChange={toggleBedPicture}
+        >
+          <Camera />
+        </Toggle>
+      )}
       <Separator />
       <VisualStyleMenu />
     </Card>

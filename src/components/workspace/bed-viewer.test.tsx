@@ -1,3 +1,4 @@
+import type { BedPicture } from "@/domain/fixtures/bed-photo"
 import { Providers, renderWithProviders } from "@/test/harness"
 import { describe, expect, test, vi } from "vitest"
 import { BedViewer } from "./bed-viewer"
@@ -10,6 +11,7 @@ const calls = {
   setZoom: vi.fn(),
   setStyle: vi.fn(),
   setSharedBed: vi.fn(),
+  setBedPicture: vi.fn(),
   arrange: vi.fn(),
   reveal: vi.fn(),
   dispose: vi.fn(),
@@ -21,7 +23,14 @@ vi.mock("@/components/workspace/viewer/bed-scene", () => ({
   },
 }))
 
-function renderViewer(sharedBed?: boolean) {
+const picture: BedPicture = {
+  area: { min: [0, 0], max: [1, 1] },
+  columns: 1,
+  rows: 1,
+  pixels: new Uint8ClampedArray(4),
+}
+
+function renderViewer(sharedBed?: boolean, bedPicture?: BedPicture | null) {
   return renderWithProviders(
     <BedViewer
       plates={[]}
@@ -33,6 +42,7 @@ function renderViewer(sharedBed?: boolean) {
       resetKey={0}
       zoom={1}
       sharedBed={sharedBed}
+      bedPicture={bedPicture}
     />
   )
 }
@@ -77,5 +87,14 @@ describe("the bed viewer", () => {
     const { unmount } = renderViewer()
     unmount()
     expect(calls.dispose).toHaveBeenCalled()
+  })
+
+  test("draws no bed photo by default, and passes the one it is given on to the scene", () => {
+    calls.setBedPicture.mockClear()
+    renderViewer()
+    expect(calls.setBedPicture).toHaveBeenLastCalledWith(null)
+    calls.setBedPicture.mockClear()
+    renderViewer(false, picture)
+    expect(calls.setBedPicture).toHaveBeenLastCalledWith(picture)
   })
 })

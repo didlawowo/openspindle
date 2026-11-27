@@ -1346,6 +1346,17 @@ exports[`translation resources > the English resources match their recorded text
       "selectToMove": "Select a fixture, the stock or the design to move it.",
       "traceEdges": "The trace follows as many edges as it can.",
     },
+    "bedPhoto": {
+      "cameraSilent": "The machine's camera gave no picture.",
+      "done": "The bed's photo is drawn on the bed.",
+      "drifted": "The spindle moved in X or Z while the bed was photographed.",
+      "failed": "The bed could not be photographed.",
+      "noCamera": "This machine has no camera that photographs the bed.",
+      "noPosition": "The machine does not report where its spindle is.",
+      "otherDevice": "The plate is set up for another device.",
+      "stopped": "Photographing stopped; the bed stays where it is.",
+      "unavailable": "The machine cannot move the bed now.",
+    },
     "editor": {
       "fromFusion": "From Fusion 360: {{origin}}",
       "linesTools": "{{lines}} lines · {{tools}} tools",
@@ -1551,7 +1562,10 @@ exports[`translation resources > the English resources match their recorded text
       "noPlateToCheck": "There is no plate to check.",
       "pcb": "PCB",
       "pcbDescription": "Create operations from KiCad Gerber and Excellon files.",
+      "photographBed": "Photograph the bed",
+      "photographBedDescription": "Parks the spindle, moves the bed under the machine's camera and draws what it sees on the bed, from above.",
       "probing": "Probing",
+      "stopPhotographing": "Stop photographing",
       "workspaceSettings": "Workspace settings",
       "workspaceSettingsDescription": "The project's settings, such as its design rules.",
     },
@@ -2216,6 +2230,7 @@ exports[`translation resources > the English resources match their recorded text
   },
   "viewer": {
     "toolbar": {
+      "bedPicture": "Bed photo",
       "edges": "Shaded Edges",
       "fit": "Fit bed in view",
       "lockView": "Lock the view",
@@ -3580,6 +3595,17 @@ exports[`translation resources > the French resources match their recorded text 
       "selectToMove": "Sélectionnez un montage, la matière ou le dessin pour le déplacer.",
       "traceEdges": "Le tracé suit autant de bords que possible.",
     },
+    "bedPhoto": {
+      "cameraSilent": "La caméra de la machine n’a donné aucune image.",
+      "done": "La photo du plateau est dessinée sur le plateau.",
+      "drifted": "La broche a bougé en X ou en Z pendant les photos du plateau.",
+      "failed": "Le plateau n’a pas pu être photographié.",
+      "noCamera": "Cette machine n’a pas de caméra qui photographie le plateau.",
+      "noPosition": "La machine n’indique pas où se trouve sa broche.",
+      "otherDevice": "La plaque est réglée pour un autre périphérique.",
+      "stopped": "Photos arrêtées ; le plateau reste où il est.",
+      "unavailable": "La machine ne peut pas déplacer le plateau maintenant.",
+    },
     "editor": {
       "fromFusion": "Depuis Fusion 360 : {{origin}}",
       "linesTools": "{{lines}} lignes · {{tools}} outils",
@@ -3785,7 +3811,10 @@ exports[`translation resources > the French resources match their recorded text 
       "noPlateToCheck": "Aucune plaque à vérifier.",
       "pcb": "PCB",
       "pcbDescription": "Créer des opérations à partir de fichiers Gerber et Excellon KiCad.",
+      "photographBed": "Photographier le plateau",
+      "photographBedDescription": "Range la broche, déplace le plateau sous la caméra de la machine et dessine ce qu’elle voit sur le plateau, vu de dessus.",
       "probing": "Palpage",
+      "stopPhotographing": "Arrêter les photos",
       "workspaceSettings": "Réglages de l'espace de travail",
       "workspaceSettingsDescription": "Les réglages du projet, comme ses règles de conception.",
     },
@@ -4450,6 +4479,7 @@ exports[`translation resources > the French resources match their recorded text 
   },
   "viewer": {
     "toolbar": {
+      "bedPicture": "Photo du plateau",
       "edges": "Arêtes ombrées",
       "fit": "Ajuster le plateau à la vue",
       "lockView": "Figer la vue",

@@ -10,6 +10,7 @@ import {
 import { useEffect, useRef, useState } from "react"
 import type { FrameSource } from "@/app/job/frame"
 import { useHost } from "@/platform/host-context"
+import type { BedPicture } from "@/domain/fixtures/bed-photo"
 import { plateLabel } from "@/domain/plate/plate"
 import type {
   ViewerGhost,
@@ -67,6 +68,8 @@ type Props = {
   viewLocked?: boolean
   /** Every plate on one bed, at its own coordinates, instead of one bed each. */
   sharedBed?: boolean
+  /** The bed's picture from the machine's camera, drawn on the bed. */
+  bedPicture?: BedPicture | null
   view: ViewMode
   /** How the solids are drawn; smoothly shaded by default. */
   style?: VisualStyle
@@ -104,6 +107,7 @@ export function BedViewer({
   view,
   viewLocked,
   sharedBed = false,
+  bedPicture = null,
   style = "smooth",
   resetKey,
   zoom,
@@ -236,6 +240,9 @@ export function BedViewer({
   useEffect(() => {
     sceneRef.current?.setSharedBed(sharedBed)
   }, [sharedBed])
+  useEffect(() => {
+    sceneRef.current?.setBedPicture(bedPicture)
+  }, [bedPicture])
   useEffect(() => {
     sceneRef.current?.setStyle(style)
   }, [style])

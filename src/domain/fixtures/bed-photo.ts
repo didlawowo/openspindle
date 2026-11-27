@@ -97,13 +97,6 @@ export function mapPoint(matrix: Matrix3, [x, y]: PlanePoint) {
   return point
 }
 
-/** How many of the photo's pixels cover a square millimetre of the plane at a bed point. */
-export function pixelsPerSquareMillimetre(matrix: Matrix3, [x, y]: PlanePoint) {
-  const w = matrix[6] * x + matrix[7] * y + matrix[8]
-  if (w <= 0) return 0
-  return Math.abs(determinant(matrix) / (w * w * w))
-}
-
 /** Where a bed point is in one of the photos. */
 export type PhotoSample = {
   /** Which photo, by its place in the list given. */
@@ -121,7 +114,7 @@ export type BedMosaic = {
   readonly columns: number
   readonly rows: number
   /** Per cell, row by row: the photo it shows, or −1 when none shows it. */
-  readonly photo: Int8Array
+  readonly photo: Int16Array
   /** Per cell, row by row: the pixel it shows in that photo, X then Y. */
   readonly pixel: Float32Array
 }
@@ -130,8 +123,11 @@ export type BedMosaic = {
 export type BedArea = { readonly min: PlanePoint; readonly max: PlanePoint }
 
 /**
- * Where the photos show a bed point best: in the photo where it covers the most pixels, among
- * those whose picture it is inside. Null when no photo shows it.
+ * Where the photos show a bed point best: in the photo where it is nearest the picture's
+ * centre, among those whose picture it is inside. Photos of a bed that slid under a fixed
+ * camera show a point at nearly the same scale, so the centre decides: there the camera looks
+ * at the point most squarely, and what stands above the plane is shifted least. Null when no
+ * photo shows it.
  */
 export function samplePhotos(
   matrices: readonly Matrix3[],
@@ -139,13 +135,14 @@ export function samplePhotos(
   point: PlanePoint
 ): PhotoSample | null {
   let best: PhotoSample | null = null
-  let density = 0
+  let nearest = Infinity
   for (const [index, matrix] of matrices.entries()) {
+    const photo = photos[index]
     const pixel = mapPoint(matrix, point)
-    if (!pixel || !inside(photos[index], pixel)) continue
-    const here = pixelsPerSquareMillimetre(matrix, point)
-    if (here <= density) continue
-    density = here
+    if (!pixel || !inside(photo, pixel)) continue
+    const here = fromCentre(photo, pixel)
+    if (here >= nearest) continue
+    nearest = here
     best = { photo: index, pixel }
   }
   return best
@@ -163,9 +160,10 @@ export function bedMosaic(
   z = 0
 ): BedMosaic {
   const matrices = photos.map((photo) => bedToPhoto(camera, photo, z))
-  const columns = Math.max(0, Math.ceil((area.max[0] - area.min[0]) / cell))
-  const rows = Math.max(0, Math.ceil((area.max[1] - area.min[1]) / cell))
-  const photo = new Int8Array(columns * rows).fill(-1)
+  const side = cell > 0 ? cell : Infinity
+  const columns = Math.max(0, Math.ceil((area.max[0] - area.min[0]) / side))
+  const rows = Math.max(0, Math.ceil((area.max[1] - area.min[1]) / side))
+  const photo = new Int16Array(columns * rows).fill(-1)
   const pixel = new Float32Array(columns * rows * 2)
   for (let row = 0; row < rows; row++) {
     const y = area.max[1] - (row + 0.5) * cell
@@ -181,6 +179,10 @@ export function bedMosaic(
   }
   return { columns, rows, photo, pixel }
 }
+
+/** How far a pixel is from the middle of its photo, as a share of the photo's half size. */
+const fromCentre = ({ width, height }: BedPhoto, [x, y]: PlanePoint) =>
+  Math.hypot((2 * x) / width - 1, (2 * y) / height - 1)
 
 const inside = ({ width, height }: BedPhoto, [x, y]: PlanePoint) =>
   x >= 0 && x <= width && y >= 0 && y <= height

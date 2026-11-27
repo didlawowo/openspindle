@@ -50,28 +50,26 @@ export function bedToPhoto(
   photo: BedPhoto,
   z = 0
 ): Matrix3 {
-  const shift = ([x, y, pz]: Point3): Point3 => [x, y + photo.spindleY, pz]
-  const eye = shift(camera.position)
-  const forward = unit(minus(shift(camera.target), eye))
+  const forward = unit(minus(camera.target, camera.position))
   const right = unit(cross(forward, [0, 0, 1]))
   const up = cross(right, forward)
   const fov = pictureFov(camera, photo.width / photo.height)
   const focal = photo.height / 2 / Math.tan((fov * Math.PI) / 360)
-  const cx = photo.width / 2
-  const cy = photo.height / 2
-  // A bed point p = (x, y, z) seen from the eye: d = p − eye = x·X + y·Y + (z − eye)·1.
+  // A bed point p = (x, y, z) seen from the eye, which is as far along Y as the spindle:
+  // d = p − eye = x·X + y·Y + (z − eye)·1.
   const column = (d: Point3): Point3 => {
     const depth = dot(d, forward)
     return [
-      cx * depth + focal * dot(d, right),
-      cy * depth - focal * dot(d, up),
+      (photo.width / 2) * depth + focal * dot(d, right),
+      (photo.height / 2) * depth - focal * dot(d, up),
       depth,
     ]
   }
-  const ex = column([1, 0, 0])
-  const ey = column([0, 1, 0])
-  const e0 = column([-eye[0], -eye[1], z - eye[2]])
-  return [ex[0], ey[0], e0[0], ex[1], ey[1], e0[1], ex[2], ey[2], e0[2]]
+  return fromColumns(
+    column([1, 0, 0]),
+    column([0, 1, 0]),
+    column(minus([0, -photo.spindleY, z], camera.position))
+  )
 }
 
 /** The homography from the photo's pixels back to the bed's plane at height `z`. */
@@ -88,12 +86,11 @@ export function photoToBed(
  * photo) or the pixel's ray never meets the plane (from photo to bed).
  */
 export function mapPoint(matrix: Matrix3, [x, y]: PlanePoint) {
-  const w = matrix[6] * x + matrix[7] * y + matrix[8]
+  const [u, v, w] = [0, 3, 6].map((start) =>
+    dot(rowOf(matrix, start), [x, y, 1])
+  )
   if (w <= 0) return null
-  const point: PlanePoint = [
-    (matrix[0] * x + matrix[1] * y + matrix[2]) / w,
-    (matrix[3] * x + matrix[4] * y + matrix[5]) / w,
-  ]
+  const point: PlanePoint = [u / w, v / w]
   return point
 }
 
@@ -137,12 +134,11 @@ export function samplePhotos(
   let best: PhotoSample | null = null
   let nearest = Infinity
   for (const [index, matrix] of matrices.entries()) {
-    const photo = photos[index]
     const pixel = mapPoint(matrix, point)
-    if (!pixel || !inside(photo, pixel)) continue
-    const here = fromCentre(photo, pixel)
-    if (here >= nearest) continue
-    nearest = here
+    if (!pixel) continue
+    const here = fromCentre(photos[index], pixel)
+    if (!(here.edge <= 1 && here.distance < nearest)) continue
+    nearest = here.distance
     best = { photo: index, pixel }
   }
   return best
@@ -160,38 +156,48 @@ export function bedMosaic(
   z = 0
 ): BedMosaic {
   const matrices = photos.map((photo) => bedToPhoto(camera, photo, z))
-  const side = cell > 0 ? cell : Infinity
-  const columns = Math.max(0, Math.ceil((area.max[0] - area.min[0]) / side))
-  const rows = Math.max(0, Math.ceil((area.max[1] - area.min[1]) / side))
-  const photo = new Int16Array(columns * rows).fill(-1)
-  const pixel = new Float32Array(columns * rows * 2)
-  for (let row = 0; row < rows; row++) {
-    const y = area.max[1] - (row + 0.5) * cell
-    for (let column = 0; column < columns; column++) {
-      const x = area.min[0] + (column + 0.5) * cell
-      const sample = samplePhotos(matrices, photos, [x, y])
-      if (!sample) continue
-      const index = row * columns + column
-      photo[index] = sample.photo
-      pixel[index * 2] = sample.pixel[0]
-      pixel[index * 2 + 1] = sample.pixel[1]
-    }
+  const count = (span: number) =>
+    cell > 0 ? Math.max(0, Math.ceil(span / cell)) : 0
+  const columns = count(area.max[0] - area.min[0])
+  const rows = count(area.max[1] - area.min[1])
+  const samples = Array.from({ length: columns * rows }, (_, index) =>
+    samplePhotos(matrices, photos, [
+      area.min[0] + ((index % columns) + 0.5) * cell,
+      area.max[1] - (Math.floor(index / columns) + 0.5) * cell,
+    ])
+  )
+  return {
+    columns,
+    rows,
+    photo: Int16Array.from(samples, (sample) => sample?.photo ?? -1),
+    pixel: Float32Array.from(
+      samples.flatMap((sample) => sample?.pixel ?? [0, 0])
+    ),
   }
-  return { columns, rows, photo, pixel }
 }
 
-/** How far a pixel is from the middle of its photo, as a share of the photo's half size. */
-const fromCentre = ({ width, height }: BedPhoto, [x, y]: PlanePoint) =>
-  Math.hypot((2 * x) / width - 1, (2 * y) / height - 1)
-
-const inside = ({ width, height }: BedPhoto, [x, y]: PlanePoint) =>
-  x >= 0 && x <= width && y >= 0 && y <= height
+/**
+ * Where a pixel is from the middle of its photo, as a share of the photo's half size: how far,
+ * and how far along the axis it is furthest on (1 or less inside the picture).
+ */
+function fromCentre({ width, height }: BedPhoto, [x, y]: PlanePoint) {
+  const across = (2 * x) / width - 1
+  const down = (2 * y) / height - 1
+  return {
+    distance: Math.hypot(across, down),
+    edge: Math.max(Math.abs(across), Math.abs(down)),
+  }
+}
 
 const minus = (a: Point3, b: Point3): Point3 => [
   a[0] - b[0],
   a[1] - b[1],
   a[2] - b[2],
 ]
+
+const scaled = (a: Point3, k: number): Point3 => [a[0] * k, a[1] * k, a[2] * k]
+
+const unit = (a: Point3) => scaled(a, 1 / Math.hypot(...a))
 
 const dot = (a: Point3, b: Point3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
 
@@ -201,30 +207,33 @@ const cross = (a: Point3, b: Point3): Point3 => [
   a[0] * b[1] - a[1] * b[0],
 ]
 
-const unit = (a: Point3): Point3 => {
-  const length = Math.hypot(a[0], a[1], a[2])
-  return [a[0] / length, a[1] / length, a[2] / length]
-}
+/** The matrix whose columns are a, b and c. */
+const fromColumns = (a: Point3, b: Point3, c: Point3): Matrix3 => [
+  a[0],
+  b[0],
+  c[0],
+  a[1],
+  b[1],
+  c[1],
+  a[2],
+  b[2],
+  c[2],
+]
 
-function determinant(m: Matrix3) {
-  return (
-    m[0] * (m[4] * m[8] - m[5] * m[7]) -
-    m[1] * (m[3] * m[8] - m[5] * m[6]) +
-    m[2] * (m[3] * m[7] - m[4] * m[6])
-  )
-}
+/** The row of a matrix that begins at index `start`. */
+const rowOf = (m: Matrix3, start: number): Point3 => [
+  m[start],
+  m[start + 1],
+  m[start + 2],
+]
 
+/** The inverse: the adjugate's columns are the cross products of the rows. */
 function invert(m: Matrix3): Matrix3 {
-  const d = determinant(m)
-  return [
-    (m[4] * m[8] - m[5] * m[7]) / d,
-    (m[2] * m[7] - m[1] * m[8]) / d,
-    (m[1] * m[5] - m[2] * m[4]) / d,
-    (m[5] * m[6] - m[3] * m[8]) / d,
-    (m[0] * m[8] - m[2] * m[6]) / d,
-    (m[2] * m[3] - m[0] * m[5]) / d,
-    (m[3] * m[7] - m[4] * m[6]) / d,
-    (m[1] * m[6] - m[0] * m[7]) / d,
-    (m[0] * m[4] - m[1] * m[3]) / d,
-  ]
+  const [a, b, c] = [rowOf(m, 0), rowOf(m, 3), rowOf(m, 6)]
+  const k = 1 / dot(a, cross(b, c))
+  return fromColumns(
+    scaled(cross(b, c), k),
+    scaled(cross(c, a), k),
+    scaled(cross(a, b), k)
+  )
 }

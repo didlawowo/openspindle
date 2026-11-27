@@ -9,7 +9,14 @@ import {
   mosaicPixels,
   shootingOrder,
 } from "@/domain/fixtures/bed-photo"
-import type { BedArea } from "@/domain/fixtures/bed-photo"
+import { bedObjects, fixtureFootprints } from "@/domain/fixtures/bed-objects"
+import type {
+  BedObject,
+  BedView,
+  FootprintSize,
+} from "@/domain/fixtures/bed-objects"
+import type { BedArea, BedPhoto } from "@/domain/fixtures/bed-photo"
+import type { FixtureKit } from "@/domain/fixtures/fixture-kit"
 import { kitForPlate } from "@/domain/fixtures/catalog"
 import type { Point3 } from "@/domain/primitives"
 import { machineId } from "@/machine/contract"
@@ -35,6 +42,15 @@ const SETTLE_FRAMES = 5
 const FRAME_TIMEOUT_MS = 20000
 /** How far X or Z may read from where the photos began before the bed is taken to have moved otherwise. */
 const DRIFT = 0.05
+
+/** The footprints of the kit's clamps: what is as narrow on the bed holds stock, and is none. */
+function clampSizes(kit: FixtureKit): FootprintSize[] {
+  return kit.fixtures
+    .filter(({ fixture }) => fixture.kind === "clamp")
+    .flatMap(({ fixture }) =>
+      fixtureFootprints(fixture.model.bounds, fixture.solids)
+    )
+}
 
 /** Stopped by the user between two moves. */
 class StoppedError extends Error {}
@@ -141,22 +157,35 @@ export function usePhotographBed() {
       )
       const { min, max } = kit.bed.bounds
       const area: BedArea = { min: [min[0], min[1]], max: [max[0], max[1]] }
-      const mosaic = bedMosaic(
-        camera,
-        pictures.map(({ width, height }, index) => ({
-          width,
-          height,
-          spindleY: photos[index].spindleY,
-        })),
-        area,
-        CELL
+      const taken = pictures.map(({ width, height }, index): BedPhoto => ({
+        width,
+        height,
+        spindleY: photos[index].spindleY,
+      }))
+      const mosaic = bedMosaic(camera, taken, area, CELL)
+      const view: BedView = { mosaic, area, cell: CELL }
+      // The photo is worth keeping even when nothing can be told from it.
+      let objects: readonly BedObject[] = []
+      try {
+        objects = bedObjects(camera, taken, pictures, view, clampSizes(kit))
+      } catch (error) {
+        log.error("Finding what lies on the bed failed", error)
+      }
+      setBedPicture(
+        {
+          area,
+          columns: mosaic.columns,
+          rows: mosaic.rows,
+          pixels: mosaicPixels(mosaic, pictures),
+        },
+        {
+          deviceId: plate.setup.deviceId,
+          camera,
+          photos: taken,
+          view,
+          objects,
+        }
       )
-      setBedPicture({
-        area,
-        columns: mosaic.columns,
-        rows: mosaic.rows,
-        pixels: mosaicPixels(mosaic, pictures),
-      })
       toast.success(t("bedPhoto.done"))
     } catch (error) {
       if (error instanceof StoppedError) {

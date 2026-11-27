@@ -50,6 +50,27 @@ export type MachineCamera = {
    * show the whole bed (`bed-photo.ts`); none for a camera that photographs no bed.
    */
   readonly stops?: readonly number[]
+  /** How the bare bed looks in its photos, to tell what lies on it (`bed-objects.ts`). */
+  readonly shade?: BedShade
+}
+
+/**
+ * How bright the bare bed is in the camera's photos. The camera and the light are fixed to the
+ * frame, so the bare bed is as bright at a given pixel wherever the bed stands, but for the
+ * exposure the camera chose, which the machine's back wall, at the top of every photo, tells.
+ * In log luminance.
+ */
+export type BedShade = {
+  /**
+   * The bare bed's brightness across a photo, as a polynomial of the pixel's place from the
+   * picture's middle, in shares of its width (u) and height (v): the factors of u, v, u², uv
+   * and v².
+   */
+  readonly shading: readonly [number, number, number, number, number]
+  /** The share of the picture's height, from its top, that shows the back wall. */
+  readonly wall: number
+  /** How much brighter than the wall the bare bed is at the picture's middle, per stop. */
+  readonly level: readonly number[]
 }
 
 /**

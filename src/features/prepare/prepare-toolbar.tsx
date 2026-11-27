@@ -4,6 +4,7 @@ import {
   CircleStop,
   CircuitBoard,
   Crosshair,
+  ScanSearch,
   Settings2,
   ShieldCheck,
 } from "lucide-react"
@@ -17,6 +18,7 @@ import {
   useWorkspaceStore,
 } from "@/app/workspace/workspace-context"
 import { usePhotographBed } from "@/features/bed-photo/use-photograph-bed"
+import { usePlaceStock } from "@/features/bed-photo/use-place-stock"
 import { checkPlateDesignRules } from "@/features/design-rules/design-rule-check"
 import { openDialog } from "@/features/shell/dialogs"
 import {
@@ -27,7 +29,7 @@ import { ArrangeTools } from "./arrange/arrange-tools"
 
 /**
  * Tools over the viewer, as icons that say what they do on hover: moving and locking what is
- * selected in it, the Probing and PCB actions, photographing the bed, then checking the selected plate's design rules
+ * selected in it, the Probing and PCB actions, photographing the bed and setting the stock where the photo shows it, then checking the selected plate's design rules
  * and the workspace settings.
  */
 export function PrepareToolbar() {
@@ -37,6 +39,7 @@ export function PrepareToolbar() {
   const workspace = useWorkspaceStore()
   const hasPlate = useWorkspace((state) => selectedPlate(state) !== null)
   const photo = usePhotographBed()
+  const place = usePlaceStock()
   return (
     <Card
       size="sm"
@@ -77,6 +80,14 @@ export function PrepareToolbar() {
             onClick={photo.run}
           >
             {photo.shooting ? <CircleStop /> : <Camera />}
+          </ToolbarButton>
+          <ToolbarButton
+            label={t("toolbar.placeStock")}
+            description={t("toolbar.placeStockDescription")}
+            reason={place.reason}
+            onClick={place.run}
+          >
+            <ScanSearch />
           </ToolbarButton>
           <Separator orientation="vertical" />
           <ToolbarButton

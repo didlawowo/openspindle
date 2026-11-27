@@ -237,10 +237,22 @@ describe("samplePhotos", () => {
   })
 
   test("counts a point on the picture's edge as inside it", () => {
-    // Straight below the eye is the bottom edge of the first photo only.
-    const sample = samplePhotos([matrices[0]], [photos[0]], [0, 0])
-    expect(sample?.photo).toBe(0)
-    expectPixel(sample?.pixel ?? null, [100, 100])
+    // With the identity, a bed point is the pixel itself: exactly on each edge, then past one.
+    const identity: Matrix3 = [1, 0, 0, 0, 1, 0, 0, 0, 1]
+    const edges: PlanePoint[] = [
+      [200, 50],
+      [0, 50],
+      [100, 100],
+      [100, 0],
+    ]
+    for (const pixel of edges) {
+      expect(samplePhotos([identity], [wide], pixel)).toEqual({
+        photo: 0,
+        pixel,
+      })
+    }
+    expect(samplePhotos([identity], [wide], [201, 50])).toBeNull()
+    expect(samplePhotos([identity], [wide], [100, -1])).toBeNull()
   })
 
   test("skips a photo whose picture the point is outside", () => {

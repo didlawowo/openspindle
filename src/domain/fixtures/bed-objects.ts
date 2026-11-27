@@ -79,6 +79,8 @@ const LONGER = 1.4
 const WIDER = 1.5
 /** The share of a rectangle's edge the object must fill for the edge to be the object's. */
 const EDGE_FILL = 0.45
+/** The gaps, in mm, closed in an object before its edges are looked at. */
+const GAP = 2
 
 /**
  * The objects on the bed the photos show: stock, wider than the widest of `fixtures`, then what
@@ -172,7 +174,16 @@ export function objectRectangle(
     }
   )
   // A fixture's slot empties its edges, and nothing is clamped onto a fixture.
-  if (object.kind === "fixture") return boundingRectangle(points)
+  if (object.kind === "fixture") {
+    // Around the cells' middles: half a cell short on every side.
+    const around = boundingRectangle(points)
+    return {
+      centre: around.centre,
+      length: around.length + view.cell,
+      width: around.width + view.cell,
+      angle: around.angle,
+    }
+  }
   return filledRectangle(points)
 }
 
@@ -571,22 +582,27 @@ function filledRectangle(points: readonly PlanePoint[]): BedRectangle {
   const around = boundingRectangle(points)
   const u = around.along
   const v: PlanePoint = [-u[1], u[0]]
+  // Room around the points for the closing, which reaches `GAP` beyond them and back.
+  const margin = GAP + 1
   const grid: Grid = {
-    columns: Math.ceil(around.length) + 2,
-    rows: Math.ceil(around.width) + 2,
+    columns: Math.ceil(around.length) + 2 * margin,
+    rows: Math.ceil(around.width) + 2 * margin,
   }
   const drawn = new Uint8Array(grid.columns * grid.rows)
   for (const [x, y] of points) {
     const dx = x - around.centre[0]
     const dy = y - around.centre[1]
     const column = within(
-      dx * u[0] + dy * u[1] + around.length / 2 + 1,
+      dx * u[0] + dy * u[1] + around.length / 2 + margin,
       grid.columns
     )
-    const row = within(dx * v[0] + dy * v[1] + around.width / 2 + 1, grid.rows)
+    const row = within(
+      dx * v[0] + dy * v[1] + around.width / 2 + margin,
+      grid.rows
+    )
     drawn[row * grid.columns + column] = 1
   }
-  const solid = withoutHoles(closed(drawn, grid, 2), grid)
+  const solid = withoutHoles(closed(drawn, grid, GAP), grid)
   const box = { left: 0, right: grid.columns, top: 0, bottom: grid.rows }
   const filled = (
     columns: readonly [number, number],
@@ -610,8 +626,9 @@ function filledRectangle(points: readonly PlanePoint[]): BedRectangle {
       box.right -= 1
     else break
   }
-  const alongU = (box.left + box.right) / 2 - 1 - around.length / 2
-  const alongV = (box.top + box.bottom) / 2 - 1 - around.width / 2
+  // A point is drawn in the square it falls in, half a millimetre past it either way.
+  const alongU = (box.left + box.right) / 2 - margin - around.length / 2 - 0.5
+  const alongV = (box.top + box.bottom) / 2 - margin - around.width / 2 - 0.5
   return framed(
     {
       minU: alongU - (box.right - box.left) / 2,

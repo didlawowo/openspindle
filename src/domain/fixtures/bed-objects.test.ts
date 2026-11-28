@@ -5,6 +5,7 @@ import {
   fixtureFootprints,
   objectRectangle,
   stockPlace,
+  hiddenEndShift,
 } from "./bed-objects"
 import type { BedObject, BedView, FootprintSize } from "./bed-objects"
 import { bedMosaic, mapPoint, photoToBed } from "./bed-photo"
@@ -533,6 +534,39 @@ describe("stockPlace", () => {
     expect(Math.abs((corner?.[1] ?? 0) - 66)).toBeLessThanOrEqual(1.5)
   })
 
+  const placedBeside = (other: Shape, depth: number) => {
+    const shapes = [other, rectangle([70, 80], 60, 30)]
+    const found = bedObjects(
+      camera,
+      [photo],
+      [render(shapes)],
+      view,
+      emptyFixtures
+    )
+    const block = { width: 60, depth, height: 0 }
+    return stockPlace(camera, [photo], view, found, block)
+  }
+
+  test("takes what lies askew at a piece's end by the bed it covers along the axes", () => {
+    // The grey piece runs from Y 65 to 95; the coloured one, turned 30°, reaches over its back.
+    const askew = rectangle([106, 112], 44, 24, 30, COLOURED)
+    const corner = placedBeside(askew, 38)
+    expect(Math.abs((corner?.[1] ?? 0) - 65)).toBeLessThanOrEqual(1.5)
+  })
+
+  test("takes a piece's end 2 mm from another piece as hidden by it", () => {
+    const behind = rectangle([70, 115], 40, 36, 0, COLOURED)
+    const corner = placedBeside(behind, 38)
+    expect(Math.abs((corner?.[1] ?? 0) - 65)).toBeLessThanOrEqual(1.5)
+  })
+
+  test("keeps a block shallower than the piece by the piece's middle", () => {
+    // The coloured piece lies against the grey one's back: a block 22 mm deep keeps Y 69.
+    const behind = rectangle([70, 113], 40, 36, 0, COLOURED)
+    const corner = placedBeside(behind, 22)
+    expect(Math.abs((corner?.[1] ?? 0) - 69)).toBeLessThanOrEqual(1.5)
+  })
+
   test("sets a block by a piece's front when what lies at its back crosses near half of it", () => {
     // The coloured piece crosses 27 mm of the grey one's 60: by its middle, Y 66.
     const corner = placedUnder(122, 90, 48, 93)
@@ -559,5 +593,52 @@ describe("fixtureFootprints", () => {
     expect(fixtureFootprints(bounds, null)).toEqual([
       { length: 100, width: 100 },
     ])
+  })
+})
+
+describe("hiddenEndShift", () => {
+  // A piece 60 mm along X and 30 mm deep, under a block 40 mm deep: 10 mm short.
+  const piece = { minX: 0, maxX: 60, minY: 0, maxY: 30 }
+  const other = (centre: PlanePoint, length = 60, width = 40, angle = 0) => ({
+    centre,
+    length,
+    width,
+    angle,
+  })
+  const shift = (...others: ReturnType<typeof other>[]) =>
+    hiddenEndShift(piece, 40, others)
+
+  test("moves the block half of what the piece is short by, toward its hidden end", () => {
+    expect(shift(other([30, 50]))).toBe(5)
+    expect(shift(other([30, -20]))).toBe(-5)
+    expect(shift(other([200, 200]), other([30, 50]))).toBe(5)
+  })
+
+  test("moves nothing with no end hidden, with both, or under a block no deeper", () => {
+    expect(shift()).toBe(0)
+    expect(shift(other([30, 50]), other([30, -20]))).toBe(0)
+    expect(hiddenEndShift(piece, 30, [other([30, 50])])).toBe(0)
+    expect(hiddenEndShift(piece, 20, [other([30, 50])])).toBe(0)
+  })
+
+  test("takes an end as hidden by what lies less than 3 mm from it", () => {
+    expect(shift(other([30, 52.5]))).toBe(5)
+    expect(shift(other([30, 53]))).toBe(0)
+  })
+
+  test("takes an end as hidden by what lies across a quarter of it or more", () => {
+    expect(shift(other([65, 50], 40))).toBe(5)
+    expect(shift(other([65.5, 50], 40))).toBe(0)
+    expect(shift(other([-5, 50], 40))).toBe(5)
+    expect(shift(other([-5.5, 50], 40))).toBe(0)
+  })
+
+  test("takes what lies askew by the bed it covers along the axes", () => {
+    // 40 × 20 turned 30°: 44.64 mm along X and 37.32 mm along Y.
+    expect(shift(other([66.82, 50.66], 40, 20, 30))).toBe(5)
+    expect(shift(other([67.9, 50.66], 40, 20, 30))).toBe(0)
+    expect(shift(other([66.82, 51.8], 40, 20, 30))).toBe(0)
+    expect(shift(other([30, 63.5], 60, 40, 90))).toBe(0)
+    expect(shift(other([30, 62], 60, 40, 90))).toBe(5)
   })
 })

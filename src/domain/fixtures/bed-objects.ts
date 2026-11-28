@@ -244,19 +244,41 @@ const NEAR = STOCK_EDGE + 1
 /** The share of a piece's end, along X, something must lie across to hide it. */
 const ACROSS = 0.25
 
-/** The rectangle along the bed's axes around a found one. */
-function axisBounds({ centre, length, width, angle }: BedRectangle) {
-  const turn = (angle * Math.PI) / 180
-  const alongX =
-    Math.abs(Math.cos(turn)) * length + Math.abs(Math.sin(turn)) * width
-  const alongY =
-    Math.abs(Math.sin(turn)) * length + Math.abs(Math.cos(turn)) * width
-  return {
-    minX: centre[0] - alongX / 2,
-    maxX: centre[0] + alongX / 2,
-    minY: centre[1] - alongY / 2,
-    maxY: centre[1] + alongY / 2,
-  }
+/**
+ * How far along Y a block deeper than the piece it is set on moves from the piece's middle,
+ * toward the end of the piece that is hidden: half of what the piece is found short by, when
+ * something else found lies at one end only (`NEAR`), across a share of the piece (`ACROSS`).
+ * Nothing when neither end or both are so: which of two pieces lies over the other is not told.
+ */
+export function hiddenEndShift(
+  piece: {
+    readonly minX: number
+    readonly maxX: number
+    readonly minY: number
+    readonly maxY: number
+  },
+  depth: number,
+  others: readonly BedRectangle[]
+): number {
+  const hidden = (y: number) =>
+    others.some(({ centre, length, width, angle }) => {
+      const turn = (angle * Math.PI) / 180
+      const halfX =
+        (Math.abs(Math.cos(turn)) * length + Math.abs(Math.sin(turn)) * width) /
+        2
+      const halfY =
+        (Math.abs(Math.sin(turn)) * length + Math.abs(Math.cos(turn)) * width) /
+        2
+      const across =
+        Math.min(centre[0] + halfX, piece.maxX) -
+        Math.max(centre[0] - halfX, piece.minX)
+      return (
+        Math.abs(y - centre[1]) < halfY + NEAR &&
+        across >= (piece.maxX - piece.minX) * ACROSS
+      )
+    })
+  const short = Math.max(0, depth - (piece.maxY - piece.minY))
+  return ((Number(hidden(piece.maxY)) - Number(hidden(piece.minY))) * short) / 2
 }
 
 /**
@@ -265,11 +287,8 @@ function axisBounds({ centre, length, width, angle }: BedRectangle) {
  * within `SAME_SIZE` of it and square to the bed (`SQUARE`). `height` is how high the block's
  * top stands above the bed's plane the view shows. The block keeps its own size, and is set by the piece's edge
  * farthest from the camera along X, which the photos show best (the nearer edge shows the
- * piece's side as well), and by its middle along Y. A piece found shorter along Y than the
- * block, with one of its ends where something else found lies (`NEAR`) across a share of it
- * (`ACROSS`), is hidden there: the block is
- * set by its other end, which shows. With both ends so, it stays set by its middle: which of two
- * pieces lies over the other is not told.
+ * piece's side as well), and by its middle along Y, or by the end that shows when the other is
+ * hidden (`hiddenEndShift`).
  */
 export function stockPlace(
   camera: MachineCamera,
@@ -282,49 +301,46 @@ export function stockPlace(
     readonly height: number
   }
 ): PlanePoint | null {
-  const found = objects.map((object) => {
-    const rectangle = objectRectangle(
+  const rectangleOf = (object: BedObject) =>
+    objectRectangle(camera, photos, view, object, stock.height)
+  let place: PlanePoint | null = null
+  let nearest = (stock.width + stock.depth) * SAME_SIZE
+  for (const object of objects) {
+    if (object.kind !== "stock") continue
+    const { centre, length, width, angle } = objectRectangle(
       camera,
       photos,
       view,
       object,
       stock.height
     )
-    return { object, rectangle, bounds: axisBounds(rectangle) }
-  })
-  let place: PlanePoint | null = null
-  let nearest = (stock.width + stock.depth) * SAME_SIZE
-  for (const { object, rectangle, bounds } of found) {
-    if (object.kind !== "stock") continue
     // A block lies along the bed's axes: a piece turned on the bed is none it can be set on.
-    const askew = Math.abs((((rectangle.angle % 90) + 135) % 90) - 45)
+    const askew = Math.abs((((angle % 90) + 135) % 90) - 45)
     if (askew > SQUARE) continue
-    const alongX = bounds.maxX - bounds.minX
-    const alongY = bounds.maxY - bounds.minY
+    const turn = (angle * Math.PI) / 180
+    const alongX =
+      Math.abs(Math.cos(turn)) * length + Math.abs(Math.sin(turn)) * width
+    const alongY =
+      Math.abs(Math.sin(turn)) * length + Math.abs(Math.cos(turn)) * width
     const apart =
       Math.abs(alongX - stock.width) + Math.abs(alongY - stock.depth)
     if (apart > nearest) continue
     nearest = apart
     const farX =
-      camera.position[0] <= rectangle.centre[0]
-        ? bounds.maxX - stock.width
-        : bounds.minX
-    const hidden = (y: number) =>
-      found.some(
-        (other) =>
-          other.object !== object &&
-          other.bounds.minY - NEAR < y &&
-          y < other.bounds.maxY + NEAR &&
-          Math.min(other.bounds.maxX, bounds.maxX) -
-            Math.max(other.bounds.minX, bounds.minX) >=
-            alongX * ACROSS
-      )
-    place = [farX, rectangle.centre[1] - stock.depth / 2]
-    if (alongY >= stock.depth) continue
-    const front = hidden(bounds.minY)
-    const back = hidden(bounds.maxY)
-    if (back && !front) place = [farX, bounds.minY]
-    if (front && !back) place = [farX, bounds.maxY - stock.depth]
+      camera.position[0] <= centre[0]
+        ? centre[0] + alongX / 2 - stock.width
+        : centre[0] - alongX / 2
+    const shift = hiddenEndShift(
+      {
+        minX: centre[0] - alongX / 2,
+        maxX: centre[0] + alongX / 2,
+        minY: centre[1] - alongY / 2,
+        maxY: centre[1] + alongY / 2,
+      },
+      stock.depth,
+      objects.filter((other) => other !== object).map(rectangleOf)
+    )
+    place = [farX, centre[1] - stock.depth / 2 + shift]
   }
   return place
 }

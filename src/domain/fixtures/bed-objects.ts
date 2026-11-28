@@ -237,12 +237,58 @@ const SAME_SIZE = 0.25
 const SQUARE = 3
 
 /**
+ * How near what else is found, in mm, a piece's end along Y is hidden by it: a fixture's cells
+ * end `STOCK_EDGE` short of the stock it lies against.
+ */
+const NEAR = STOCK_EDGE + 1
+/** The share of a piece's end, along X, something must lie across to hide it. */
+const ACROSS = 0.25
+
+/**
+ * How far along Y a block deeper than the piece it is set on moves from the piece's middle,
+ * toward the end of the piece that is hidden: half of what the piece is found short by, when
+ * something else found lies at one end only (`NEAR`), across a share of the piece (`ACROSS`).
+ * Nothing when neither end or both are so: which of two pieces lies over the other is not told.
+ */
+export function hiddenEndShift(
+  piece: {
+    readonly minX: number
+    readonly maxX: number
+    readonly minY: number
+    readonly maxY: number
+  },
+  depth: number,
+  others: readonly BedRectangle[]
+): number {
+  const hidden = (y: number) =>
+    others.some(({ centre, length, width, angle }) => {
+      const turn = (angle * Math.PI) / 180
+      const halfX =
+        (Math.abs(Math.cos(turn)) * length + Math.abs(Math.sin(turn)) * width) /
+        2
+      const halfY =
+        (Math.abs(Math.sin(turn)) * length + Math.abs(Math.cos(turn)) * width) /
+        2
+      const across =
+        Math.min(centre[0] + halfX, piece.maxX) -
+        Math.max(centre[0] - halfX, piece.minX)
+      return (
+        Math.abs(y - centre[1]) < halfY + NEAR &&
+        across >= (piece.maxX - piece.minX) * ACROSS
+      )
+    })
+  const short = Math.max(0, depth - (piece.maxY - piece.minY))
+  return ((Number(hidden(piece.maxY)) - Number(hidden(piece.minY))) * short) / 2
+}
+
+/**
  * Where a block of stock lies on the bed, as the photos show it: the front-left corner, on the
  * bed, of the block set on the found piece of stock nearest its size, or null when none is
  * within `SAME_SIZE` of it and square to the bed (`SQUARE`). `height` is how high the block's
  * top stands above the bed's plane the view shows. The block keeps its own size, and is set by the piece's edge
  * farthest from the camera along X, which the photos show best (the nearer edge shows the
- * piece's side as well), and by its middle along Y.
+ * piece's side as well), and by its middle along Y, or by the end that shows when the other is
+ * hidden (`hiddenEndShift`).
  */
 export function stockPlace(
   camera: MachineCamera,
@@ -255,6 +301,8 @@ export function stockPlace(
     readonly height: number
   }
 ): PlanePoint | null {
+  const rectangleOf = (object: BedObject) =>
+    objectRectangle(camera, photos, view, object, stock.height)
   let place: PlanePoint | null = null
   let nearest = (stock.width + stock.depth) * SAME_SIZE
   for (const object of objects) {
@@ -282,7 +330,17 @@ export function stockPlace(
       camera.position[0] <= centre[0]
         ? centre[0] + alongX / 2 - stock.width
         : centre[0] - alongX / 2
-    place = [farX, centre[1] - stock.depth / 2]
+    const shift = hiddenEndShift(
+      {
+        minX: centre[0] - alongX / 2,
+        maxX: centre[0] + alongX / 2,
+        minY: centre[1] - alongY / 2,
+        maxY: centre[1] + alongY / 2,
+      },
+      stock.depth,
+      objects.filter((other) => other !== object).map(rectangleOf)
+    )
+    place = [farX, centre[1] - stock.depth / 2 + shift]
   }
   return place
 }

@@ -497,7 +497,7 @@ describe("stockPlace", () => {
     expect(place(120, 90)).toBeNull()
   })
 
-  // A narrower coloured piece lies over 6 mm of a grey one's end: the grey is found 34 mm deep.
+  // A coloured piece 40 mm wide, at X `x`, lies over 6 mm of a grey one's end.
   const placedUnder = (over: number, under: number, depth = 40, x = 70) => {
     const shapes = [
       rectangle([x, over], 40, 36, 0, COLOURED),
@@ -531,6 +531,12 @@ describe("stockPlace", () => {
     // The coloured piece crosses 8 mm of the grey one's 60: a block 48 mm deep keeps Y 66.
     const corner = placedUnder(122, 90, 48, 112)
     expect(Math.abs((corner?.[1] ?? 0) - 66)).toBeLessThanOrEqual(1.5)
+  })
+
+  test("sets a block by a piece's front when what lies at its back crosses near half of it", () => {
+    // The coloured piece crosses 27 mm of the grey one's 60: by its middle, Y 66.
+    const corner = placedUnder(122, 90, 48, 93)
+    expect(Math.abs((corner?.[1] ?? 0) - 70)).toBeLessThanOrEqual(1.5)
   })
 })
 

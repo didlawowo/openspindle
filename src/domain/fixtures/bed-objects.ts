@@ -236,13 +236,33 @@ const SAME_SIZE = 0.25
 /** How far from the bed's axes, in degrees, a piece may lie and a block still be set on it. */
 const SQUARE = 3
 
+/** How near what else is found, in mm, a piece's end along Y is hidden by it. */
+const NEAR = 2
+
+/** The rectangle along the bed's axes around a found one. */
+function axisBounds({ centre, length, width, angle }: BedRectangle) {
+  const turn = (angle * Math.PI) / 180
+  const alongX =
+    Math.abs(Math.cos(turn)) * length + Math.abs(Math.sin(turn)) * width
+  const alongY =
+    Math.abs(Math.sin(turn)) * length + Math.abs(Math.cos(turn)) * width
+  return {
+    minX: centre[0] - alongX / 2,
+    maxX: centre[0] + alongX / 2,
+    minY: centre[1] - alongY / 2,
+    maxY: centre[1] + alongY / 2,
+  }
+}
+
 /**
  * Where a block of stock lies on the bed, as the photos show it: the front-left corner, on the
  * bed, of the block set on the found piece of stock nearest its size, or null when none is
  * within `SAME_SIZE` of it and square to the bed (`SQUARE`). `height` is how high the block's
  * top stands above the bed's plane the view shows. The block keeps its own size, and is set by the piece's edge
  * farthest from the camera along X, which the photos show best (the nearer edge shows the
- * piece's side as well), and by its middle along Y.
+ * piece's side as well), and by its middle along Y. A piece found shorter along Y than the
+ * block, with one of its ends where something else found lies (`NEAR`), is hidden there: the block is
+ * set by its other end, which shows.
  */
 export function stockPlace(
   camera: MachineCamera,
@@ -255,34 +275,48 @@ export function stockPlace(
     readonly height: number
   }
 ): PlanePoint | null {
-  let place: PlanePoint | null = null
-  let nearest = (stock.width + stock.depth) * SAME_SIZE
-  for (const object of objects) {
-    if (object.kind !== "stock") continue
-    const { centre, length, width, angle } = objectRectangle(
+  const found = objects.map((object) => {
+    const rectangle = objectRectangle(
       camera,
       photos,
       view,
       object,
       stock.height
     )
+    return { object, rectangle, bounds: axisBounds(rectangle) }
+  })
+  let place: PlanePoint | null = null
+  let nearest = (stock.width + stock.depth) * SAME_SIZE
+  for (const { object, rectangle, bounds } of found) {
+    if (object.kind !== "stock") continue
     // A block lies along the bed's axes: a piece turned on the bed is none it can be set on.
-    const askew = Math.abs((((angle % 90) + 135) % 90) - 45)
+    const askew = Math.abs((((rectangle.angle % 90) + 135) % 90) - 45)
     if (askew > SQUARE) continue
-    const turn = (angle * Math.PI) / 180
-    const alongX =
-      Math.abs(Math.cos(turn)) * length + Math.abs(Math.sin(turn)) * width
-    const alongY =
-      Math.abs(Math.sin(turn)) * length + Math.abs(Math.cos(turn)) * width
+    const alongX = bounds.maxX - bounds.minX
+    const alongY = bounds.maxY - bounds.minY
     const apart =
       Math.abs(alongX - stock.width) + Math.abs(alongY - stock.depth)
     if (apart > nearest) continue
     nearest = apart
     const farX =
-      camera.position[0] <= centre[0]
-        ? centre[0] + alongX / 2 - stock.width
-        : centre[0] - alongX / 2
-    place = [farX, centre[1] - stock.depth / 2]
+      camera.position[0] <= rectangle.centre[0]
+        ? bounds.maxX - stock.width
+        : bounds.minX
+    const hidden = (y: number) =>
+      found.some(
+        (other) =>
+          other.object !== object &&
+          other.bounds.minY - NEAR < y &&
+          y < other.bounds.maxY + NEAR &&
+          other.bounds.minX < bounds.maxX &&
+          bounds.minX < other.bounds.maxX
+      )
+    place = [farX, rectangle.centre[1] - stock.depth / 2]
+    if (alongY >= stock.depth) continue
+    const front = hidden(bounds.minY)
+    const back = hidden(bounds.maxY)
+    if (back && !front) place = [farX, bounds.minY]
+    if (front && !back) place = [farX, bounds.maxY - stock.depth]
   }
   return place
 }

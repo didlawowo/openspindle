@@ -1,7 +1,9 @@
+import { bedToPhoto, mapPoint } from "./bed-photo"
 import type {
   BedArea,
   BedMosaic,
   BedPhoto,
+  Matrix3,
   PhotoPixels,
   PlanePoint,
 } from "./bed-photo"
@@ -32,8 +34,8 @@ export type FootprintSize = { readonly length: number; readonly width: number }
 
 /**
  * Something on the bed: stock when it is wider than the fixtures that hold stock, a fixture
- * when it is as narrow as one. Its cells are those of the view that show it, by their index
- * (row · columns + column).
+ * when it is as narrow as one. Its cells are those of the view that show it and its holes
+ * smaller than the least piece of stock, by their index (row · columns + column).
  */
 export type BedObject = {
   readonly kind: "stock" | "fixture"
@@ -83,6 +85,13 @@ export function fixtureFootprints(
 const BRIGHTER = 0.3
 /** The saturation (0 to 1) from which a cell is coloured, as the bare bed is not. */
 const COLOURED = 0.2
+/**
+ * The saturation from which a cell beside coloured ones is coloured as they are: a coloured
+ * piece's edge fades into what lies beside it over the few millimetres a pixel covers there.
+ */
+const FAINT = 0.12
+/** How far from coloured cells, in mm, a faintly coloured one is still the piece's edge. */
+const FADE = 4
 /** The channel value from which a pixel is burnt out: brighter than the camera could tell. */
 const BURNT = 250
 /** How far from the level the back wall gives a cell may be and still be bare bed, in log. */
@@ -134,20 +143,24 @@ export function bedObjects(
     grid,
     radius(SPECK)
   )
-  const coloured = majority(
-    look.coloured,
-    grid,
-    Math.round(radius(COLOUR_RADIUS))
+  const vivid = majority(look.coloured, grid, Math.round(radius(COLOUR_RADIUS)))
+  const nearVivid = dilated(vivid, grid, radius(FADE))
+  const coloured = vivid.map((on, cell) =>
+    on || (look.faint[cell] && nearVivid[cell]) ? 1 : 0
   )
   const widest = Math.max(0, ...fixtures.map(({ width }) => width))
   const wide = radius(widest / 2 + 1)
+  // A piece's holes are the piece's when they are smaller than the least piece of stock: pockets, and the
+  // marks that show none of its colour. A wider one may be bare bed between pieces that
+  // clamps join, or another piece lying on this one.
   const stock = [true, false].flatMap((colour) => {
     const kind = found.map((on, cell) =>
       on && (coloured[cell] === 1) === colour ? 1 : 0
     )
-    return components(opened(kind, grid, wide), grid).filter(
-      (cells) => cells.length >= count(STOCK_AREA)
-    )
+    return components(
+      opened(withoutHoles(kind, grid, count(STOCK_AREA)), grid, wide),
+      grid
+    ).filter((cells) => cells.length >= count(STOCK_AREA))
   })
   const taken = new Uint8Array(columns * rows)
   for (const cells of stock) for (const cell of cells) taken[cell] = 1
@@ -288,16 +301,71 @@ function cellCentres(cells: Uint32Array, view: BedView): PlanePoint[] {
  */
 
 /** Per cell of the view: whether it shows an object, and whether it is coloured (1 or 0). */
-type CellLooks = { readonly object: Uint8Array; readonly coloured: Uint8Array }
+type CellLooks = {
+  readonly object: Uint8Array
+  readonly coloured: Uint8Array
+  /** Whether the cell is at least faintly coloured (`FAINT`). */
+  readonly faint: Uint8Array
+}
 
 /** The log of a pixel's luminance, its channels taken as the camera's gamma encodes them. */
 const logLuminance = (red: number, green: number, blue: number) =>
   Math.log(((red + green + blue) / 765) ** 2.2 + 1e-3)
 
+/** A pixel's look: whether it is burnt out, and how saturated its colour is, from 0 to 1. */
+function pixelLook(red: number, green: number, blue: number) {
+  const brightest = Math.max(red, green, blue)
+  return {
+    burnt: brightest > BURNT,
+    saturation:
+      (brightest - Math.min(red, green, blue)) / Math.max(brightest, 1),
+  }
+}
+
+/** Where a pixel's channels start in a picture's data. */
+const pixelStart = (picture: PhotoPixels, u: number, v: number) =>
+  (within(v, picture.height) * picture.width + within(u, picture.width)) * 4
+
+/**
+ * How saturated a bed point is in another photo than the one that burnt it out: glare lies
+ * elsewhere on a piece once the bed has slid under the light, so a photo taken at another stop
+ * shows the colour. The photo that shows the point nearest its picture's middle decides; 0
+ * when every photo that shows the point burnt it out.
+ */
+function saturationElsewhere(
+  matrices: readonly Matrix3[],
+  pictures: readonly PhotoPixels[],
+  point: PlanePoint,
+  burntIn: number
+) {
+  let saturation = 0
+  let nearest = Infinity
+  matrices.forEach((matrix, index) => {
+    const picture = pictures.at(index)
+    const pixel = index === burntIn ? null : mapPoint(matrix, point)
+    if (!picture || !pixel) return
+    const [u, v] = pixel
+    if (u < 0 || v < 0 || u >= picture.width || v >= picture.height) return
+    const from = pixelStart(picture, u, v)
+    const look = pixelLook(
+      picture.data[from],
+      picture.data[from + 1],
+      picture.data[from + 2]
+    )
+    const away = Math.hypot(u / picture.width - 0.5, v / picture.height - 0.5)
+    if (look.burnt || away >= nearest) return
+    nearest = away
+    saturation = look.saturation
+  })
+  return saturation
+}
+
 /**
  * How much brighter than the bare bed each cell is, per photo levelled on the bare bed that
  * photo shows, and how coloured: a cell shows an object when it is brighter than the bare bed
- * by `BRIGHTER`, burnt out, or coloured.
+ * by `BRIGHTER`, burnt out, or coloured. A burnt-out pixel tells too little colour: the cell's
+ * is then the stronger of its own and the one another photo shows there
+ * (`saturationElsewhere`).
  */
 function cellLooks(
   camera: MachineCamera,
@@ -311,21 +379,29 @@ function cellLooks(
   const above = new Float32Array(cells)
   const burnt = new Uint8Array(cells)
   const coloured = new Uint8Array(cells)
+  const faint = new Uint8Array(cells)
+  const matrices = photos.map((photo) => bedToPhoto(camera, photo))
   for (let cell = 0; cell < cells; cell++) {
     const picture = pictures.at(mosaic.photo[cell])
     if (mosaic.photo[cell] < 0 || !picture) continue
     const u = mosaic.pixel[cell * 2]
     const v = mosaic.pixel[cell * 2 + 1]
-    const from =
-      (within(v, picture.height) * picture.width + within(u, picture.width)) * 4
+    const from = pixelStart(picture, u, v)
     const [red, green, blue] = picture.data.subarray(from, from + 3)
-    const brightest = Math.max(red, green, blue)
-    burnt[cell] = brightest > BURNT ? 1 : 0
-    coloured[cell] =
-      (brightest - Math.min(red, green, blue)) / Math.max(brightest, 1) >
-      COLOURED
-        ? 1
-        : 0
+    const look = pixelLook(red, green, blue)
+    const washedOut = look.burnt && look.saturation <= COLOURED
+    const elsewhere = washedOut
+      ? saturationElsewhere(
+          matrices,
+          pictures,
+          cellCentres(Uint32Array.of(cell), view)[0],
+          mosaic.photo[cell]
+        )
+      : 0
+    const saturation = Math.max(look.saturation, elsewhere)
+    burnt[cell] = look.burnt ? 1 : 0
+    coloured[cell] = saturation > COLOURED ? 1 : 0
+    faint[cell] = saturation > FAINT ? 1 : 0
     above[cell] =
       logLuminance(red, green, blue) -
       bareBed(shade, u / picture.width - 0.5, v / picture.height - 0.5)
@@ -351,7 +427,7 @@ function cellLooks(
     const brighter = above[cell] - levels[photo] > BRIGHTER
     object[cell] = brighter || burnt[cell] || coloured[cell] ? 1 : 0
   }
-  return { object, coloured }
+  return { object, coloured, faint }
 }
 
 /** The pixel a continuous coordinate falls in, among `count`. */
@@ -661,12 +737,34 @@ function framed(
 }
 
 /**
- * The rectangle points fill to its edges: the least around them, drawn in millimetre squares
- * with its gaps closed and its holes filled, then each edge moved in while the points fill less
- * than `EDGE_FILL` of it.
+ * How much more of a turned rectangle than of one along the bed's axes points must fill for
+ * the turned one to be theirs.
+ */
+const TURNED = 0.01
+
+/**
+ * The rectangle points fill to its edges: along the bed's axes, unless they fill more
+ * (`TURNED`) of one along the sides of the least rectangle around them. A few points off a
+ * piece that lies along the bed, as a clamp over its corner, turn the least rectangle but not
+ * the piece.
  */
 function filledRectangle(points: readonly PlanePoint[]): BedRectangle {
-  const around = boundingRectangle(points)
+  const turned = filledWithin(points, boundingRectangle(points))
+  const straight = filledWithin(points, framed(spans(points, [1, 0]), [1, 0]))
+  return turned.fill > straight.fill + TURNED
+    ? turned.rectangle
+    : straight.rectangle
+}
+
+/**
+ * The rectangle points fill to its edges within one around them, and the share of it they
+ * fill: the points drawn in millimetre squares with their gaps closed and their holes filled,
+ * then each edge moved in while the points fill less than `EDGE_FILL` of it.
+ */
+function filledWithin(
+  points: readonly PlanePoint[],
+  around: Framed
+): { readonly rectangle: BedRectangle; readonly fill: number } {
   const u = around.along
   const v: PlanePoint = [-u[1], u[0]]
   // Room around the points for the closing, which reaches `GAP` beyond them and back.
@@ -716,7 +814,7 @@ function filledRectangle(points: readonly PlanePoint[]): BedRectangle {
   // A point is drawn in the square it falls in, half a millimetre past it either way.
   const alongU = (box.left + box.right) / 2 - margin - around.length / 2 - 0.5
   const alongV = (box.top + box.bottom) / 2 - margin - around.width / 2 - 0.5
-  return framed(
+  const rectangle = framed(
     {
       minU: alongU - (box.right - box.left) / 2,
       maxU: alongU + (box.right - box.left) / 2,
@@ -726,23 +824,34 @@ function filledRectangle(points: readonly PlanePoint[]): BedRectangle {
     u,
     around.centre
   )
+  return {
+    rectangle,
+    fill: filled([box.left, box.right], [box.top, box.bottom]),
+  }
 }
 
-/** The mask with the cells it encloses: all but those reached from the grid's edge. */
-function withoutHoles(mask: Uint8Array, grid: Grid): Uint8Array {
+/**
+ * The mask with the cells it encloses, all but those reached from the grid's edge: every hole,
+ * or those of fewer than `fewerThan` cells.
+ */
+function withoutHoles(
+  mask: Uint8Array,
+  grid: Grid,
+  fewerThan = Infinity
+): Uint8Array {
   const { columns, rows } = grid
-  const edge = mask.map((on, cell) => {
+  const onEdge = (cell: number) => {
     const column = cell % columns
     const row = Math.floor(cell / columns)
-    const onEdge =
+    return (
       column === 0 || row === 0 || column === columns - 1 || row === rows - 1
-    return !on && onEdge ? 1 : 0
-  })
-  const outside = new Uint8Array(mask.length)
+    )
+  }
+  const filled = Uint8Array.from(mask)
   const empty = mask.map((on) => (on ? 0 : 1))
   for (const group of components(empty, grid)) {
-    if (!group.some((cell) => edge[cell])) continue
-    for (const cell of group) outside[cell] = 1
+    if (group.length >= fewerThan || group.some(onEdge)) continue
+    for (const cell of group) filled[cell] = 1
   }
-  return outside.map((out) => (out ? 0 : 1))
+  return filled
 }

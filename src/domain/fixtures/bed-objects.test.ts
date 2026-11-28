@@ -331,6 +331,136 @@ describe("bedObjects", () => {
       seen.add(index)
     }
   })
+
+  test("takes the colour of a burnt-out piece from another photo", () => {
+    const photoA: BedPhoto = { width: 640, height: 480, spindleY: 100 }
+    const photoB: BedPhoto = { width: 640, height: 480, spindleY: 80 }
+    const camera2: MachineCamera = {
+      position: camera.position,
+      target: camera.target,
+      fov: camera.fov,
+      aspect: camera.aspect,
+      stops: [100, 80],
+      shade: {
+        shading: [0, 0, 0, 0, 0],
+        wall: 0.04,
+        level: [LEVEL, LEVEL],
+      },
+    }
+    const view2: BedView = {
+      mosaic: bedMosaic(camera2, [photoA, photoB], area, cell),
+      area,
+      cell,
+    }
+
+    const renderPhoto = (
+      bedPhoto: BedPhoto,
+      shapes: readonly Shape[],
+      gain = 1
+    ): PhotoPixels => {
+      const data = new Uint8ClampedArray(bedPhoto.width * bedPhoto.height * 4)
+      const matrices = new Map<number, ReturnType<typeof photoToBed>>()
+
+      for (const shape of shapes) {
+        if (!matrices.has(shape.height)) {
+          matrices.set(
+            shape.height,
+            photoToBed(camera2, bedPhoto, shape.height)
+          )
+        }
+      }
+
+      for (let j = 0; j < bedPhoto.height; j++) {
+        for (let i = 0; i < bedPhoto.width; i++) {
+          const at = (j * bedPhoto.width + i) * 4
+          data[at + 3] = 255
+
+          let colour: readonly [number, number, number] = BARE
+
+          if (j < 24) {
+            colour = WALL
+          } else {
+            for (const shape of shapes) {
+              const matrix = matrices.get(shape.height)
+              if (!matrix) continue
+              const point = mapPoint(matrix, [i + 0.5, j + 0.5])
+              if (point && insideRotatedRectangle(point, shape)) {
+                colour = shape.colour
+                break
+              }
+            }
+          }
+
+          data[at] = Math.round(colour[0] * gain)
+          data[at + 1] = Math.round(colour[1] * gain)
+          data[at + 2] = Math.round(colour[2] * gain)
+        }
+      }
+
+      return { width: bedPhoto.width, height: bedPhoto.height, data }
+    }
+
+    const greyPiece = rectangle([50, 100], 40, 40)
+    const burntPiece = rectangle([90, 100], 40, 40, 0, [255, 255, 255])
+    const colouredPiece = rectangle([90, 100], 40, 40, 0, COLOURED)
+
+    const pictures = [
+      renderPhoto(photoA, [greyPiece, burntPiece]),
+      renderPhoto(photoB, [greyPiece, colouredPiece]),
+    ]
+
+    const objects = bedObjects(
+      camera2,
+      [photoA, photoB],
+      pictures,
+      view2,
+      emptyFixtures
+    )
+
+    expect(objects).toHaveLength(2)
+    expect(objects.every((object) => object.kind === "stock")).toBe(true)
+  })
+
+  test("fills the holes of a piece no stock would fit in", () => {
+    const pastille = rectangle([70, 100], 30, 30, 0, GREY)
+    const piece = rectangle([70, 100], 80, 60, 0, COLOURED)
+
+    const pictures = [render([pastille, piece])]
+    const objects = bedObjects(camera, [photo], pictures, view, emptyFixtures)
+
+    expect(objects).toHaveLength(1)
+    expect(objects[0]?.kind).toBe("stock")
+    expect(firstObject(objects).cells.length).toBeGreaterThanOrEqual(4500)
+  })
+
+  test("keeps a plain piece lying on a coloured one as stock", () => {
+    // 1600 mm²: a hole a piece of stock fits in is not the coloured piece's.
+    const pastille = rectangle([70, 100], 40, 40, 0, GREY)
+    const piece = rectangle([70, 100], 100, 80, 0, COLOURED)
+
+    const pictures = [render([pastille, piece])]
+    const objects = bedObjects(camera, [photo], pictures, view, emptyFixtures)
+
+    expect(objects).toHaveLength(2)
+    expect(objects.every((object) => object.kind === "stock")).toBe(true)
+    // The coloured piece is 8000 mm² without the 1600 the plain one hides.
+    const largest = Math.max(...objects.map((object) => object.cells.length))
+    expect(largest).toBeLessThan(7000)
+  })
+
+  test("takes the faded edge of a coloured piece as the piece's", () => {
+    const piece = rectangle([70, 100], 60, 40, 0, COLOURED)
+    const band = rectangle([102, 100], 4, 40, 0, [200, 190, 170])
+
+    const pictures = [render([piece, band])]
+    const objects = bedObjects(camera, [photo], pictures, view, emptyFixtures)
+
+    expect(objects).toHaveLength(1)
+    expect(objects[0]?.kind).toBe("stock")
+
+    const rect = objectRectangle(camera, [photo], view, firstObject(objects), 0)
+    expect(Math.abs(rect.length - 64)).toBeLessThanOrEqual(1.5)
+  })
 })
 
 describe("stockPlace", () => {

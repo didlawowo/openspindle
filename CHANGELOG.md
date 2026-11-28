@@ -4,6 +4,12 @@ Every notable change to OpenSpindle, newest first. The project follows
 [semantic versioning](https://semver.org/) and
 [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [0.6.1] — 2026-11-28
+
+### Fixes
+
+- *(prepare)* A burnt-out piece is set where the photo shows it (#58)
+
 ## [0.6.0] — 2026-11-27
 
 ### Features

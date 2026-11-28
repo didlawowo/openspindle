@@ -496,6 +496,36 @@ describe("stockPlace", () => {
   test("sets nothing when no piece is near the block's size", () => {
     expect(place(120, 90)).toBeNull()
   })
+
+  // A narrower coloured piece lies over 6 mm of a grey one's end: the grey is found 34 mm deep.
+  const placedUnder = (over: number, under: number) => {
+    const shapes = [
+      rectangle([70, over], 40, 36, 0, COLOURED),
+      rectangle([70, under], 60, 40),
+    ]
+    const found = bedObjects(
+      camera,
+      [photo],
+      [render(shapes)],
+      view,
+      emptyFixtures
+    )
+    const block = { width: 60, depth: 40, height: 0 }
+    return stockPlace(camera, [photo], view, found, block)
+  }
+
+  test("sets a block by a piece's front when another piece hides its back", () => {
+    // The grey piece runs from Y 70 to 110, the coloured one from 104: by its middle, Y 67.
+    const corner = placedUnder(122, 90)
+    expect(Math.abs((corner?.[1] ?? 0) - 70)).toBeLessThanOrEqual(1.5)
+    expect(Math.abs((corner?.[0] ?? 0) - 40)).toBeLessThanOrEqual(2)
+  })
+
+  test("sets a block by a piece's back when another piece hides its front", () => {
+    // The grey piece runs from Y 90 to 130, the coloured one to 96: by its middle, Y 93.
+    const corner = placedUnder(78, 110)
+    expect(Math.abs((corner?.[1] ?? 0) - 90)).toBeLessThanOrEqual(1.5)
+  })
 })
 
 describe("fixtureFootprints", () => {

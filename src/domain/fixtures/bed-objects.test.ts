@@ -498,9 +498,9 @@ describe("stockPlace", () => {
   })
 
   // A narrower coloured piece lies over 6 mm of a grey one's end: the grey is found 34 mm deep.
-  const placedUnder = (over: number, under: number) => {
+  const placedUnder = (over: number, under: number, depth = 40, x = 70) => {
     const shapes = [
-      rectangle([70, over], 40, 36, 0, COLOURED),
+      rectangle([x, over], 40, 36, 0, COLOURED),
       rectangle([70, under], 60, 40),
     ]
     const found = bedObjects(
@@ -510,7 +510,7 @@ describe("stockPlace", () => {
       view,
       emptyFixtures
     )
-    const block = { width: 60, depth: 40, height: 0 }
+    const block = { width: 60, depth, height: 0 }
     return stockPlace(camera, [photo], view, found, block)
   }
 
@@ -525,6 +525,12 @@ describe("stockPlace", () => {
     // The grey piece runs from Y 90 to 130, the coloured one to 96: by its middle, Y 93.
     const corner = placedUnder(78, 110)
     expect(Math.abs((corner?.[1] ?? 0) - 90)).toBeLessThanOrEqual(1.5)
+  })
+
+  test("keeps a block by a piece's middle when what lies at its end hardly crosses it", () => {
+    // The coloured piece crosses 8 mm of the grey one's 60: a block 48 mm deep keeps Y 66.
+    const corner = placedUnder(122, 90, 48, 112)
+    expect(Math.abs((corner?.[1] ?? 0) - 66)).toBeLessThanOrEqual(1.5)
   })
 })
 

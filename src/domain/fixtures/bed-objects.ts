@@ -236,8 +236,13 @@ const SAME_SIZE = 0.25
 /** How far from the bed's axes, in degrees, a piece may lie and a block still be set on it. */
 const SQUARE = 3
 
-/** How near what else is found, in mm, a piece's end along Y is hidden by it. */
-const NEAR = 2
+/**
+ * How near what else is found, in mm, a piece's end along Y is hidden by it: a fixture's cells
+ * end `STOCK_EDGE` short of the stock it lies against.
+ */
+const NEAR = STOCK_EDGE + 1
+/** The share of a piece's end, along X, something must lie across to hide it. */
+const ACROSS = 0.25
 
 /** The rectangle along the bed's axes around a found one. */
 function axisBounds({ centre, length, width, angle }: BedRectangle) {
@@ -261,8 +266,10 @@ function axisBounds({ centre, length, width, angle }: BedRectangle) {
  * top stands above the bed's plane the view shows. The block keeps its own size, and is set by the piece's edge
  * farthest from the camera along X, which the photos show best (the nearer edge shows the
  * piece's side as well), and by its middle along Y. A piece found shorter along Y than the
- * block, with one of its ends where something else found lies (`NEAR`), is hidden there: the block is
- * set by its other end, which shows.
+ * block, with one of its ends where something else found lies (`NEAR`) across a share of it
+ * (`ACROSS`), is hidden there: the block is
+ * set by its other end, which shows. With both ends so, it stays set by its middle: which of two
+ * pieces lies over the other is not told.
  */
 export function stockPlace(
   camera: MachineCamera,
@@ -308,8 +315,9 @@ export function stockPlace(
           other.object !== object &&
           other.bounds.minY - NEAR < y &&
           y < other.bounds.maxY + NEAR &&
-          other.bounds.minX < bounds.maxX &&
-          bounds.minX < other.bounds.maxX
+          Math.min(other.bounds.maxX, bounds.maxX) -
+            Math.max(other.bounds.minX, bounds.minX) >=
+            alongX * ACROSS
       )
     place = [farX, rectangle.centre[1] - stock.depth / 2]
     if (alongY >= stock.depth) continue

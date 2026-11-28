@@ -4,6 +4,12 @@ Every notable change to OpenSpindle, newest first. The project follows
 [semantic versioning](https://semver.org/) and
 [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [0.6.2] — 2026-11-28
+
+### Fixes
+
+- *(prepare)* Stock partly hidden by another piece is set by the end that shows (#59)
+
 ## [0.6.1] — 2026-11-28
 
 ### Fixes
